@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FunGrow Pendidikan - Pro Platform</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+        :root {
+            --bg: #0f172a; --surface: rgba(30,41,59,0.7); --card: rgba(51,65,85,0.4);
+            --text: #e2e8f0; --accent: #6366f1; --accent2: #a78bfa; --border: rgba(148,163,184,0.1);
+        }
+        .glass { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); }
+        .bubble-left { border-radius: 4px 18px 18px 18px; background: var(--card); }
+        .bubble-right { border-radius: 18px 4px 18px 18px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+        .animate-fade { animation: fadeIn 0.3s ease both; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+    </style>
+</head>
+<body class="h-full flex flex-col" style="background:var(--bg); color:var(--text)">
+
+<div id="app" class="h-full flex flex-col overflow-hidden"></div>
+
+<div id="global-modal" class="modal-overlay" onclick="if(event.target==this) closeModal()">
+    <div id="modal-content" class="w-full max-w-sm"></div>
+</div>
+
+<script>
+    // ========== 1. KONFIGURASI (SESUAIKAN DISINI) ==========
+    const BACKEND_URL = "https://web-production-7c87d.up.railway.app"; // Link Railway Kamu
+    const firebaseConfig = {
+        apiKey: "AIzaSyAdkHAiA_wdYkIJNL-bIhACX8du6V6f3Xk",
+        authDomain: "funnn-4161a.firebaseapp.com",
+        projectId: "funnn-4161a",
+        storageBucket: "funnn-4161a.firebasestorage.app",
+        messagingSenderId: "211376689494",
+        appId: "1:211376689494:web:99359a0f45810fae7b06f7"
+    };
+
+    // ========== 2. INITIALIZE FIREBASE ==========
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const COURSES = [
+        { id: 'mo', name: 'Manajemen Operasional', icon: '⚙️' },
+        { id: 'pk', name: 'Perilaku Konsumen', icon: '🧠' },
+        { id: 'ms', name: 'Manajemen Strategi', icon: '🎯' },
+        { id: 'sim', name: 'Sistem Informasi Manajemen', icon: '💻' }
+    ];
+
+    let STATE = {
+        currentUser: null, screen: 'loading',
+        currentCourse: null, chats: []
+    };
+
+    // ========== 3. AUTH LOGIC ==========
+    auth.onAuthStateChanged(user => {
+        STATE.currentUser = user;
+        STATE.screen = user ? 'dashboard' : 'login';
+        render();
+    });
+
+    async function handleLogin() {
+        const e = document.getElementById('email').value, p = document.getElementById('pass').value;
+        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { alert("Login Gagal: " + err.message); }
+    }
+
+    // ========== 4. RENDER ENGINE ==========
+    function render() {
+        const app = document.getElementById('app');
+        if (STATE.screen === 'login') {
+            app.innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center p-6 animate-fade">
+                <div class="glass p-8 w-full max-w-sm rounded-[2rem] text-center shadow-2xl">
+                    <div class="text-5xl mb-4">🎓</div>
+                    <h1 class="text-3xl font-bold mb-1" style="font-family:Outfit">FunGrow</h1>
+                    <p class="text-xs opacity-50 mb-8">Platform Pendidikan Cerdas</p>
+                    <input id="email" type="email" placeholder="Email Mahasiswa" class="w-full p-4 mb-4 rounded-2xl bg-white/5 border border-white/10 outline-none focus:border-indigo-500 text-sm">
+                    <input id="pass" type="password" placeholder="Password" class="w-full p-4 mb-8 rounded-2xl bg-white/5 border border-white/10 outline-none focus:border-indigo-500 text-sm">
+                    <button onclick="handleLogin()" class="w-full py-4 bg-indigo-600 rounded-2xl font-bold shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform">MASUK</button>
+                </div>
+            </div>`;
+        } else if (STATE.screen === 'dashboard') {
+            app.innerHTML = `
+            <header class="p-6 flex justify-between items-center shrink-0">
+                <div>
+                    <p class="text-[10px] uppercase tracking-widest opacity-50 font-bold">Selamat Datang</p>
+                    <h2 class="text-xl font-bold" style="font-family:Outfit">${STATE.currentUser.displayName || 'Mahasiswa'}</h2>
+                </div>
+                <button onclick="auth.signOut()" class="p-3 glass rounded-2xl text-red-400 active:scale-90 transition-transform"><i data-lucide="log-out"></i></button>
+            </header>
+            <div class="flex-1 overflow-y-auto px-6 space-y-4 pb-6">
+                <div class="p-6 rounded-[2rem] bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-bold">FunGrow AI Aktif! ✨</h3>
+                        <p class="text-[10px] opacity-80 mt-1 max-w-[180px]">Gunakan fitur Ringkas AI untuk merangkum diskusi kuliahmu.</p>
+                    </div>
+                    <div class="absolute -right-4 -bottom-4 text-7xl opacity-20 rotate-12">📖</div>
+                </div>
+                <h4 class="text-sm font-bold opacity-70 ml-2">Mata Kuliah Anda</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    ${COURSES.map(c => `
+                        <div onclick="openCourse('${c.id}')" class="glass p-5 rounded-[2rem] cursor-pointer hover:scale-105 transition-transform border border-white/5">
+                            <div class="text-3xl mb-3">${c.icon}</div>
+                            <div class="font-bold text-[11px] leading-tight opacity-90">${c.name}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+        } else if (STATE.screen === 'course') {
+            const msgs = STATE.chats || [];
+            app.innerHTML = `
+            <header class="p-4 glass flex items-center gap-3 shrink-0 relative z-50">
+                <button onclick="STATE.screen='dashboard'; render()" class="p-2"><i data-lucide="chevron-left"></i></button>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-xs truncate">${STATE.currentCourse.name}</div>
+                    <div class="text-[9px] opacity-50">Grup Diskusi Real-time</div>
+                </div>
+                <button onclick="summarizeAI()" class="flex items-center gap-1 px-3 py-2 bg-indigo-600 rounded-full text-[10px] font-bold shadow-lg shadow-indigo-500/20 active:scale-90 transition-transform">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> RINGKAS
+                </button>
+            </header>
+            
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4">
+                ${msgs.length === 0 ? '<div class="h-full flex flex-col items-center justify-center opacity-30 text-xs text-center"><i data-lucide="message-square" class="mb-2"></i>Belum ada diskusi</div>' : msgs.map(m => renderMessage(m)).join('')}
+            </div>
+
+            <div class="p-3 glass shrink-0 relative z-50">
+                <div class="flex items-center gap-2">
+                    <button onclick="openPlusMenu()" class="p-2 text-indigo-400"><i data-lucide="plus-circle"></i></button>
+                    <button onclick="triggerVision()" class="p-2 text-slate-400"><i data-lucide="camera"></i></button>
+                    <textarea id="chat-input" oninput="handleTyping(this)" class="flex-1 bg-white/5 p-3 rounded-2xl text-sm outline-none border border-white/5 resize-none h-11" placeholder="Tulis pesan..."></textarea>
+                    
+                    <button id="btn-send" onclick="sendChat()" class="hidden p-3 bg-indigo-600 rounded-full text-white shadow-lg"><i data-lucide="send"></i></button>
+                    <button id="btn-mic" class="p-3 bg-slate-700 rounded-full text-white"><i data-lucide="mic"></i></button>
+                </div>
+            </div>
+            <input type="file" id="vision-input" class="hidden" accept="image/*" onchange="handleVision(this)">`;
+            setTimeout(() => { const b = document.getElementById('chat-box'); b.scrollTop = b.scrollHeight; }, 100);
+        }
+        lucide.createIcons();
+    }
+
+    function renderMessage(m) {
+        const mine = m.userId === STATE.currentUser.uid;
+        return `
+        <div class="flex ${mine ? 'justify-end' : 'justify-start'} animate-fade">
+            <div class="${mine ? 'bubble-right' : 'bubble-left'} px-4 py-2 max-w-[85%] shadow-sm">
+                ${!mine ? `<div class="text-[9px] font-bold text-indigo-300 mb-1">${m.userName}</div>` : ''}
+                <div class="text-sm leading-relaxed">${m.text}</div>
+            </div>
+        </div>`;
+    }
+
+    // ========== 5. CORE LOGIC ==========
+    function openCourse(id) {
+        STATE.currentCourse = COURSES.find(c => c.id === id);
+        STATE.screen = 'course';
+        render();
+        db.collection('courses').doc(id).collection('chats').orderBy('timestamp','asc').limit(50).onSnapshot(s => {
+            STATE.chats = s.docs.map(d => d.data());
+            render();
+        });
+    }
+
+    function handleTyping(el) {
+        const btnS = document.getElementById('btn-send'), btnM = document.getElementById('btn-mic');
+        if(el.value.trim() !== "") { btnS.classList.remove('hidden'); btnM.classList.add('hidden'); }
+        else { btnS.classList.add('hidden'); btnM.classList.remove('hidden'); }
+    }
+
+    async function sendChat() {
+        const input = document.getElementById('chat-input'), txt = input.value; 
+        if(!txt.trim()) return;
+        input.value = ""; handleTyping(input);
+        await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+            userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName || 'Mahasiswa',
+            text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    // ========== 6. AI FEATURES (SINKRON DENGAN RAILWAY) ==========
+    async function summarizeAI() {
+        if(STATE.chats.length < 2) return alert("Butuh lebih banyak pesan untuk diringkas.");
+        const context = STATE.chats.slice(-15).map(m => `${m.userName}: ${m.text}`).join("\n");
+        
+        showModal('<div class="p-10 text-center"><div class="animate-spin text-3xl mb-4">✨</div><p class="text-xs font-bold tracking-widest opacity-50 uppercase">FunGrow AI Sedang Merangkum...</p></div>');
+        
+        try {
+            const res = await fetch(`${BACKEND_URL}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: "Tolong buat ringkasan materi singkat dari diskusi kuliah ini:\n" + context })
+            });
+            const data = await res.json();
+            showModal(`
+                <div class="glass p-8 rounded-[2.5rem] animate-fade text-white max-h-[80vh] overflow-y-auto border border-white/10">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="sparkles" class="text-indigo-400"></i>
+                        <h3 class="font-bold text-sm">Ringkasan Materi AI</h3>
+                    </div>
+                    <div class="text-xs leading-loose opacity-80">${data.reply.replace(/\n/g, '<br>')}</div>
+                    <button onclick="closeModal()" class="w-full mt-8 py-4 bg-indigo-600 rounded-2xl font-bold text-xs">TUTUP RINGKASAN</button>
+                </div>
+            `);
+        } catch(e) { alert("Gagal terhubung ke AI. Cek status Railway kamu."); closeModal(); }
+    }
+
+    function triggerVision() { document.getElementById('vision-input').click(); }
+
+    async function handleVision(input) {
+        if(!input.files[0]) return;
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+
+        showModal('<div class="p-10 text-center">🖼️ AI Menganalisis Gambar...</div>');
+
+        try {
+            const res = await fetch(`${BACKEND_URL}/vision`, { method: 'POST', body: formData });
+            const data = await res.json();
+            showModal(`
+                <div class="glass p-8 rounded-[2.5rem] animate-fade text-white">
+                    <h3 class="font-bold mb-4 text-xs flex items-center gap-2"><i data-lucide="eye"></i> Hasil Analisis Gambar</h3>
+                    <div class="text-xs leading-loose opacity-80 mb-6">${data.reply}</div>
+                    <button onclick="closeModal()" class="w-full py-4 bg-white/10 rounded-2xl font-bold text-xs">KEMBALI</button>
+                </div>
+            `);
+        } catch(e) { alert("Gagal menganalisis gambar."); closeModal(); }
+    }
+
+    // ========== 7. MODAL & UI HELPERS ==========
+    function showModal(html) {
+        document.getElementById('modal-content').innerHTML = html;
+        document.getElementById('global-modal').classList.add('active');
+        lucide.createIcons();
+    }
+    function closeModal() { document.getElementById('global-modal').classList.remove('active'); }
+
+    function openPlusMenu() {
+        showModal(`
+            <div class="grid grid-cols-3 gap-6 p-8 glass rounded-[2.5rem] text-center border border-white/10">
+                ${['file','Tugas','image','Galeri','bar-chart-2','Poll','map-pin','Lokasi','calendar','Jadwal','users','Teman'].map((ic, i) => i % 2 === 0 ? `
+                <div class="flex flex-col items-center gap-2 opacity-40">
+                    <div class="p-4 bg-white/5 rounded-2xl"><i data-lucide="${ic}"></i></div>
+                    <span class="text-[9px] font-bold uppercase tracking-tighter">${['file','Tugas','image','Galeri','bar-chart-2','Poll','map-pin','Lokasi','calendar','Jadwal','users','Teman'][i+1]}</span>
+                </div>` : '').join('')}
+            </div>
+        `);
+    }
+
+    render();
+</script>
+</body>
+</html>
