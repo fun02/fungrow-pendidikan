@@ -52,7 +52,7 @@
 <div id="app" class="h-full flex flex-col overflow-hidden"></div>
 
 <div id="global-modal" class="modal-background flex items-center justify-center p-4">
-    <div class="w-full max-w-sm" id="modal-content"></div>
+    <div class="w-full max-sm" id="modal-content"></div>
 </div>
 
 <script>
@@ -91,8 +91,7 @@
         screen: 'loading', chats: {}, assignments: {}, unsubscribers: {},
         isLoading: false, chatLoading: false,
         isRecording: false, recordingTimer: null, recordingSeconds: 0, audioChunks: [], mediaRecorder: null,
-        pinnedMessage: null,
-        replyingTo: null // REPY SYSTEM STATE
+        pinnedMessage: null
     };
 
     function showToast(msg, type = 'success') {
@@ -158,27 +157,6 @@
         }
     }
 
-    // REPLY UI PREVIEW
-    function renderReplyPreview() {
-        const container = document.getElementById('reply-preview-container');
-        if(!container) return;
-        if(STATE.replyingTo) {
-            container.innerHTML = `
-                <div class="flex items-center gap-3 p-3 bg-slate-800/80 border-l-4 border-indigo-500 rounded-t-xl animate-fade">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[10px] font-bold text-indigo-400 truncate">${STATE.replyingTo.userName}</p>
-                        <p class="text-xs text-white/60 truncate">${STATE.replyingTo.text}</p>
-                    </div>
-                    <button onclick="cancelReply()" class="p-1 hover:text-red-400 text-slate-400"><i data-lucide="x" class="w-4 h-4"></i></button>
-                </div>`;
-            container.classList.remove('hidden');
-            lucide.createIcons();
-        } else {
-            container.innerHTML = '';
-            container.classList.add('hidden');
-        }
-    }
-
     // ========== FIREBASE LISTENERS ==========
     function setupChatListener(courseId) {
         if (STATE.unsubscribers[`chat_${courseId}`]) STATE.unsubscribers[`chat_${courseId}`]();
@@ -205,11 +183,13 @@
             });
     }
 
+    // FIX: LOAD USER ROLE (PENTING BANGET)
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 const userData = userDoc.exists ? userDoc.data() : {};
+                
                 STATE.currentUser = { 
                     uid: user.uid, 
                     email: user.email, 
@@ -258,62 +238,7 @@
     window.closeGlobalModal = function() { document.getElementById('global-modal').classList.remove('show'); document.getElementById('modal-content').innerHTML = ''; }
     document.getElementById('global-modal').addEventListener('click', e => { if (e.target.id === 'global-modal') closeGlobalModal(); });
 
-    // ========== REPLY LOGIC ==========
-    window.setReply = function(msgId) {
-        const msg = STATE.chats[STATE.currentCourse.id].find(m => m.id === msgId);
-        if(!msg) return;
-        STATE.replyingTo = {
-            messageId: msg.id,
-            text: msg.type === 'text' ? msg.text : `[${msg.type.toUpperCase()}]`,
-            userName: msg.userName
-        };
-        closeGlobalModal();
-        renderReplyPreview();
-        const input = document.getElementById('chat-input');
-        if(input) input.focus();
-    };
-    window.cancelReply = function() {
-        STATE.replyingTo = null;
-        renderReplyPreview();
-    };
-
-    // ========== INPUT CHAT & SEND MESSAGE (FIXED) ==========
-    window.handleInput = function(el) {
-        el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-        const hasText = el.value.trim().length > 0;
-        document.getElementById('btn-send').style.display = hasText ? 'block' : 'none';
-        document.getElementById('btn-mic').style.display = hasText ? 'none' : 'block';
-    }
-
-    window.sendTextMessage = async function() {
-        const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if(!text) return;
-        
-        try {
-            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
-                userId: STATE.currentUser.uid,
-                userName: STATE.currentUser.displayName,
-                text: text,
-                type: 'text',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                replyTo: STATE.replyingTo ? {
-                    messageId: STATE.replyingTo.messageId,
-                    text: STATE.replyingTo.text,
-                    userName: STATE.replyingTo.userName
-                } : null
-            });
-            input.value = '';
-            handleInput(input);
-            STATE.replyingTo = null;
-            renderReplyPreview();
-        } catch(e) {
-            console.error("SEND ERROR:", e.message);
-            showToast('Gagal kirim', 'error');
-        }
-    }
-    
-    // ========== CLOUDINARY UPLOAD & VOICE ==========
+    // ========== CLOUDINARY UPLOAD & PROFIL ==========
     async function fetchCloudinaryUpload(file, isAudio = false) {
         const CLOUD_NAME = 'dt51ndddv'; 
         const UPLOAD_PRESET = isAudio ? 'fungrow_audio_preset' : 'fungrow_preset';
@@ -324,6 +249,106 @@
         return data.secure_url;
     }
 
+    window.openProfileModal = function() {
+        showGlobalModal(`<div class="glass p-6 rounded-3xl animate-slide w-full">
+            <h3 class="font-bold text-center text-white mb-4">Ganti Foto Profil</h3>
+            <input type="file" id="profile-pic-upload" accept="image/*" class="w-full text-xs p-3 rounded-xl bg-slate-700/80 mb-4 text-white border border-slate-600">
+            <button onclick="changeProfilePicture()" class="w-full py-3 rounded-xl text-white font-bold bg-indigo-600 active:scale-95 transition-transform">Simpan Foto</button>
+            <button onclick="closeGlobalModal()" class="w-full py-2 mt-2 rounded-xl text-slate-400 font-bold">Batal</button>
+        </div>`);
+    }
+    window.changeProfilePicture = async function() {
+        const file = document.getElementById('profile-pic-upload')?.files[0];
+        if (!file) return showToast('Pilih foto dulu', 'error');
+        showToast('Mengunggah...', 'warning'); closeGlobalModal();
+        try {
+            const url = await fetchCloudinaryUpload(file);
+            await auth.currentUser.updateProfile({ photoURL: url });
+            await db.collection('users').doc(STATE.currentUser.uid).update({ photoURL: url });
+            STATE.currentUser.photoURL = url; renderFull(); showToast('Foto diperbarui!', 'success');
+        } catch(e) { showToast('Gagal update foto', 'error'); }
+    }
+
+    // ========== ATTACHMENT & TUGAS ==========
+    window.openAttachmentMenu = () => showGlobalModal(`<div class="glass p-6 animate-slide rounded-3xl flex justify-center gap-8 absolute bottom-4 left-4 right-4 border border-slate-600">
+        <button onclick="openFileForm()" class="flex flex-col items-center gap-2 active:scale-95 transition-transform"><div class="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg"><i data-lucide="file-up" class="w-6 h-6 text-white"></i></div><span class="text-xs font-bold text-white">Dokumen</span></button>
+        <button onclick="openAssignForm()" class="flex flex-col items-center gap-2 active:scale-95 transition-transform"><div class="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-lg"><i data-lucide="clipboard-list" class="w-6 h-6 text-white"></i></div><span class="text-xs font-bold text-white">Tugas</span></button>
+    </div>`);
+
+    window.openFileForm = () => {
+        closeGlobalModal(); setTimeout(() => {
+            showGlobalModal(`<div class="glass p-6 rounded-2xl animate-fade">
+                <h3 class="font-bold text-white mb-4">Upload File/Gambar</h3>
+                <input type="file" id="file-upload" class="w-full text-xs p-3 rounded-xl bg-slate-700 border border-slate-600 mb-4 text-white">
+                <button onclick="sendFile()" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold">Kirim File</button>
+                <button onclick="closeGlobalModal()" class="w-full mt-2 py-2 text-slate-400 font-bold">Batal</button>
+            </div>`);
+        }, 100);
+    }
+    window.sendFile = async function() {
+        const file = document.getElementById('file-upload')?.files[0];
+        if(!file) return; showToast('Mengirim...', 'warning'); closeGlobalModal();
+        try {
+            const url = await fetchCloudinaryUpload(file);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+                userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName,
+                text: url, fileName: file.name, fileSize: (file.size/1024).toFixed(1)+' KB',
+                type: file.type.startsWith('image/') ? 'image' : 'file', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) { showToast('Gagal kirim file', 'error'); }
+    }
+
+    window.openAssignForm = () => {
+        closeGlobalModal();
+        const asgns = STATE.assignments[STATE.currentCourse?.id] || [];
+        setTimeout(() => {
+            showGlobalModal(`<div class="glass p-5 rounded-2xl animate-fade flex flex-col max-h-[80vh]">
+                <h3 class="font-bold text-white mb-3">Buat Tugas Baru</h3>
+                <input type="text" id="asg-title" class="p-3 rounded-xl bg-slate-700 text-sm text-white mb-2" placeholder="Judul Tugas">
+                <textarea id="asg-desc" class="p-3 rounded-xl bg-slate-700 text-sm text-white mb-2 h-20" placeholder="Deskripsi"></textarea>
+                <input type="datetime-local" id="asg-date" class="p-3 rounded-xl bg-slate-700 text-sm text-white mb-4">
+                <button onclick="sendAssign()" class="py-3 rounded-xl bg-orange-500 text-white font-bold mb-4">Buat Tugas</button>
+                <div class="border-t border-slate-600 pt-3 overflow-y-auto flex-1">
+                    <p class="text-xs font-bold text-orange-400 mb-2">Daftar Tugas (${asgns.length})</p>
+                    <div class="space-y-2">
+                        ${asgns.map(a => `<div class="p-3 rounded-lg bg-slate-800 border border-slate-700"><div class="font-bold text-sm text-white">${a.title}</div><div class="text-[10px] text-orange-300 mt-1">Batas: ${formatDate(a.deadline)} ${formatTime(a.deadline)}</div></div>`).join('') || '<div class="text-xs text-center text-slate-500">Kosong</div>'}
+                    </div>
+                </div>
+                <button onclick="closeGlobalModal()" class="w-full mt-3 py-2 text-slate-400 font-bold bg-slate-800 rounded-xl">Tutup</button>
+            </div>`);
+        }, 100);
+    }
+    window.sendAssign = async function() {
+        const title = document.getElementById('asg-title').value, desc = document.getElementById('asg-desc').value, dl = document.getElementById('asg-date').value;
+        if(!title || !dl) return showToast('Isi judul dan batas waktu', 'error');
+        closeGlobalModal();
+        try {
+            const dlDate = new Date(dl);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({ title, description: desc, deadline: firebase.firestore.Timestamp.fromDate(dlDate), createdBy: STATE.currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: 'system', userName: 'Sistem', text: `📝 TUGAS BARU: **${title}**\nBatas: ${formatDate(dlDate)}`, type: 'system', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        } catch(e) { showToast('Gagal buat tugas', 'error'); }
+    }
+
+    // ========== INPUT CHAT & PESAN SUARA ==========
+    window.handleInput = function(el) {
+        el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        const hasText = el.value.trim().length > 0;
+        document.getElementById('btn-send').style.display = hasText ? 'block' : 'none';
+        document.getElementById('btn-mic').style.display = hasText ? 'none' : 'block';
+    }
+    window.sendTextMessage = async function() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if(!text) return;
+        input.value = ''; handleInput(input);
+        try {
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+                userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName,
+                text: text, type: 'text', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) { showToast('Gagal kirim', 'error'); }
+    }
+    
     window.startRecording = async function() {
         if(!navigator.mediaDevices) return showToast('Browser tidak mendukung mic', 'error');
         try {
@@ -389,6 +414,7 @@
     }
     window.cancelHold = function(el) { clearTimeout(pressTimer); if(el) el.classList.remove('msg-active'); }
 
+    // FIX: BAGIAN MENU (ADMIN + USER)
     window.openMessageMenu = function(msgId) {
         if ("vibrate" in navigator) navigator.vibrate(50);
         const msg = STATE.chats[STATE.currentCourse.id].find(m => m.id === msgId);
@@ -400,9 +426,6 @@
         let html = `<div class="glass p-5 rounded-3xl w-full max-w-xs animate-slide-up mx-auto absolute bottom-4 left-0 right-0 border border-slate-700">
             <h3 class="text-center font-bold text-slate-300 mb-4 text-sm">Opsi Pesan ${isAdmin ? '(Admin)' : ''}</h3><div class="space-y-2">`;
         
-        // REPLY OPTION
-        html += `<button onclick="setReply('${msg.id}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="reply" class="w-4 h-4 text-green-400"></i> Balas Pesan</button>`;
-
         if(isMine && msg.type === 'text') {
             html += `<button onclick="openEditForm('${msg.id}', '${msg.text.replace(/'/g, "\\'")}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="pencil" class="w-4 h-4 text-indigo-400"></i> Edit Pesan</button>`;
         }
@@ -418,23 +441,61 @@
         showGlobalModal(html);
     }
 
-    // ========== DELETE & PIN LOGIC ==========
+    window.openEditForm = function(id, text) {
+        showGlobalModal(`<div class="glass p-5 rounded-2xl w-full animate-fade">
+            <h3 class="font-bold text-white mb-3">Edit Pesan</h3>
+            <textarea id="edit-txt" class="w-full bg-slate-700 p-3 rounded-xl text-sm text-white mb-4 h-24">${text}</textarea>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeGlobalModal()" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+                <button onclick="saveEdit('${id}')" class="px-4 py-2 font-bold bg-indigo-600 text-white rounded-xl">Simpan</button>
+            </div>
+        </div>`);
+    }
+    window.saveEdit = async function(id) {
+        const text = document.getElementById('edit-txt').value.trim();
+        if(!text) return; closeGlobalModal();
+        try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(id).update({ text, isEdited: true }); showToast('Pesan diubah'); } catch(e){}
+    }
+
+    // FIX: FUNCTION DELETE (VERSI FINAL)
     window.deleteForEveryone = async function(id) {
         if(!confirm("Yakin hapus pesan ini untuk semua orang?")) return;
+
         try {
             const courseId = STATE.currentCourse.id;
             const user = STATE.currentUser;
-            await db.collection('courses').doc(courseId).collection('chats').doc(id).update({ 
-                isDeleted: true,
-                deletedBy: user.uid,
-                deletedByName: user.displayName,
-                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+
+            // Soft delete
+            await db.collection('courses')
+              .doc(courseId)
+              .collection('chats')
+              .doc(id)
+              .update({ 
+                  isDeleted: true,
+                  deletedBy: user.uid,
+                  deletedByName: user.displayName,
+                  deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+
+            // Logging
+            await db.collection('logs').add({
+                action: "delete_message",
+                performedBy: user.uid,
+                userName: user.displayName,
+                messageId: id,
+                courseId: courseId,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            await db.collection('logs').add({ action: "delete_message", performedBy: user.uid, userName: user.displayName, messageId: id, courseId: courseId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+
             showToast('Pesan berhasil dihapus');
             closeGlobalModal();
-        } catch(e){ showToast(e.message, 'error'); }
+
+        } catch(e){
+            console.error("DELETE ERROR:", e.message);
+            showToast(e.message, 'error');
+        }
     }
+
     window.deleteForMe = async function(id) {
         closeGlobalModal(); try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(id).update({ deletedFor: firebase.firestore.FieldValue.arrayUnion(STATE.currentUser.uid) }); showToast('Dihapus untuk Anda'); } catch(e){}
     }
@@ -458,6 +519,7 @@
         return visible.map(m => {
             const mine = m.userId === STATE.currentUser?.uid;
             
+            // FIX: UI PESAN TERHAPUS
             if (m.isDeleted) {
                 return `<div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade">
                     <div class="px-3 py-2 italic text-[11px] bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center gap-2 opacity-40">
@@ -467,15 +529,6 @@
             }
 
             if(m.type === 'system') return `<div class="flex justify-center my-3"><div class="px-4 py-2 bg-indigo-900/30 border border-indigo-500/30 text-indigo-300 text-xs rounded-xl text-center max-w-[80%] break-words">${m.text.replace(/\n/g, '<br>')}</div></div>`;
-
-            // REPLY BLOCK IN MESSAGE
-            let replyHtml = '';
-            if(m.replyTo) {
-                replyHtml = `<div class="mb-2 p-2 bg-black/20 border-l-2 border-indigo-400 rounded text-[10px] opacity-80">
-                    <div class="font-bold text-indigo-300 truncate">${m.replyTo.userName}</div>
-                    <div class="truncate text-white/70">${m.replyTo.text}</div>
-                </div>`;
-            }
 
             let content = '';
             if (m.type === 'image') content = `<img src="${m.text}" class="rounded-lg mb-1 max-h-48 object-cover cursor-pointer" onclick="window.open('${m.text}', '_blank')">`;
@@ -496,7 +549,6 @@
                      onmousedown="startHold(this, '${m.id}')" onmouseup="cancelHold(this)" onmouseleave="cancelHold(this)"
                      ontouchstart="startHold(this, '${m.id}')" ontouchend="cancelHold(this)" ontouchmove="cancelHold(this)">
                     ${!mine ? `<div class="text-[10px] font-bold text-accent2 mb-1 truncate">${m.userName}</div>` : ''}
-                    ${replyHtml}
                     <div class="text-sm break-words">${content}</div>
                     <div class="absolute bottom-1 right-2 flex items-center gap-1"><span class="text-[9px] opacity-70">${formatTime(m.timestamp)}</span>${m.isEdited ? `<i data-lucide="pencil" class="w-2.5 h-2.5 opacity-50"></i>` : ''}</div>
                 </div>
@@ -539,9 +591,6 @@
             </header>
             <div id="pinned-container" class="hidden shrink-0 z-20 transition-all"></div>
             <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 py-4 z-10 scroll-smooth"></div>
-            
-            <div id="reply-preview-container" class="hidden mx-2 mb-[-8px] z-20"></div>
-
             <div class="glass p-2 shrink-0 z-30 border-t border-slate-700/50 flex gap-2 items-end pb-4 pt-2">
                 <button id="btn-clip" onclick="openAttachmentMenu()" class="p-3 rounded-full text-slate-400 hover:text-white shrink-0 active:scale-90 transition-all"><i data-lucide="paperclip" class="w-5 h-5"></i></button>
                 <div id="recording-ui" class="hidden flex-1 flex items-center gap-2 p-1 bg-slate-800 rounded-full border border-red-500/30">
@@ -556,7 +605,6 @@
         </div>`;
         renderPinnedOnly();
         renderMessagesOnly();
-        renderReplyPreview();
     }
 </script>
 </body>
