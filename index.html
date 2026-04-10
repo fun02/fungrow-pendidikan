@@ -37,7 +37,15 @@
 
 <script>
     // ========== 1. KONFIGURASI (SESUAIKAN DISINI) ==========
-    const BACKEND_URL = "https://fungrow-backend-production.up.railway.app/"; // Link Railway Kamu
+    const BACKEND_URL = "https://fungrow-backend-production.up.railway.app/summarize"; // Link Railway Kamu
+    fetch('https://fungrow-backend-production.up.railway.app/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: "Materi yang ingin diringkas..." })
+})
+.then(res => res.json())
+.then(data => console.log(data.summary));
+    
     const firebaseConfig = {
         apiKey: "AIzaSyAdkHAiA_wdYkIJNL-bIhACX8du6V6f3Xk",
         authDomain: "funnn-4161a.firebaseapp.com",
