@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FunGrow Pendidikan - Platform Pembelajaran</title>
-    
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="FunGrow Pendidikan - Platform Pembelajaran Real-time">
     <style>
-        html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; overscroll-behavior-y: none; background: #0f172a; color: #e2e8f0; }
+        html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; overscroll-behavior-y: none; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
             --bg: #0f172a; --surface: rgba(30,41,59,0.7); --card: rgba(51,65,85,0.4);
@@ -29,32 +25,37 @@
             --glow: rgba(79,70,229,0.15); --border: rgba(148,163,184,0.25);
         }
         .glass { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; }
+        .card-3d { transform: perspective(800px) rotateX(0) rotateY(0); transition: transform 0.4s ease, box-shadow 0.4s ease; }
+        .card-3d:hover { transform: perspective(800px) rotateX(-3deg) rotateY(3deg) translateY(-8px); box-shadow: 0 20px 40px var(--glow); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+        .animate-fade { animation: fadeIn 0.3s ease both; }
+        .animate-slide { animation: slideUp 0.4s ease both; }
+        .pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         .bubble-left { border-radius: 4px 16px 16px 16px; }
         .bubble-right { border-radius: 16px 4px 16px 16px; }
-        .animate-fade { animation: fadeIn 0.3s ease both; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .highlight-msg { animation: highlight 1.5s ease; }
-        @keyframes highlight { 0% { background: rgba(99,102,241,0.5); } 100% { background: transparent; } }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        
+        .modal-background { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); position: fixed; inset: 0; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-background.show { opacity: 1; pointer-events: auto; }
+        .msg-active { filter: brightness(0.8); transform: scale(0.98); transition: all 0.2s ease; }
+        
+        /* Highlight saat scroll ke pesan */
+        .highlight-msg .relative { filter: brightness(1.3); transition: filter 0.5s ease; }
     </style>
 </head>
-<body class="h-full overflow-hidden flex flex-col">
+<body class="h-full overflow-hidden flex flex-col" style="background:var(--bg);color:var(--text)">
+<div id="app" class="h-full flex flex-col overflow-hidden"></div>
 
-<div id="app" class="h-full flex flex-col overflow-hidden">
-    <div class="h-full flex flex-col items-center justify-center space-y-4">
-        <div class="text-4xl animate-bounce">🎓</div>
-        <div class="text-xl font-bold">Menyiapkan FunGrow...</div>
-        <div class="w-48 h-1 bg-slate-800 rounded-full overflow-hidden">
-            <div class="h-full bg-indigo-500 animate-[pulse_1.5s_infinite]"></div>
-        </div>
-    </div>
-</div>
-
-<div id="global-modal" class="hidden fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="global-modal" class="modal-background flex items-center justify-center p-4">
     <div class="w-full max-w-sm" id="modal-content"></div>
 </div>
 
 <script>
-    // ========== 1. CONFIG & STATE ==========
+    // ========== FIREBASE CONFIGURATION ==========
     const firebaseConfig = {
         apiKey: "AIzaSyAdkHAiA_wdYkIJNL-bIhACX8du6V6f3Xk",
         authDomain: "funnn-4161a.firebaseapp.com",
@@ -63,6 +64,16 @@
         messagingSenderId: "211376689494",
         appId: "1:211376689494:web:99359a0f45810fae7b06f7"
     };
+
+    function initializeFirebase() {
+        if (firebase.apps.length > 0) return true;
+        try { firebase.initializeApp(firebaseConfig); return true; } catch (error) { console.error('Firebase init failed:', error); throw error; }
+    }
+    initializeFirebase();
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage(); // Storage Init
+    db.enablePersistence().catch(err => console.warn('Persistence error:', err));
 
     const COURSES = [
         { id: 'mo', name: 'Manajemen Operasional', icon: '⚙️' },
@@ -77,319 +88,415 @@
 
     const STATE = {
         currentUser: null, isDark: true, currentCourse: null,
-        screen: 'loading', chats: {}, unsubscribers: {},
-        replyingTo: null
+        screen: 'loading', chats: {}, assignments: {}, unsubscribers: {},
+        pinnedMessage: null,
+        replyingTo: null 
     };
 
-    // ========== 2. ANTI-BLANK INITIALIZATION (FIX #1 & #2) ==========
-    let auth, db, storage;
-
-    function initializeAppCore() {
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            auth = firebase.auth();
-            db = firebase.firestore();
-            storage = firebase.storage();
-
-            // Safe Persistence (FIX #1)
-            try {
-                db.enablePersistence({ synchronizeTabs: true });
-            } catch (err) {
-                console.warn("Persistence OFF:", err.message);
-            }
-
-            console.log("Firebase initialized successfully");
-        } catch (e) {
-            console.error("CRITICAL INIT ERROR:", e);
-            document.body.innerHTML = `
-                <div class="h-full flex items-center justify-center bg-slate-900 p-10 text-center">
-                    <div class="glass p-8 border-red-500/50">
-                        <div class="text-4xl mb-4">⚠️</div>
-                        <h1 class="text-xl font-bold text-white mb-2">Gagal Menghubungkan</h1>
-                        <p class="text-slate-400 text-sm mb-6">${e.message}</p>
-                        <button onclick="location.reload()" class="bg-indigo-600 px-6 py-2 rounded-xl text-white font-bold">Coba Lagi</button>
-                    </div>
-                </div>
-            `;
-            throw e;
-        }
-    }
-
-    // ========== 3. UTILS ==========
-    function formatTime(ts) {
-        if (!ts) return "";
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
-        return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function formatDate(ts) {
-        if (!ts) return "";
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
-        return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-    }
-
     function showToast(msg, type = 'success') {
+        const bgColor = type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#22c55e';
         const toast = document.createElement('div');
-        toast.className = `animate-fade fixed top-4 right-4 z-[2000] px-5 py-3 rounded-xl text-sm font-medium shadow-lg text-white ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+        toast.className = 'animate-fade fixed top-4 right-4 z-[1001] px-5 py-3 rounded-xl text-sm font-medium shadow-lg text-white';
+        toast.style.background = bgColor;
         toast.textContent = msg;
         document.body.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
     }
 
-    // ========== 4. AUTH & CORE LOGIC ==========
-    try {
-        initializeAppCore();
+    function formatTime(date) {
+        if (!date) return '';
+        const d = date.toDate ? date.toDate() : new Date(date);
+        return isNaN(d) ? '' : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
 
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                try {
-                    const doc = await db.collection('users').doc(user.uid).get();
-                    STATE.currentUser = { uid: user.uid, email: user.email, displayName: user.displayName || doc.data()?.displayName || 'User' };
-                    STATE.screen = 'dashboard';
-                } catch (e) {
-                    STATE.screen = 'login';
-                }
-            } else {
-                STATE.screen = 'login';
-            }
-            renderFull();
+    // FORMAT DATE UNTUK GROUPING
+    function formatDateGroup(ts) {
+        if (!ts) return "";
+        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        if (isNaN(d)) return "";
+        return d.toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
         });
-    } catch (e) { /* handled in init */ }
+    }
 
-    // FORCE LOAD LOGIN IF HANGS (FIX #3)
-    setTimeout(() => {
-        if (STATE.screen === 'loading') {
-            console.warn("FORCE LOAD TRIGGERED");
-            STATE.screen = 'login';
-            renderFull();
-        }
-    }, 4000);
+    function toggleTheme() { STATE.isDark = !STATE.isDark; document.documentElement.classList.toggle('light', !STATE.isDark); renderFull(); }
 
-    // ========== 5. RENDER SYSTEM ==========
+    // ========== RENDER LOGIC ==========
     function renderFull() {
         const el = document.getElementById('app');
-        if (STATE.screen === 'login') return renderLogin(el);
-        if (STATE.screen === 'dashboard') return renderDashboard(el);
-        if (STATE.screen === 'course') return renderCourse(el);
+        if (!el) return;
+        if (STATE.screen === 'loading') el.innerHTML = `<div class="h-full flex items-center justify-center font-bold text-xl">Memuat...</div>`;
+        else if (STATE.screen === 'login') renderLogin(el);
+        else if (STATE.screen === 'dashboard') renderDashboard(el);
+        else if (STATE.screen === 'course') renderCourse(el);
         lucide.createIcons();
     }
 
-    function renderLogin(el) {
-        el.innerHTML = `
-            <div class="h-full flex items-center justify-center p-6 animate-fade">
-                <div class="glass p-8 w-full max-w-sm text-center">
-                    <div class="text-5xl mb-4">🎓</div>
-                    <h1 class="text-2xl font-bold mb-6">FunGrow Pendidikan</h1>
-                    <div class="space-y-4">
-                        <input id="email" type="email" placeholder="Email" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 outline-none">
-                        <input id="pass" type="password" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 outline-none">
-                        <button onclick="handleLogin()" class="w-full py-3 bg-indigo-600 rounded-xl font-bold">Masuk</button>
-                    </div>
+    function renderMessagesOnly() {
+        const container = document.getElementById('chat-messages-container');
+        if (!container || STATE.screen !== 'course') return;
+        container.innerHTML = generateMessagesHTML();
+        lucide.createIcons();
+        if(container.scrollHeight - container.scrollTop <= container.clientHeight + 150) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    function renderPinnedOnly() {
+        const container = document.getElementById('pinned-container');
+        if (!container || STATE.screen !== 'course') return;
+        const pin = STATE.pinnedMessage;
+        if (pin) {
+            container.innerHTML = `<div class="px-3 py-2 border-b border-slate-700 bg-slate-800/90 flex gap-3 items-center mx-3 mt-2 rounded-lg shrink-0 z-20">
+                <i data-lucide="pin" class="w-4 h-4 text-indigo-300 shrink-0"></i>
+                <div class="flex-1 min-w-0"><span class="text-[10px] font-medium text-indigo-300 truncate block">Sematkan oleh: ${pin.userName || 'Sistem'}</span><p class="text-xs text-white/90 truncate">${pin.text}</p></div>
+                <button onclick="unpinMessage()" class="p-1 hover:text-red-400 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>`;
+            lucide.createIcons();
+            container.classList.remove('hidden');
+        } else {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+        }
+    }
+
+    // ========== REPLY & SCROLL LOGIC ==========
+    function renderReplyPreview() {
+        const box = document.getElementById("replyPreview");
+        if (!box) return;
+
+        if (!STATE.replyingTo) {
+            box.innerHTML = "";
+            box.classList.add('hidden');
+            return;
+        }
+
+        box.innerHTML = `
+            <div class="bg-slate-800/80 p-3 rounded-t-xl mb-[-8px] border-l-4 border-indigo-500 text-sm flex justify-between items-center animate-fade backdrop-blur-md">
+                <div class="flex-1 min-w-0">
+                    <b class="text-[10px] text-indigo-400 block truncate">${STATE.replyingTo.userName}</b>
+                    <span class="text-xs text-white/70 block truncate">${STATE.replyingTo.text.slice(0, 50)}</span>
                 </div>
+                <button onclick="cancelReply()" class="p-2 hover:text-red-400 text-slate-400 shrink-0 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
             </div>
         `;
-    }
-
-    async function handleLogin() {
-        const e = document.getElementById('email').value, p = document.getElementById('pass').value;
-        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { showToast(err.message, 'error'); }
-    }
-
-    function renderDashboard(el) {
-        el.innerHTML = `
-            <div class="flex-1 flex flex-col overflow-auto p-4 space-y-4">
-                <div class="flex justify-between items-center p-2">
-                    <h1 class="text-xl font-bold">FunGrow</h1>
-                    <button onclick="auth.signOut()" class="text-red-400 p-2"><i data-lucide="log-out"></i></button>
-                </div>
-                <div class="p-6 rounded-3xl bg-indigo-600">
-                    <h2 class="text-lg font-bold">Halo, ${STATE.currentUser.displayName}!</h2>
-                    <p class="text-indigo-100 text-sm">Pilih kelasmu hari ini.</p>
-                </div>
-                <div class="grid grid-cols-1 gap-3">
-                    ${COURSES.map(c => `
-                        <div onclick="openCourse('${c.id}')" class="glass p-4 flex items-center gap-4 active:scale-95 transition-transform cursor-pointer">
-                            <div class="text-2xl">${c.icon}</div>
-                            <div class="font-bold text-sm">${c.name}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+        box.classList.remove('hidden');
         lucide.createIcons();
     }
 
-    // ========== 6. CHAT & REPLY SYSTEM ==========
-    function openCourse(id) {
-        STATE.currentCourse = COURSES.find(c => c.id === id);
-        STATE.screen = 'course';
-        renderFull();
-        setupChatListener(id);
-    }
+    window.replyMessageById = function(id, text, userName) {
+        STATE.replyingTo = {
+            messageId: id,
+            text: text,
+            userName: userName
+        };
+        renderReplyPreview();
+        const input = document.getElementById('chat-input');
+        if(input) input.focus();
+    };
 
-    function setupChatListener(courseId) {
-        if (STATE.unsubscribers.chat) STATE.unsubscribers.chat();
-        STATE.unsubscribers.chat = db.collection('courses').doc(courseId).collection('chats')
-            .orderBy('timestamp', 'asc').limit(100).onSnapshot(snap => {
-                STATE.chats[courseId] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderMessages();
-            });
-    }
-
-    function renderMessages() {
-        const container = document.getElementById('chat-container');
-        if (!container) return;
-
-        let html = '';
-        let lastDate = '';
-        const msgs = STATE.chats[STATE.currentCourse.id] || [];
-
-        msgs.forEach(m => {
-            const dateStr = formatDate(m.timestamp);
-            if (dateStr !== lastDate && dateStr !== '') {
-                html += `<div class="text-center text-[10px] text-slate-500 my-4 uppercase tracking-widest font-bold">${dateStr}</div>`;
-                lastDate = dateStr;
-            }
-
-            const isMine = m.userId === STATE.currentUser.uid;
-            
-            // Reply UI inside bubble
-            let replyInfo = '';
-            if (m.replyTo) {
-                replyInfo = `
-                    <div onclick="scrollToMsg('${m.replyTo.id}')" class="bg-black/20 p-2 rounded mb-1 text-[10px] border-l-2 border-indigo-400 cursor-pointer opacity-80">
-                        <b class="text-indigo-300">@${m.replyTo.userName}</b><br>
-                        <span class="truncate block">${m.replyTo.text}</span>
-                    </div>
-                `;
-            }
-
-            let content = m.text || '';
-            if (m.fileUrl) {
-                content = `<a href="${m.fileUrl}" target="_blank" class="flex items-center gap-2 text-indigo-300 underline"><i data-lucide="file-text" class="w-4 h-4"></i> ${m.fileName}</a>`;
-            }
-
-            html += `
-                <div id="msg-${m.id}" class="flex ${isMine ? 'justify-end' : 'justify-start'} mb-3 animate-fade">
-                    <div class="${isMine ? 'bg-indigo-600 bubble-right' : 'bg-slate-800 bubble-left'} p-3 max-w-[85%] shadow-lg">
-                        ${!isMine ? `<div class="text-[10px] font-bold text-indigo-300 mb-1">${m.userName}</div>` : ''}
-                        ${replyInfo}
-                        <div class="text-sm break-words">${content}</div>
-                        <div class="flex justify-between items-center mt-1 gap-4">
-                            <button onclick="setReply('${m.id}', '${(m.text || m.fileName || 'File').replace(/'/g, "\\'")}', '${m.userName}')" class="text-[10px] opacity-50 hover:opacity-100 flex items-center gap-1">↩ Reply</button>
-                            <span class="text-[9px] opacity-40">${formatTime(m.timestamp)}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html || '<div class="text-center text-slate-500 mt-20 text-sm">Belum ada pesan</div>';
-        container.scrollTop = container.scrollHeight;
-        lucide.createIcons();
-    }
-
-    // REPLY LOGIC
-    function setReply(id, text, user) {
-        STATE.replyingTo = { id, text, userName: user };
-        const bar = document.getElementById('reply-bar');
-        bar.innerHTML = `
-            <div class="flex justify-between items-center bg-slate-800 p-2 rounded-t-xl border-l-4 border-indigo-500 animate-fade">
-                <div class="text-xs truncate mr-4"><b>Balas ${user}:</b> ${text}</div>
-                <button onclick="cancelReply()"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-        `;
-        bar.classList.remove('hidden');
-        document.getElementById('chat-input').focus();
-        lucide.createIcons();
-    }
-
-    function cancelReply() {
+    window.cancelReply = function() {
         STATE.replyingTo = null;
-        document.getElementById('reply-bar').classList.add('hidden');
-    }
+        renderReplyPreview();
+    };
 
-    function scrollToMsg(id) {
-        const el = document.getElementById('msg-' + id);
+    window.scrollToMessage = function(id) {
+        const el = document.getElementById("msg-" + id);
         if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
             el.classList.add('highlight-msg');
             setTimeout(() => el.classList.remove('highlight-msg'), 1500);
         }
+    };
+
+    // ========== FILE UPLOAD LOGIC ==========
+    window.pickFile = function() {
+        document.getElementById("fileInput").click();
+    };
+
+    window.uploadFile = async function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const courseId = STATE.currentCourse.id;
+        showToast('Mengupload file...', 'warning');
+
+        try {
+            const storageRef = firebase.storage().ref();
+            const fileRef = storageRef.child(`chat_files/${courseId}/${Date.now()}_${file.name}`);
+
+            // upload file
+            await fileRef.put(file);
+
+            // ambil URL
+            const url = await fileRef.getDownloadURL();
+
+            // kirim ke chat
+            await db.collection('courses')
+                .doc(courseId)
+                .collection('chats')
+                .add({
+                    fileUrl: url,
+                    fileName: file.name,
+                    type: 'file', // Tandai sebagai file
+                    userId: STATE.currentUser.uid,
+                    userName: STATE.currentUser.displayName,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    replyTo: STATE.replyingTo || null
+                });
+
+            // Reset Input & State
+            e.target.value = '';
+            STATE.replyingTo = null;
+            renderReplyPreview();
+            showToast('File terkirim!', 'success');
+
+        } catch(err) {
+            console.error("UPLOAD ERROR:", err.message);
+            showToast('Gagal upload: ' + err.message, 'error');
+        }
+    };
+
+    // ========== FIREBASE LISTENERS ==========
+    function setupChatListener(courseId) {
+        if (STATE.unsubscribers[`chat_${courseId}`]) STATE.unsubscribers[`chat_${courseId}`]();
+        STATE.unsubscribers[`chat_${courseId}`] = db.collection('courses').doc(courseId).collection('chats')
+            .orderBy('timestamp', 'asc').limit(150).onSnapshot(snapshot => {
+                STATE.chats[courseId] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMessagesOnly();
+            });
     }
 
-    // ========== 7. UPLOAD & SEND ==========
-    async function sendMessage() {
+    function setupCourseDocumentListener(courseId) {
+        if (STATE.unsubscribers[`doc_${courseId}`]) STATE.unsubscribers[`doc_${courseId}`]();
+        STATE.unsubscribers[`doc_${courseId}`] = db.collection('courses').doc(courseId).onSnapshot(doc => {
+            STATE.pinnedMessage = doc.exists ? doc.data().pinnedMessage : null;
+            renderPinnedOnly();
+        });
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                const userData = userDoc.exists ? userDoc.data() : {};
+                STATE.currentUser = { 
+                    uid: user.uid, 
+                    email: user.email, 
+                    displayName: user.displayName || userData.displayName || 'User', 
+                    photoURL: user.photoURL || userData.photoURL,
+                    role: userData.role || 'user' 
+                };
+                STATE.screen = 'dashboard';
+            } catch (e) {
+                console.error("Gagal muat profil:", e);
+                STATE.screen = 'login';
+            }
+        } else {
+            STATE.currentUser = null;
+            STATE.screen = 'login';
+        }
+        renderFull();
+    });
+
+    window.doLogin = async function() {
+        const e = document.getElementById('login-email').value, p = document.getElementById('login-password').value;
+        if (!e || !p) return showToast('Isi semua field', 'error');
+        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { showToast(err.message, 'error'); }
+    };
+
+    window.doLogout = async function() { 
+        Object.values(STATE.unsubscribers).forEach(u => u()); 
+        STATE.unsubscribers = {}; 
+        await auth.signOut(); 
+    };
+
+    window.openCourse = function(id) {
+        STATE.currentCourse = COURSES.find(c => c.id === id);
+        STATE.screen = 'course';
+        setupChatListener(id); setupCourseDocumentListener(id);
+        renderFull();
+    };
+
+    window.handleInput = function(el) {
+        el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        const hasText = el.value.trim().length > 0;
+        document.getElementById('btn-send').style.display = hasText ? 'block' : 'none';
+        document.getElementById('btn-mic').style.display = hasText ? 'none' : 'block';
+    }
+
+    window.sendTextMessage = async function() {
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
-        if (!text) return;
-
-        const msgData = {
-            text,
-            userId: STATE.currentUser.uid,
-            userName: STATE.currentUser.displayName,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            replyTo: STATE.replyingTo || null
-        };
-
-        input.value = '';
-        cancelReply();
+        if(!text) return;
+        
         try {
-            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add(msgData);
-        } catch(e) { showToast("Gagal kirim", "error"); }
-    }
-
-    async function handleFileUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        showToast("Mengunggah...", "info");
-        try {
-            const ref = storage.ref(`chats/${STATE.currentCourse.id}/${Date.now()}_${file.name}`);
-            await ref.put(file);
-            const url = await ref.getDownloadURL();
-
             await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
-                fileUrl: url,
-                fileName: file.name,
                 userId: STATE.currentUser.uid,
                 userName: STATE.currentUser.displayName,
+                text: text,
+                type: 'text',
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                replyTo: STATE.replyingTo || null
+                replyTo: STATE.replyingTo ? {
+                    messageId: STATE.replyingTo.messageId,
+                    text: STATE.replyingTo.text,
+                    userName: STATE.replyingTo.userName
+                } : null
             });
-            cancelReply();
-        } catch(e) { showToast("Gagal unggah", "error"); }
+            input.value = '';
+            handleInput(input);
+            STATE.replyingTo = null;
+            renderReplyPreview();
+        } catch(e) {
+            console.error("SEND ERROR:", e.message);
+            showToast('Gagal kirim', 'error');
+        }
+    }
+
+    // ========== GENERATE HTML MESSAGES ==========
+    function generateMessagesHTML() {
+        const msgs = STATE.chats[STATE.currentCourse?.id] || [];
+        const visible = msgs.filter(m => !(m.deletedFor || []).includes(STATE.currentUser?.uid));
+        
+        if(visible.length === 0) return `<div class="flex-1 flex flex-col items-center justify-center text-slate-500 h-full pt-20"><i data-lucide="messages-square" class="w-12 h-12 mb-2 opacity-50"></i><p class="text-sm font-medium">Mulai obrolan</p></div>`;
+
+        let html = '';
+        let lastDate = "";
+
+        visible.forEach(m => {
+            // Grouping by Date
+            const dateStr = formatDateGroup(m.timestamp);
+            if(dateStr !== lastDate && dateStr !== '') {
+                html += `<div class="text-center text-xs my-4 flex justify-center">
+                    <span class="bg-slate-800/60 px-3 py-1 rounded-full text-slate-400 font-medium border border-slate-700/50">
+                        ${dateStr}
+                    </span>
+                </div>`;
+                lastDate = dateStr;
+            }
+
+            const mine = m.userId === STATE.currentUser?.uid;
+            
+            if (m.isDeleted) {
+                html += `<div id="msg-${m.id}" class="chat-item flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade">
+                    <div class="px-3 py-2 italic text-[11px] bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center gap-2 opacity-40">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i> Pesan ini telah dihapus
+                    </div>
+                </div>`;
+                return;
+            }
+
+            // HTML untuk blok Reply di dalam chat
+            let replyHtml = '';
+            if(m.replyTo) {
+                replyHtml = `<div onclick="scrollToMessage('${m.replyTo.messageId}')" class="mb-2 p-2 bg-black/20 border-l-2 border-indigo-400 rounded text-[10px] opacity-80 cursor-pointer hover:bg-black/30 transition-colors">
+                    <div class="font-bold text-indigo-300 truncate">↪ ${m.replyTo.userName}</div>
+                    <div class="truncate text-white/70">${m.replyTo.text.slice(0,50)}</div>
+                </div>`;
+            }
+
+            let content = '';
+            // HTML untuk File Upload
+            if (m.fileUrl || m.type === 'file') {
+                const url = m.fileUrl || m.text; // Support format lama/baru
+                const name = m.fileName || 'Attachment';
+                content = `<a href="${url}" target="_blank" class="flex items-center gap-2 bg-black/20 p-2 rounded-lg mb-1 mt-1 hover:bg-black/30 transition-colors">
+                    <i data-lucide="paperclip" class="w-5 h-5 text-indigo-300 shrink-0"></i>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs truncate font-medium text-blue-300 underline">${name}</p>
+                    </div>
+                </a>`;
+            }
+            else if (m.type === 'image') {
+                 content = `<img src="${m.text}" class="rounded-lg mb-1 max-h-48 object-cover cursor-pointer" onclick="window.open('${m.text}', '_blank')">`;
+            }
+            else { 
+                content = (m.text || '').replace(/\n/g, '<br>'); 
+            }
+
+            // Sanitasi text untuk ditaruh di onclick button reply
+            const safeText = (m.type === 'text' ? m.text : (m.fileName ? m.fileName : `[${m.type.toUpperCase()}]`)).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            // Tombol Reply
+            const replyBtn = `<button onclick="replyMessageById('${m.id}', '${safeText}', '${m.userName || 'User'}')" class="text-[10px] mt-2 opacity-60 hover:opacity-100 flex items-center gap-1 transition-opacity">
+                <i data-lucide="reply" class="w-3 h-3"></i> Reply
+            </button>`;
+
+            html += `<div id="msg-${m.id}" class="chat-item flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade">
+                <div class="relative ${mine ? 'bg-indigo-600 text-white bubble-right' : 'bg-slate-700 text-slate-100 bubble-left'} px-3 pt-2 pb-5 max-w-[80%] min-w-[120px] shadow-sm select-none">
+                    ${!mine ? `<div class="text-[10px] font-bold text-accent2 mb-1 truncate">${m.userName || 'User'}</div>` : ''}
+                    
+                    ${replyHtml}
+                    <div class="text-sm break-words">${content}</div>
+                    ${replyBtn}
+                    
+                    <div class="absolute bottom-1 right-2 flex items-center gap-1">
+                        <span class="text-[9px] opacity-70">${formatTime(m.timestamp)}</span>
+                        ${m.isEdited ? `<i data-lucide="pencil" class="w-2.5 h-2.5 opacity-50"></i>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        return html;
+    }
+
+    function renderDashboard(el) {
+        const photo = STATE.currentUser?.photoURL ? `<img src="${STATE.currentUser.photoURL}" class="w-8 h-8 rounded-full object-cover border border-slate-600">` : `<div class="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-indigo-500 text-white">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
+        el.innerHTML = `<div class="h-full flex flex-col overflow-auto pb-6">
+            <header class="glass flex items-center justify-between px-5 py-4 mx-3 mt-3 rounded-2xl sticky top-3 z-30">
+                <div class="font-bold text-white flex items-center gap-2"><span class="text-xl">🎓</span> FunGrow</div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleTheme()" class="p-2 rounded-full bg-slate-700/50 text-slate-300"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-4 h-4"></i></button>
+                    <button class="shrink-0 active:scale-95 transition-transform">${photo}</button>
+                    <button onclick="doLogout()" class="p-2 rounded-full bg-red-500/10 text-red-400"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                </div>
+            </header>
+            <div class="mx-3 mt-4 p-8 rounded-3xl bg-indigo-600 relative overflow-hidden shadow-lg shadow-indigo-600/20">
+                <div class="relative z-10"><h2 class="text-2xl font-bold text-white mb-2">Hai, ${STATE.currentUser?.displayName.split(' ')[0]}! 👋</h2><p class="text-white/80 text-sm">Pilih ruang kelas di bawah untuk mulai diskusi dan lihat tugas.</p></div>
+                <div class="absolute -right-4 -bottom-4 text-7xl opacity-20">📚</div>
+            </div>
+            <div class="px-4 mt-6"><h3 class="text-base font-bold text-slate-300 mb-4">Kelas Anda</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${COURSES.map(c => `<div onclick="openCourse('${c.id}')" class="glass p-4 rounded-2xl flex items-center gap-4 cursor-pointer active:scale-95 transition-transform"><div class="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center text-2xl shrink-0">${c.icon}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-white truncate">${c.name}</h4><p class="text-xs text-indigo-400 mt-0.5">Buka Obrolan</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-slate-500"></i></div>`).join('')}
+                </div>
+            </div>
+        </div>`;
     }
 
     function renderCourse(el) {
-        el.innerHTML = `
-            <div class="h-full flex flex-col overflow-hidden">
-                <div class="glass flex items-center p-4 m-2 rounded-2xl">
-                    <button onclick="STATE.screen='dashboard'; renderFull()" class="mr-4"><i data-lucide="arrow-left"></i></button>
-                    <div class="font-bold">${STATE.currentCourse.icon} ${STATE.currentCourse.name}</div>
-                </div>
-                
-                <div id="chat-container" class="flex-1 overflow-y-auto p-4"></div>
-
-                <div class="p-2 space-y-2">
-                    <div id="reply-bar" class="hidden mx-2"></div>
-                    <div class="glass flex items-end p-2 gap-2 rounded-2xl">
-                        <button onclick="document.getElementById('file-in').click()" class="p-3 text-slate-400"><i data-lucide="paperclip"></i></button>
-                        <input type="file" id="file-in" class="hidden" onchange="handleFileUpload(event)">
-                        
-                        <textarea id="chat-input" rows="1" class="flex-1 bg-transparent p-3 outline-none text-sm resize-none" placeholder="Ketik pesan..."></textarea>
-                        
-                        <button onclick="sendMessage()" class="p-3 bg-indigo-600 rounded-xl text-white"><i data-lucide="send"></i></button>
-                    </div>
-                </div>
+        el.innerHTML = `<div class="h-full flex flex-col overflow-hidden bg-[var(--bg)] relative">
+            <header class="glass flex items-center gap-3 px-4 py-3 shrink-0 rounded-b-2xl z-30 border-b border-slate-700/50">
+                <button onclick="STATE.screen='dashboard'; renderFull()" class="p-2 -ml-2 rounded-full hover:bg-slate-700/50"><i data-lucide="arrow-left" class="w-5 h-5 text-white"></i></button>
+                <div class="flex-1 min-w-0"><h2 class="font-bold text-base text-white flex items-center gap-2">${STATE.currentCourse.icon} ${STATE.currentCourse.name}</h2></div>
+            </header>
+            
+            <div id="pinned-container" class="hidden shrink-0 z-20 transition-all"></div>
+            <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 py-4 z-10 scroll-smooth"></div>
+            
+            <div class="px-2 z-20 shrink-0">
+                <div id="replyPreview" class="hidden"></div>
             </div>
-        `;
-        lucide.createIcons();
-        renderMessages();
+
+            <input type="file" id="fileInput" class="hidden" onchange="uploadFile(event)">
+
+            <div class="glass p-2 shrink-0 z-30 border-t border-slate-700/50 flex gap-2 items-end pb-4 pt-2">
+                <button id="btn-clip" onclick="pickFile()" class="p-3 rounded-full text-slate-400 hover:text-white shrink-0 active:scale-90 transition-all"><i data-lucide="paperclip" class="w-5 h-5"></i></button>
+                
+                <textarea id="chat-input" class="flex-1 bg-slate-800 text-white text-sm rounded-2xl px-4 py-3 max-h-28 outline-none resize-none border border-slate-700/50 focus:border-indigo-500 transition-colors" placeholder="Ketik pesan..." oninput="handleInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendTextMessage(); }"></textarea>
+                
+                <button id="btn-send" onclick="sendTextMessage()" class="hidden p-3 rounded-full bg-indigo-600 text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-indigo-600/30 mb-0.5"><i data-lucide="send" class="w-5 h-5 ml-0.5"></i></button>
+                <button id="btn-mic" class="p-3 rounded-full bg-indigo-600 text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-indigo-600/30 mb-0.5"><i data-lucide="mic" class="w-5 h-5"></i></button>
+            </div>
+        </div>`;
+        renderPinnedOnly();
+        renderMessagesOnly();
+        renderReplyPreview();
     }
 </script>
-
 </body>
 </html>
