@@ -3,49 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FunGrow Pendidikan - Pro Platform</title>
+    <title>FunGrow Pendidikan - Platform Pembelajaran</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <meta name="description" content="FunGrow Pendidikan - Platform Pembelajaran Real-time">
     <style>
-        html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+        html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; overscroll-behavior-y: none; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
             --bg: #0f172a; --surface: rgba(30,41,59,0.7); --card: rgba(51,65,85,0.4);
-            --text: #e2e8f0; --accent: #6366f1; --accent2: #a78bfa; --border: rgba(148,163,184,0.1);
+            --text: #e2e8f0; --text2: #94a3b8; --accent: #6366f1; --accent2: #a78bfa;
+            --glow: rgba(99,102,241,0.3); --border: rgba(148,163,184,0.15);
         }
-        .glass { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); }
-        .bubble-left { border-radius: 4px 18px 18px 18px; background: var(--card); }
-        .bubble-right { border-radius: 18px 4px 18px 18px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+        .light {
+            --bg: #f0f4ff; --surface: rgba(255,255,255,0.75); --card: rgba(255,255,255,0.6);
+            --text: #1e293b; --text2: #475569; --accent: #4f46e5; --accent2: #7c3aed;
+            --glow: rgba(79,70,229,0.15); --border: rgba(148,163,184,0.25);
+        }
+        .glass { background: var(--surface); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; }
+        .card-3d { transform: perspective(800px) rotateX(0) rotateY(0); transition: transform 0.4s ease, box-shadow 0.4s ease; }
+        .card-3d:hover { transform: perspective(800px) rotateX(-3deg) rotateY(3deg) translateY(-8px); box-shadow: 0 20px 40px var(--glow); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 50% { opacity: 0.5; } }
         .animate-fade { animation: fadeIn 0.3s ease both; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
+        .animate-slide { animation: slideUp 0.4s ease both; }
+        .pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .bubble-left { border-radius: 4px 16px 16px 16px; }
+        .bubble-right { border-radius: 16px 4px 16px 16px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .voice-note-player { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 150px; }
+        .voice-note-player audio { width: 0; height: 0; visibility: hidden; position: absolute; }
+        .voice-note-progress { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3); position: relative; }
+        .voice-note-progress-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; background: #fff; width: 0%; transition: width 0.1s linear; }
+        
+        .modal-background { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); position: fixed; inset: 0; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-background.show { opacity: 1; pointer-events: auto; }
+        .msg-active { filter: brightness(0.8); transform: scale(0.98); transition: all 0.2s ease; }
     </style>
 </head>
-<body class="h-full flex flex-col" style="background:var(--bg); color:var(--text)">
-
+<body class="h-full overflow-hidden flex flex-col" style="background:var(--bg);color:var(--text)">
 <div id="app" class="h-full flex flex-col overflow-hidden"></div>
 
-<div id="global-modal" class="modal-overlay" onclick="if(event.target==this) closeModal()">
-    <div id="modal-content" class="w-full max-w-sm"></div>
+<div id="global-modal" class="modal-background flex items-center justify-center p-4">
+    <div class="w-full max-w-sm" id="modal-content"></div>
 </div>
 
 <script>
-    // ========== 1. KONFIGURASI (SESUAIKAN DISINI) ==========
-    const BACKEND_URL = "https://fungrow-backend-production.up.railway.app/summarize"; // Link Railway Kamu
-    fetch('https://fungrow-backend-production.up.railway.app/summarize', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: "Materi yang ingin diringkas..." })
-})
-.then(res => res.json())
-.then(data => console.log(data.summary));
-    
+    // ========== FIREBASE CONFIGURATION ==========
     const firebaseConfig = {
         apiKey: "AIzaSyAdkHAiA_wdYkIJNL-bIhACX8du6V6f3Xk",
         authDomain: "funnn-4161a.firebaseapp.com",
@@ -55,219 +66,535 @@
         appId: "1:211376689494:web:99359a0f45810fae7b06f7"
     };
 
-    // ========== 2. INITIALIZE FIREBASE ==========
-    firebase.initializeApp(firebaseConfig);
+    function initializeFirebase() {
+        if (firebase.apps.length > 0) return true;
+        try { firebase.initializeApp(firebaseConfig); return true; } catch (error) { console.error('Firebase init failed:', error); throw error; }
+    }
+    initializeFirebase();
     const auth = firebase.auth();
     const db = firebase.firestore();
+    db.enablePersistence().catch(err => console.warn('Persistence error:', err));
 
     const COURSES = [
         { id: 'mo', name: 'Manajemen Operasional', icon: '⚙️' },
         { id: 'pk', name: 'Perilaku Konsumen', icon: '🧠' },
         { id: 'ms', name: 'Manajemen Strategi', icon: '🎯' },
-        { id: 'sim', name: 'Sistem Informasi Manajemen', icon: '💻' }
+        { id: 'sim', name: 'Sistem Informasi Manajemen', icon: '💻' },
+        { id: 'fmk', name: 'Fiqh Muamalah Kontemporer', icon: '📖' },
+        { id: 'mks', name: 'Manajemen Keuangan Syariah', icon: '💰' },
+        { id: 'aks', name: 'Akuntansi Keuangan Syariah', icon: '📊' },
+        { id: 'emm', name: 'Ekonomi Makro dan Mikro', icon: '📈' }
     ];
 
-    let STATE = {
-        currentUser: null, screen: 'loading',
-        currentCourse: null, chats: []
+    const STATE = {
+        currentUser: null, isDark: true, currentCourse: null,
+        screen: 'loading', chats: {}, assignments: {}, unsubscribers: {},
+        isLoading: false, chatLoading: false,
+        isRecording: false, recordingTimer: null, recordingSeconds: 0, audioChunks: [], mediaRecorder: null,
+        pinnedMessage: null
     };
 
-    // ========== 3. AUTH LOGIC ==========
-    auth.onAuthStateChanged(user => {
-        STATE.currentUser = user;
-        STATE.screen = user ? 'dashboard' : 'login';
-        render();
-    });
-
-    async function handleLogin() {
-        const e = document.getElementById('email').value, p = document.getElementById('pass').value;
-        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { alert("Login Gagal: " + err.message); }
+    function showToast(msg, type = 'success') {
+        const bgColor = type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#22c55e';
+        const toast = document.createElement('div');
+        toast.className = 'animate-fade fixed top-4 right-4 z-[1001] px-5 py-3 rounded-xl text-sm font-medium shadow-lg text-white';
+        toast.style.background = bgColor;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
     }
 
-    // ========== 4. RENDER ENGINE ==========
-    function render() {
-        const app = document.getElementById('app');
-        if (STATE.screen === 'login') {
-            app.innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center p-6 animate-fade">
-                <div class="glass p-8 w-full max-w-sm rounded-[2rem] text-center shadow-2xl">
-                    <div class="text-5xl mb-4">🎓</div>
-                    <h1 class="text-3xl font-bold mb-1" style="font-family:Outfit">FunGrow</h1>
-                    <p class="text-xs opacity-50 mb-8">Platform Pendidikan Cerdas</p>
-                    <input id="email" type="email" placeholder="Email Mahasiswa" class="w-full p-4 mb-4 rounded-2xl bg-white/5 border border-white/10 outline-none focus:border-indigo-500 text-sm">
-                    <input id="pass" type="password" placeholder="Password" class="w-full p-4 mb-8 rounded-2xl bg-white/5 border border-white/10 outline-none focus:border-indigo-500 text-sm">
-                    <button onclick="handleLogin()" class="w-full py-4 bg-indigo-600 rounded-2xl font-bold shadow-lg shadow-indigo-500/30 active:scale-95 transition-transform">MASUK</button>
-                </div>
-            </div>`;
-        } else if (STATE.screen === 'dashboard') {
-            app.innerHTML = `
-            <header class="p-6 flex justify-between items-center shrink-0">
-                <div>
-                    <p class="text-[10px] uppercase tracking-widest opacity-50 font-bold">Selamat Datang</p>
-                    <h2 class="text-xl font-bold" style="font-family:Outfit">${STATE.currentUser.displayName || 'Mahasiswa'}</h2>
-                </div>
-                <button onclick="auth.signOut()" class="p-3 glass rounded-2xl text-red-400 active:scale-90 transition-transform"><i data-lucide="log-out"></i></button>
-            </header>
-            <div class="flex-1 overflow-y-auto px-6 space-y-4 pb-6">
-                <div class="p-6 rounded-[2rem] bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl relative overflow-hidden">
-                    <div class="relative z-10">
-                        <h3 class="text-lg font-bold">FunGrow AI Aktif! ✨</h3>
-                        <p class="text-[10px] opacity-80 mt-1 max-w-[180px]">Gunakan fitur Ringkas AI untuk merangkum diskusi kuliahmu.</p>
-                    </div>
-                    <div class="absolute -right-4 -bottom-4 text-7xl opacity-20 rotate-12">📖</div>
-                </div>
-                <h4 class="text-sm font-bold opacity-70 ml-2">Mata Kuliah Anda</h4>
-                <div class="grid grid-cols-2 gap-4">
-                    ${COURSES.map(c => `
-                        <div onclick="openCourse('${c.id}')" class="glass p-5 rounded-[2rem] cursor-pointer hover:scale-105 transition-transform border border-white/5">
-                            <div class="text-3xl mb-3">${c.icon}</div>
-                            <div class="font-bold text-[11px] leading-tight opacity-90">${c.name}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>`;
-        } else if (STATE.screen === 'course') {
-            const msgs = STATE.chats || [];
-            app.innerHTML = `
-            <header class="p-4 glass flex items-center gap-3 shrink-0 relative z-50">
-                <button onclick="STATE.screen='dashboard'; render()" class="p-2"><i data-lucide="chevron-left"></i></button>
-                <div class="flex-1 min-w-0">
-                    <div class="font-bold text-xs truncate">${STATE.currentCourse.name}</div>
-                    <div class="text-[9px] opacity-50">Grup Diskusi Real-time</div>
-                </div>
-                <button onclick="summarizeAI()" class="flex items-center gap-1 px-3 py-2 bg-indigo-600 rounded-full text-[10px] font-bold shadow-lg shadow-indigo-500/20 active:scale-90 transition-transform">
-                    <i data-lucide="sparkles" class="w-3 h-3"></i> RINGKAS
-                </button>
-            </header>
-            
-            <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4">
-                ${msgs.length === 0 ? '<div class="h-full flex flex-col items-center justify-center opacity-30 text-xs text-center"><i data-lucide="message-square" class="mb-2"></i>Belum ada diskusi</div>' : msgs.map(m => renderMessage(m)).join('')}
-            </div>
+    function formatTime(date) {
+        if (!date) return '';
+        const d = date.toDate ? date.toDate() : new Date(date);
+        return isNaN(d) ? '' : d.toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' });
+    }
+    function formatDate(date) {
+        if (!date) return '';
+        const d = date.toDate ? date.toDate() : new Date(date);
+        return isNaN(d) ? '' : d.toLocaleDateString('id', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    function formatRecTime(s) { return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; }
 
-            <div class="p-3 glass shrink-0 relative z-50">
-                <div class="flex items-center gap-2">
-                    <button onclick="openPlusMenu()" class="p-2 text-indigo-400"><i data-lucide="plus-circle"></i></button>
-                    <button onclick="triggerVision()" class="p-2 text-slate-400"><i data-lucide="camera"></i></button>
-                    <textarea id="chat-input" oninput="handleTyping(this)" class="flex-1 bg-white/5 p-3 rounded-2xl text-sm outline-none border border-white/5 resize-none h-11" placeholder="Tulis pesan..."></textarea>
-                    
-                    <button id="btn-send" onclick="sendChat()" class="hidden p-3 bg-indigo-600 rounded-full text-white shadow-lg"><i data-lucide="send"></i></button>
-                    <button id="btn-mic" class="p-3 bg-slate-700 rounded-full text-white"><i data-lucide="mic"></i></button>
-                </div>
-            </div>
-            <input type="file" id="vision-input" class="hidden" accept="image/*" onchange="handleVision(this)">`;
-            setTimeout(() => { const b = document.getElementById('chat-box'); b.scrollTop = b.scrollHeight; }, 100);
-        }
+    function toggleTheme() { STATE.isDark = !STATE.isDark; document.documentElement.classList.toggle('light', !STATE.isDark); renderFull(); }
+
+    // ========== RENDER LOGIC ==========
+    function renderFull() {
+        const el = document.getElementById('app');
+        if (!el) return;
+        if (STATE.screen === 'loading') el.innerHTML = `<div class="h-full flex items-center justify-center font-bold text-xl">Memuat...</div>`;
+        else if (STATE.screen === 'login') renderLogin(el);
+        else if (STATE.screen === 'dashboard') renderDashboard(el);
+        else if (STATE.screen === 'course') renderCourse(el);
         lucide.createIcons();
     }
 
-    function renderMessage(m) {
-        const mine = m.userId === STATE.currentUser.uid;
-        return `
-        <div class="flex ${mine ? 'justify-end' : 'justify-start'} animate-fade">
-            <div class="${mine ? 'bubble-right' : 'bubble-left'} px-4 py-2 max-w-[85%] shadow-sm">
-                ${!mine ? `<div class="text-[9px] font-bold text-indigo-300 mb-1">${m.userName}</div>` : ''}
-                <div class="text-sm leading-relaxed">${m.text}</div>
+    function renderMessagesOnly() {
+        const container = document.getElementById('chat-messages-container');
+        if (!container || STATE.screen !== 'course') return;
+        container.innerHTML = generateMessagesHTML();
+        lucide.createIcons();
+        if(container.scrollHeight - container.scrollTop <= container.clientHeight + 150) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    function renderPinnedOnly() {
+        const container = document.getElementById('pinned-container');
+        if (!container || STATE.screen !== 'course') return;
+        const pin = STATE.pinnedMessage;
+        if (pin) {
+            container.innerHTML = `<div class="px-3 py-2 border-b border-slate-700 bg-slate-800/90 flex gap-3 items-center mx-3 mt-2 rounded-lg shrink-0 z-20">
+                <i data-lucide="pin" class="w-4 h-4 text-indigo-300 shrink-0"></i>
+                <div class="flex-1 min-w-0"><span class="text-[10px] font-medium text-indigo-300 truncate block">Sematkan oleh: ${pin.userName || 'Sistem'}</span><p class="text-xs text-white/90 truncate">${pin.text}</p></div>
+                <button onclick="unpinMessage()" class="p-1 hover:text-red-400 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>`;
+            lucide.createIcons();
+            container.classList.remove('hidden');
+        } else {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+        }
+    }
+
+    // ========== FIREBASE LISTENERS ==========
+    function setupChatListener(courseId) {
+        if (STATE.unsubscribers[`chat_${courseId}`]) STATE.unsubscribers[`chat_${courseId}`]();
+        STATE.unsubscribers[`chat_${courseId}`] = db.collection('courses').doc(courseId).collection('chats')
+            .orderBy('timestamp', 'asc').limit(150).onSnapshot(snapshot => {
+                STATE.chats[courseId] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMessagesOnly();
+            });
+    }
+
+    function setupCourseDocumentListener(courseId) {
+        if (STATE.unsubscribers[`doc_${courseId}`]) STATE.unsubscribers[`doc_${courseId}`]();
+        STATE.unsubscribers[`doc_${courseId}`] = db.collection('courses').doc(courseId).onSnapshot(doc => {
+            STATE.pinnedMessage = doc.exists ? doc.data().pinnedMessage : null;
+            renderPinnedOnly();
+        });
+    }
+
+    function setupAssignmentListener(courseId) {
+        if (STATE.unsubscribers[`assign_${courseId}`]) STATE.unsubscribers[`assign_${courseId}`]();
+        STATE.unsubscribers[`assign_${courseId}`] = db.collection('courses').doc(courseId).collection('assignments')
+            .orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                STATE.assignments[courseId] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            });
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                const userData = userDoc.exists ? userDoc.data() : {};
+                STATE.currentUser = { 
+                    uid: user.uid, 
+                    email: user.email, 
+                    displayName: user.displayName || userData.displayName || 'User', 
+                    photoURL: user.photoURL || userData.photoURL,
+                    role: userData.role || 'user' 
+                };
+                STATE.screen = 'dashboard';
+            } catch (e) {
+                console.error("Gagal muat profil:", e);
+                STATE.screen = 'login';
+            }
+        } else {
+            STATE.currentUser = null;
+            STATE.screen = 'login';
+        }
+        renderFull();
+    });
+
+    // ========== AUTH FUNCTIONS ==========
+    window.doLogin = async function() {
+        const e = document.getElementById('login-email').value, p = document.getElementById('login-password').value;
+        if (!e || !p) return showToast('Isi semua field', 'error');
+        try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { showToast(err.message, 'error'); }
+    };
+    window.doSignup = async function() {
+        const n = document.getElementById('signup-name').value, e = document.getElementById('signup-email').value, p = document.getElementById('signup-password').value;
+        try { 
+            const res = await auth.createUserWithEmailAndPassword(e, p); 
+            await res.user.updateProfile({ displayName: n }); 
+            await db.collection('users').doc(res.user.uid).set({ displayName: n, email: e, photoURL: null, role: 'user' }); 
+            showToast('Berhasil daftar!'); 
+        } catch(err) { showToast(err.message, 'error'); }
+    };
+    window.doLogout = async function() { Object.values(STATE.unsubscribers).forEach(u => u()); STATE.unsubscribers = {}; await auth.signOut(); };
+
+    window.openCourse = function(id) {
+        STATE.currentCourse = COURSES.find(c => c.id === id);
+        STATE.screen = 'course';
+        setupChatListener(id); setupCourseDocumentListener(id); setupAssignmentListener(id);
+        renderFull();
+    };
+
+    // ========== MODAL SYSTEM ==========
+    function showGlobalModal(html) { document.getElementById('modal-content').innerHTML = html; document.getElementById('global-modal').classList.add('show'); lucide.createIcons(); }
+    window.closeGlobalModal = function() { document.getElementById('global-modal').classList.remove('show'); document.getElementById('modal-content').innerHTML = ''; }
+    document.getElementById('global-modal').addEventListener('click', e => { if (e.target.id === 'global-modal') closeGlobalModal(); });
+
+    // ========== CLOUDINARY UPLOAD & PROFIL ==========
+    async function fetchCloudinaryUpload(file, isAudio = false) {
+        const CLOUD_NAME = 'dt51ndddv'; 
+        const UPLOAD_PRESET = isAudio ? 'fungrow_audio_preset' : 'fungrow_preset';
+        const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', UPLOAD_PRESET);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${isAudio ? 'video' : 'auto'}/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.secure_url;
+    }
+
+    window.openProfileModal = function() {
+        showGlobalModal(`<div class="glass p-6 rounded-3xl animate-slide w-full">
+            <h3 class="font-bold text-center text-white mb-4">Ganti Foto Profil</h3>
+            <input type="file" id="profile-pic-upload" accept="image/*" class="w-full text-xs p-3 rounded-xl bg-slate-700/80 mb-4 text-white border border-slate-600">
+            <button onclick="changeProfilePicture()" class="w-full py-3 rounded-xl text-white font-bold bg-indigo-600 active:scale-95 transition-transform">Simpan Foto</button>
+            <button onclick="closeGlobalModal()" class="w-full py-2 mt-2 rounded-xl text-slate-400 font-bold">Batal</button>
+        </div>`);
+    }
+    window.changeProfilePicture = async function() {
+        const file = document.getElementById('profile-pic-upload')?.files[0];
+        if (!file) return showToast('Pilih foto dulu', 'error');
+        showToast('Mengunggah...', 'warning'); closeGlobalModal();
+        try {
+            const url = await fetchCloudinaryUpload(file);
+            await auth.currentUser.updateProfile({ photoURL: url });
+            await db.collection('users').doc(STATE.currentUser.uid).update({ photoURL: url });
+            STATE.currentUser.photoURL = url; renderFull(); showToast('Foto diperbarui!', 'success');
+        } catch(e) { showToast('Gagal update foto', 'error'); }
+    }
+
+    // ========== ATTACHMENT & TUGAS ==========
+    window.openAttachmentMenu = () => showGlobalModal(`<div class="glass p-6 animate-slide rounded-3xl flex justify-center gap-8 absolute bottom-4 left-4 right-4 border border-slate-600">
+        <button onclick="openFileForm()" class="flex flex-col items-center gap-2 active:scale-95 transition-transform"><div class="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg"><i data-lucide="file-up" class="w-6 h-6 text-white"></i></div><span class="text-xs font-bold text-white">Dokumen</span></button>
+        <button onclick="openAssignForm()" class="flex flex-col items-center gap-2 active:scale-95 transition-transform"><div class="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-lg"><i data-lucide="clipboard-list" class="w-6 h-6 text-white"></i></div><span class="text-xs font-bold text-white">Tugas</span></button>
+    </div>`);
+
+    window.openFileForm = () => {
+        closeGlobalModal(); setTimeout(() => {
+            showGlobalModal(`<div class="glass p-6 rounded-2xl animate-fade">
+                <h3 class="font-bold text-white mb-4">Upload File/Gambar</h3>
+                <input type="file" id="file-upload" class="w-full text-xs p-3 rounded-xl bg-slate-700 border border-slate-600 mb-4 text-white">
+                <button onclick="sendFile()" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold">Kirim File</button>
+                <button onclick="closeGlobalModal()" class="w-full mt-2 py-2 text-slate-400 font-bold">Batal</button>
+            </div>`);
+        }, 100);
+    }
+    window.sendFile = async function() {
+        const file = document.getElementById('file-upload')?.files[0];
+        if(!file) return; showToast('Mengirim...', 'warning'); closeGlobalModal();
+        try {
+            const url = await fetchCloudinaryUpload(file);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+                userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName,
+                text: url, fileName: file.name, fileSize: (file.size/1024).toFixed(1)+' KB',
+                type: file.type.startsWith('image/') ? 'image' : 'file', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) { showToast('Gagal kirim file', 'error'); }
+    }
+
+    window.openAssignForm = () => {
+        closeGlobalModal();
+        const asgns = STATE.assignments[STATE.currentCourse?.id] || [];
+        setTimeout(() => {
+            showGlobalModal(`<div class="glass p-5 rounded-2xl animate-fade flex flex-col max-h-[80vh]">
+                <h3 class="font-bold text-white mb-3">Buat Tugas Baru</h3>
+                <input type="text" id="asg-title" class="p-3 rounded-xl bg-slate-700 text-sm text-white mb-2" placeholder="Judul Tugas">
+                <textarea id="asg-desc" class="p-3 rounded-xl bg-slate-700 text-sm text-white mb-2 h-20" placeholder="Deskripsi"></textarea>
+                <input type="datetime-local" id="asg-date" class="p-3 rounded-xl bg-slate-700 text-sm text-white mb-4">
+                <button onclick="sendAssign()" class="py-3 rounded-xl bg-orange-500 text-white font-bold mb-4">Buat Tugas</button>
+                <div class="border-t border-slate-600 pt-3 overflow-y-auto flex-1">
+                    <p class="text-xs font-bold text-orange-400 mb-2">Daftar Tugas (${asgns.length})</p>
+                    <div class="space-y-2">
+                        ${asgns.map(a => `<div class="p-3 rounded-lg bg-slate-800 border border-slate-700"><div class="font-bold text-sm text-white">${a.title}</div><div class="text-[10px] text-orange-300 mt-1">Batas: ${formatDate(a.deadline)} ${formatTime(a.deadline)}</div></div>`).join('') || '<div class="text-xs text-center text-slate-500">Kosong</div>'}
+                    </div>
+                </div>
+                <button onclick="closeGlobalModal()" class="w-full mt-3 py-2 text-slate-400 font-bold bg-slate-800 rounded-xl">Tutup</button>
+            </div>`);
+        }, 100);
+    }
+    window.sendAssign = async function() {
+        const title = document.getElementById('asg-title').value, desc = document.getElementById('asg-desc').value, dl = document.getElementById('asg-date').value;
+        if(!title || !dl) return showToast('Isi judul dan batas waktu', 'error');
+        closeGlobalModal();
+        try {
+            const dlDate = new Date(dl);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({ title, description: desc, deadline: firebase.firestore.Timestamp.fromDate(dlDate), createdBy: STATE.currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: 'system', userName: 'Sistem', text: `📝 TUGAS BARU: **${title}**\nBatas: ${formatDate(dlDate)}`, type: 'system', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        } catch(e) { showToast('Gagal buat tugas', 'error'); }
+    }
+
+    // ========== INPUT CHAT & PESAN SUARA ==========
+    window.handleInput = function(el) {
+        el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+        const hasText = el.value.trim().length > 0;
+        document.getElementById('btn-send').style.display = hasText ? 'block' : 'none';
+        document.getElementById('btn-mic').style.display = hasText ? 'none' : 'block';
+    }
+    window.sendTextMessage = async function() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if(!text) return;
+        input.value = ''; handleInput(input);
+        try {
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+                userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName,
+                text: text, type: 'text', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) { showToast('Gagal kirim', 'error'); }
+    }
+    
+    window.startRecording = async function() {
+        if(!navigator.mediaDevices) return showToast('Browser tidak mendukung mic', 'error');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            STATE.audioChunks = []; STATE.mediaRecorder = new MediaRecorder(stream);
+            STATE.mediaRecorder.ondataavailable = e => STATE.audioChunks.push(e.data);
+            STATE.mediaRecorder.onstop = uploadVoiceMessage;
+            STATE.mediaRecorder.start();
+            STATE.isRecording = true; STATE.recordingSeconds = 0;
+            
+            document.getElementById('chat-input').style.display = 'none';
+            document.getElementById('btn-mic').style.display = 'none';
+            document.getElementById('btn-clip').style.display = 'none';
+            document.getElementById('recording-ui').classList.remove('hidden');
+            document.getElementById('recording-ui').classList.add('flex');
+            
+            STATE.recordingTimer = setInterval(() => {
+                STATE.recordingSeconds++;
+                document.getElementById('rec-time').innerText = formatRecTime(STATE.recordingSeconds);
+            }, 1000);
+        } catch(e) { showToast('Izinkan akses mikrofon di browser', 'error'); }
+    }
+    window.stopRecording = function() { if(STATE.mediaRecorder) STATE.mediaRecorder.stop(); resetRecUI(); }
+    window.cancelRecording = function() { 
+        if(STATE.mediaRecorder) { STATE.mediaRecorder.onstop = null; STATE.mediaRecorder.stop(); STATE.mediaRecorder.stream.getTracks().forEach(t=>t.stop()); }
+        resetRecUI(); showToast('Batal merekam', 'warning');
+    }
+    function resetRecUI() {
+        STATE.isRecording = false; clearInterval(STATE.recordingTimer);
+        document.getElementById('recording-ui').classList.add('hidden');
+        document.getElementById('recording-ui').classList.remove('flex');
+        document.getElementById('chat-input').style.display = 'block';
+        document.getElementById('btn-clip').style.display = 'block';
+        handleInput(document.getElementById('chat-input'));
+    }
+    async function uploadVoiceMessage() {
+        resetRecUI(); showToast('Mengirim suara...', 'warning');
+        try {
+            const file = new File(STATE.audioChunks, `vn_${Date.now()}.webm`, { type: 'audio/webm' });
+            const url = await fetchCloudinaryUpload(file, true);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+                userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName,
+                text: url, type: 'voice', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) { showToast('Gagal kirim suara', 'error'); }
+    }
+    window.playVoice = function(id) {
+        const audio = document.getElementById(`audio-${id}`), btnPlay = document.getElementById(`play-${id}`), btnPause = document.getElementById(`pause-${id}`);
+        const fill = document.getElementById(`fill-${id}`), time = document.getElementById(`time-${id}`);
+        if(audio.paused) {
+            document.querySelectorAll('audio').forEach(a => a.pause()); document.querySelectorAll('.vn-pause').forEach(i => i.classList.add('hidden')); document.querySelectorAll('.vn-play').forEach(i => i.classList.remove('hidden'));
+            audio.play(); btnPlay.classList.add('hidden'); btnPause.classList.remove('hidden');
+        } else { audio.pause(); btnPause.classList.add('hidden'); btnPlay.classList.remove('hidden'); }
+        audio.ontimeupdate = () => { fill.style.width = (audio.currentTime/audio.duration*100)+'%'; time.innerText = formatRecTime(Math.floor(audio.currentTime)); }
+        audio.onended = () => { btnPause.classList.add('hidden'); btnPlay.classList.remove('hidden'); fill.style.width='0%'; time.innerText='0:00'; }
+    }
+
+    // ========== HOLD TO MENU (HAPUS/EDIT/PIN) ==========
+    let pressTimer = null;
+    window.startHold = function(el, msgId) {
+        el.classList.add('msg-active');
+        pressTimer = setTimeout(() => { el.classList.remove('msg-active'); openMessageMenu(msgId); }, 500);
+    }
+    window.cancelHold = function(el) { clearTimeout(pressTimer); if(el) el.classList.remove('msg-active'); }
+
+    window.openMessageMenu = function(msgId) {
+        if ("vibrate" in navigator) navigator.vibrate(50);
+        const msg = STATE.chats[STATE.currentCourse.id].find(m => m.id === msgId);
+        if(!msg || msg.isDeleted) return; // Jangan buka menu jika sudah dihapus
+        
+        const isMine = msg.userId === STATE.currentUser.uid;
+        const isAdmin = STATE.currentUser?.role === 'admin';
+        
+        let html = `<div class="glass p-5 rounded-3xl w-full max-w-xs animate-slide-up mx-auto absolute bottom-4 left-0 right-0 border border-slate-700">
+            <h3 class="text-center font-bold text-slate-300 mb-4 text-sm">Opsi Pesan ${isAdmin ? '(Admin)' : ''}</h3><div class="space-y-2">`;
+        
+        if(isMine && msg.type === 'text') html += `<button onclick="openEditForm('${msg.id}', '${msg.text.replace(/'/g, "\\'")}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="pencil" class="w-4 h-4 text-indigo-400"></i> Edit Pesan</button>`;
+        
+        html += `<button onclick="pinMessage('${msg.id}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="pin" class="w-4 h-4 text-accent2"></i> Sematkan Pesan</button>`;
+        
+        if(isMine || isAdmin) {
+            html += `<button onclick="deleteForEveryone('${msg.id}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-red-400 font-medium flex items-center gap-3"><i data-lucide="trash" class="w-4 h-4"></i> Hapus untuk semua orang</button>`;
+        }
+        
+        html += `<button onclick="deleteForMe('${msg.id}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-orange-400 font-medium flex items-center gap-3"><i data-lucide="user-minus" class="w-4 h-4"></i> Hapus untuk saya</button>`;
+        html += `<button onclick="closeGlobalModal()" class="w-full py-3 px-4 rounded-xl bg-slate-900 text-slate-400 font-bold mt-4 text-center justify-center">Batal</button></div></div>`;
+        showGlobalModal(html);
+    }
+
+    window.openEditForm = function(id, text) {
+        showGlobalModal(`<div class="glass p-5 rounded-2xl w-full animate-fade">
+            <h3 class="font-bold text-white mb-3">Edit Pesan</h3>
+            <textarea id="edit-txt" class="w-full bg-slate-700 p-3 rounded-xl text-sm text-white mb-4 h-24">${text}</textarea>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeGlobalModal()" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+                <button onclick="saveEdit('${id}')" class="px-4 py-2 font-bold bg-indigo-600 text-white rounded-xl">Simpan</button>
+            </div>
+        </div>`);
+    }
+    window.saveEdit = async function(id) {
+        const text = document.getElementById('edit-txt').value.trim();
+        if(!text) return; closeGlobalModal();
+        try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(id).update({ text, isEdited: true }); showToast('Pesan diubah'); } catch(e){}
+    }
+
+    // PEMBARUAN: Soft Delete + Logging + UX Confirm
+    window.deleteForEveryone = async function(id) {
+        if(!confirm("Yakin hapus pesan ini untuk semua orang? Tindakan ini akan dicatat oleh sistem.")) return;
+        closeGlobalModal(); 
+        try { 
+            const courseId = STATE.currentCourse.id;
+            const user = STATE.currentUser;
+
+            // 1. Soft Delete pada Pesan
+            await db.collection('courses').doc(courseId).collection('chats').doc(id).update({ 
+                isDeleted: true,
+                deletedBy: user.uid,
+                deletedByName: user.displayName,
+                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }); 
+
+            // 2. Logging Aksi ke Koleksi 'logs'
+            await db.collection('logs').add({
+                action: "delete_message",
+                performedBy: user.uid,
+                userName: user.displayName,
+                messageId: id,
+                courseId: courseId,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            showToast('Pesan telah dihapus'); 
+        } catch(e){
+            console.error(e);
+            showToast('Gagal menghapus pesan', 'error');
+        }
+    }
+
+    window.deleteForMe = async function(id) {
+        closeGlobalModal(); try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(id).update({ deletedFor: firebase.firestore.FieldValue.arrayUnion(STATE.currentUser.uid) }); showToast('Dihapus untuk Anda'); } catch(e){}
+    }
+    window.pinMessage = async function(id) {
+        closeGlobalModal();
+        const msg = STATE.chats[STATE.currentCourse.id].find(m=>m.id===id);
+        const txt = msg.type==='text' ? msg.text : `[${msg.type.toUpperCase()}]`;
+        try { await db.collection('courses').doc(STATE.currentCourse.id).update({ pinnedMessage: { id, text: txt, userName: msg.userName } }); showToast('Disematkan'); } catch(e){}
+    }
+    window.unpinMessage = async function() {
+        try { await db.collection('courses').doc(STATE.currentCourse.id).update({ pinnedMessage: null }); showToast('Sematan dilepas'); } catch(e){}
+    }
+
+    // ========== RENDER HTML GENERATOR ==========
+    function generateMessagesHTML() {
+        const msgs = STATE.chats[STATE.currentCourse?.id] || [];
+        const visible = msgs.filter(m => !(m.deletedFor || []).includes(STATE.currentUser?.uid));
+        
+        if(visible.length === 0) return `<div class="flex-1 flex flex-col items-center justify-center text-slate-500 h-full pt-20"><i data-lucide="messages-square" class="w-12 h-12 mb-2 opacity-50"></i><p class="text-sm font-medium">Mulai obrolan</p></div>`;
+
+        return visible.map(m => {
+            const mine = m.userId === STATE.currentUser?.uid;
+            
+            // UI untuk Pesan yang Dihapus (Soft Delete)
+            if (m.isDeleted) {
+                return `<div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade opacity-40">
+                    <div class="px-3 py-2 italic text-[11px] bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center gap-2">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i> Pesan ini telah dihapus
+                    </div>
+                </div>`;
+            }
+
+            if(m.type === 'system') return `<div class="flex justify-center my-3"><div class="px-4 py-2 bg-indigo-900/30 border border-indigo-500/30 text-indigo-300 text-xs rounded-xl text-center max-w-[80%] break-words">${m.text.replace(/\n/g, '<br>')}</div></div>`;
+
+            let content = '';
+            if (m.type === 'image') content = `<img src="${m.text}" class="rounded-lg mb-1 max-h-48 object-cover cursor-pointer" onclick="window.open('${m.text}', '_blank')">`;
+            else if (m.type === 'file') content = `<a href="${m.text}" target="_blank" class="flex items-center gap-2 bg-black/20 p-2 rounded-lg mb-1"><i data-lucide="file" class="w-6 h-6 text-indigo-300"></i><div class="flex-1 min-w-0"><p class="text-xs truncate font-medium text-white">${m.fileName}</p><p class="text-[9px] text-white/60">${m.fileSize}</p></div></a>`;
+            else if (m.type === 'voice') content = `<div class="voice-note-player bg-black/10 p-1.5 rounded-full mb-1">
+                    <audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio>
+                    <button onclick="playVoice('${m.id}')" class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                        <i data-lucide="play" id="play-${m.id}" class="w-4 h-4 text-white vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 text-white vn-pause hidden"></i>
+                    </button>
+                    <div class="voice-note-progress"><div id="fill-${m.id}" class="voice-note-progress-fill bg-indigo-400"></div></div>
+                    <span id="time-${m.id}" class="text-[10px] text-white font-mono mr-2">0:00</span>
+                </div>`;
+            else content = m.text.replace(/\n/g, '<br>');
+
+            return `<div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade">
+                <div class="relative ${mine ? 'bg-indigo-600 text-white bubble-right' : 'bg-slate-700 text-slate-100 bubble-left'} px-3 pt-2 pb-5 max-w-[80%] min-w-[90px] shadow-sm select-none"
+                     oncontextmenu="event.preventDefault();"
+                     onmousedown="startHold(this, '${m.id}')" onmouseup="cancelHold(this)" onmouseleave="cancelHold(this)"
+                     ontouchstart="startHold(this, '${m.id}')" ontouchend="cancelHold(this)" ontouchmove="cancelHold(this)">
+                    ${!mine ? `<div class="text-[10px] font-bold text-accent2 mb-1 truncate">${m.userName}</div>` : ''}
+                    <div class="text-sm break-words">${content}</div>
+                    <div class="absolute bottom-1 right-2 flex items-center gap-1"><span class="text-[9px] opacity-70">${formatTime(m.timestamp)}</span>${m.isEdited ? `<i data-lucide="pencil" class="w-2.5 h-2.5 opacity-50"></i>` : ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderLogin(el) {
+        el.innerHTML = `<div class="h-full flex items-center justify-center p-4"><div class="glass p-8 w-full max-w-sm animate-slide"><div class="text-center mb-8"><div class="text-4xl mb-3">🎓</div><h1 class="text-2xl font-bold text-white">FunGrow</h1></div><div id="login-tab" class="space-y-4"><input type="email" id="login-email" class="w-full p-3 rounded-xl bg-slate-700 text-sm text-white" placeholder="Email"><input type="password" id="login-password" class="w-full p-3 rounded-xl bg-slate-700 text-sm text-white" placeholder="Password"><button onclick="doLogin()" class="w-full py-3 rounded-xl font-bold text-white bg-indigo-600">Masuk</button><p class="text-xs text-center text-slate-400">Belum punya akun? <button onclick="document.getElementById('login-tab').classList.add('hidden');document.getElementById('signup-tab').classList.remove('hidden')" class="underline text-indigo-400">Daftar</button></p></div><div id="signup-tab" class="space-y-4 hidden"><input type="text" id="signup-name" class="w-full p-3 rounded-xl bg-slate-700 text-sm text-white" placeholder="Nama Lengkap"><input type="email" id="signup-email" class="w-full p-3 rounded-xl bg-slate-700 text-sm text-white" placeholder="Email"><input type="password" id="signup-password" class="w-full p-3 rounded-xl bg-slate-700 text-sm text-white" placeholder="Password"><input type="password" id="signup-confirm" class="w-full p-3 rounded-xl bg-slate-700 text-sm text-white" placeholder="Konfirmasi Password"><button onclick="doSignup()" class="w-full py-3 rounded-xl font-bold text-white bg-indigo-600">Daftar</button><p class="text-xs text-center text-slate-400">Sudah punya akun? <button onclick="document.getElementById('signup-tab').classList.add('hidden');document.getElementById('login-tab').classList.remove('hidden')" class="underline text-indigo-400">Masuk</button></p></div></div></div>`;
+    }
+
+    function renderDashboard(el) {
+        const photo = STATE.currentUser?.photoURL ? `<img src="${STATE.currentUser.photoURL}" class="w-8 h-8 rounded-full object-cover border border-slate-600">` : `<div class="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-indigo-500 text-white">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
+        el.innerHTML = `<div class="h-full flex flex-col overflow-auto pb-6">
+            <header class="glass flex items-center justify-between px-5 py-4 mx-3 mt-3 rounded-2xl sticky top-3 z-30">
+                <div class="font-bold text-white flex items-center gap-2"><span class="text-xl">🎓</span> FunGrow</div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleTheme()" class="p-2 rounded-full bg-slate-700/50 text-slate-300"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-4 h-4"></i></button>
+                    <button onclick="openProfileModal()" class="shrink-0 active:scale-95 transition-transform">${photo}</button>
+                    <button onclick="doLogout()" class="p-2 rounded-full bg-red-500/10 text-red-400"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                </div>
+            </header>
+            <div class="mx-3 mt-4 p-8 rounded-3xl bg-indigo-600 relative overflow-hidden shadow-lg shadow-indigo-600/20">
+                <div class="relative z-10"><h2 class="text-2xl font-bold text-white mb-2">Hai, ${STATE.currentUser?.displayName.split(' ')[0]}! 👋</h2><p class="text-white/80 text-sm">Pilih ruang kelas di bawah untuk mulai diskusi dan lihat tugas.</p></div>
+                <div class="absolute -right-4 -bottom-4 text-7xl opacity-20">📚</div>
+            </div>
+            <div class="px-4 mt-6"><h3 class="text-base font-bold text-slate-300 mb-4">Kelas Anda</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${COURSES.map(c => `<div onclick="openCourse('${c.id}')" class="glass p-4 rounded-2xl flex items-center gap-4 cursor-pointer active:scale-95 transition-transform"><div class="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center text-2xl shrink-0">${c.icon}</div><div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-white truncate">${c.name}</h4><p class="text-xs text-indigo-400 mt-0.5">Buka Obrolan</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-slate-500"></i></div>`).join('')}
+                </div>
             </div>
         </div>`;
     }
 
-    // ========== 5. CORE LOGIC ==========
-    function openCourse(id) {
-        STATE.currentCourse = COURSES.find(c => c.id === id);
-        STATE.screen = 'course';
-        render();
-        db.collection('courses').doc(id).collection('chats').orderBy('timestamp','asc').limit(50).onSnapshot(s => {
-            STATE.chats = s.docs.map(d => d.data());
-            render();
-        });
-    }
-
-    function handleTyping(el) {
-        const btnS = document.getElementById('btn-send'), btnM = document.getElementById('btn-mic');
-        if(el.value.trim() !== "") { btnS.classList.remove('hidden'); btnM.classList.add('hidden'); }
-        else { btnS.classList.add('hidden'); btnM.classList.remove('hidden'); }
-    }
-
-    async function sendChat() {
-        const input = document.getElementById('chat-input'), txt = input.value; 
-        if(!txt.trim()) return;
-        input.value = ""; handleTyping(input);
-        await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
-            userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName || 'Mahasiswa',
-            text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    }
-
-    // ========== 6. AI FEATURES (SINKRON DENGAN RAILWAY) ==========
-    async function summarizeAI() {
-        if(STATE.chats.length < 2) return alert("Butuh lebih banyak pesan untuk diringkas.");
-        const context = STATE.chats.slice(-15).map(m => `${m.userName}: ${m.text}`).join("\n");
-        
-        showModal('<div class="p-10 text-center"><div class="animate-spin text-3xl mb-4">✨</div><p class="text-xs font-bold tracking-widest opacity-50 uppercase">FunGrow AI Sedang Merangkum...</p></div>');
-        
-        try {
-            const res = await fetch(`${BACKEND_URL}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Tolong buat ringkasan materi singkat dari diskusi kuliah ini:\n" + context })
-            });
-            const data = await res.json();
-            showModal(`
-                <div class="glass p-8 rounded-[2.5rem] animate-fade text-white max-h-[80vh] overflow-y-auto border border-white/10">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i data-lucide="sparkles" class="text-indigo-400"></i>
-                        <h3 class="font-bold text-sm">Ringkasan Materi AI</h3>
-                    </div>
-                    <div class="text-xs leading-loose opacity-80">${data.reply.replace(/\n/g, '<br>')}</div>
-                    <button onclick="closeModal()" class="w-full mt-8 py-4 bg-indigo-600 rounded-2xl font-bold text-xs">TUTUP RINGKASAN</button>
+    function renderCourse(el) {
+        el.innerHTML = `<div class="h-full flex flex-col overflow-hidden bg-[var(--bg)] relative">
+            <header class="glass flex items-center gap-3 px-4 py-3 shrink-0 rounded-b-2xl z-30 border-b border-slate-700/50">
+                <button onclick="STATE.screen='dashboard'; renderFull()" class="p-2 -ml-2 rounded-full hover:bg-slate-700/50"><i data-lucide="arrow-left" class="w-5 h-5 text-white"></i></button>
+                <div class="flex-1 min-w-0"><h2 class="font-bold text-base text-white flex items-center gap-2">${STATE.currentCourse.icon} ${STATE.currentCourse.name}</h2></div>
+            </header>
+            <div id="pinned-container" class="hidden shrink-0 z-20 transition-all"></div>
+            <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 py-4 z-10 scroll-smooth"></div>
+            <div class="glass p-2 shrink-0 z-30 border-t border-slate-700/50 flex gap-2 items-end pb-4 pt-2">
+                <button id="btn-clip" onclick="openAttachmentMenu()" class="p-3 rounded-full text-slate-400 hover:text-white shrink-0 active:scale-90 transition-all"><i data-lucide="paperclip" class="w-5 h-5"></i></button>
+                <div id="recording-ui" class="hidden flex-1 flex items-center gap-2 p-1 bg-slate-800 rounded-full border border-red-500/30">
+                    <button onclick="cancelRecording()" class="p-2 rounded-full text-slate-400 hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <div class="flex-1 flex items-center justify-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-red-500 pulse"></div><span id="rec-time" class="text-sm font-mono font-bold text-white">0:00</span></div>
+                    <button onclick="stopRecording()" class="p-2 rounded-full bg-indigo-600 text-white shadow-lg"><i data-lucide="send" class="w-4 h-4 ml-0.5"></i></button>
                 </div>
-            `);
-        } catch(e) { alert("Gagal terhubung ke AI. Cek status Railway kamu."); closeModal(); }
-    }
-
-    function triggerVision() { document.getElementById('vision-input').click(); }
-
-    async function handleVision(input) {
-        if(!input.files[0]) return;
-        const formData = new FormData();
-        formData.append('file', input.files[0]);
-
-        showModal('<div class="p-10 text-center">🖼️ AI Menganalisis Gambar...</div>');
-
-        try {
-            const res = await fetch(`${BACKEND_URL}/vision`, { method: 'POST', body: formData });
-            const data = await res.json();
-            showModal(`
-                <div class="glass p-8 rounded-[2.5rem] animate-fade text-white">
-                    <h3 class="font-bold mb-4 text-xs flex items-center gap-2"><i data-lucide="eye"></i> Hasil Analisis Gambar</h3>
-                    <div class="text-xs leading-loose opacity-80 mb-6">${data.reply}</div>
-                    <button onclick="closeModal()" class="w-full py-4 bg-white/10 rounded-2xl font-bold text-xs">KEMBALI</button>
-                </div>
-            `);
-        } catch(e) { alert("Gagal menganalisis gambar."); closeModal(); }
-    }
-
-    // ========== 7. MODAL & UI HELPERS ==========
-    function showModal(html) {
-        document.getElementById('modal-content').innerHTML = html;
-        document.getElementById('global-modal').classList.add('active');
-        lucide.createIcons();
-    }
-    function closeModal() { document.getElementById('global-modal').classList.remove('active'); }
-
-    function openPlusMenu() {
-        showModal(`
-            <div class="grid grid-cols-3 gap-6 p-8 glass rounded-[2.5rem] text-center border border-white/10">
-                ${['file','Tugas','image','Galeri','bar-chart-2','Poll','map-pin','Lokasi','calendar','Jadwal','users','Teman'].map((ic, i) => i % 2 === 0 ? `
-                <div class="flex flex-col items-center gap-2 opacity-40">
-                    <div class="p-4 bg-white/5 rounded-2xl"><i data-lucide="${ic}"></i></div>
-                    <span class="text-[9px] font-bold uppercase tracking-tighter">${['file','Tugas','image','Galeri','bar-chart-2','Poll','map-pin','Lokasi','calendar','Jadwal','users','Teman'][i+1]}</span>
-                </div>` : '').join('')}
+                <textarea id="chat-input" class="flex-1 bg-slate-800 text-white text-sm rounded-2xl px-4 py-3 max-h-28 outline-none resize-none border border-slate-700/50 focus:border-indigo-500 transition-colors" placeholder="Ketik pesan..." oninput="handleInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendTextMessage(); }"></textarea>
+                <button id="btn-send" onclick="sendTextMessage()" class="hidden p-3 rounded-full bg-indigo-600 text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-indigo-600/30 mb-0.5"><i data-lucide="send" class="w-5 h-5 ml-0.5"></i></button>
+                <button id="btn-mic" onclick="startRecording()" class="p-3 rounded-full bg-indigo-600 text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-indigo-600/30 mb-0.5"><i data-lucide="mic" class="w-5 h-5"></i></button>
             </div>
-        `);
+        </div>`;
+        renderPinnedOnly();
+        renderMessagesOnly();
     }
-
-    render();
 </script>
 </body>
 </html>
