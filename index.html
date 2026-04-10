@@ -52,7 +52,7 @@
 <div id="app" class="h-full flex flex-col overflow-hidden"></div>
 
 <div id="global-modal" class="modal-background flex items-center justify-center p-4">
-    <div class="w-full max-w-sm" id="modal-content"></div>
+    <div class="w-full max-sm" id="modal-content"></div>
 </div>
 
 <script>
@@ -183,11 +183,13 @@
             });
     }
 
+    // FIX: LOAD USER ROLE (PENTING BANGET)
     auth.onAuthStateChanged(async (user) => {
         if (user) {
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 const userData = userDoc.exists ? userDoc.data() : {};
+                
                 STATE.currentUser = { 
                     uid: user.uid, 
                     email: user.email, 
@@ -412,10 +414,11 @@
     }
     window.cancelHold = function(el) { clearTimeout(pressTimer); if(el) el.classList.remove('msg-active'); }
 
+    // FIX: BAGIAN MENU (ADMIN + USER)
     window.openMessageMenu = function(msgId) {
         if ("vibrate" in navigator) navigator.vibrate(50);
         const msg = STATE.chats[STATE.currentCourse.id].find(m => m.id === msgId);
-        if(!msg || msg.isDeleted) return; // Jangan buka menu jika sudah dihapus
+        if(!msg || msg.isDeleted) return; 
         
         const isMine = msg.userId === STATE.currentUser.uid;
         const isAdmin = STATE.currentUser?.role === 'admin';
@@ -423,7 +426,9 @@
         let html = `<div class="glass p-5 rounded-3xl w-full max-w-xs animate-slide-up mx-auto absolute bottom-4 left-0 right-0 border border-slate-700">
             <h3 class="text-center font-bold text-slate-300 mb-4 text-sm">Opsi Pesan ${isAdmin ? '(Admin)' : ''}</h3><div class="space-y-2">`;
         
-        if(isMine && msg.type === 'text') html += `<button onclick="openEditForm('${msg.id}', '${msg.text.replace(/'/g, "\\'")}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="pencil" class="w-4 h-4 text-indigo-400"></i> Edit Pesan</button>`;
+        if(isMine && msg.type === 'text') {
+            html += `<button onclick="openEditForm('${msg.id}', '${msg.text.replace(/'/g, "\\'")}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="pencil" class="w-4 h-4 text-indigo-400"></i> Edit Pesan</button>`;
+        }
         
         html += `<button onclick="pinMessage('${msg.id}')" class="w-full py-3 px-4 rounded-xl bg-slate-800 text-white font-medium flex items-center gap-3"><i data-lucide="pin" class="w-4 h-4 text-accent2"></i> Sematkan Pesan</button>`;
         
@@ -452,23 +457,27 @@
         try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(id).update({ text, isEdited: true }); showToast('Pesan diubah'); } catch(e){}
     }
 
-    // PEMBARUAN: Soft Delete + Logging + UX Confirm
+    // FIX: FUNCTION DELETE (VERSI FINAL)
     window.deleteForEveryone = async function(id) {
-        if(!confirm("Yakin hapus pesan ini untuk semua orang? Tindakan ini akan dicatat oleh sistem.")) return;
-        closeGlobalModal(); 
-        try { 
+        if(!confirm("Yakin hapus pesan ini untuk semua orang?")) return;
+
+        try {
             const courseId = STATE.currentCourse.id;
             const user = STATE.currentUser;
 
-            // 1. Soft Delete pada Pesan
-            await db.collection('courses').doc(courseId).collection('chats').doc(id).update({ 
-                isDeleted: true,
-                deletedBy: user.uid,
-                deletedByName: user.displayName,
-                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }); 
+            // Soft delete
+            await db.collection('courses')
+              .doc(courseId)
+              .collection('chats')
+              .doc(id)
+              .update({ 
+                  isDeleted: true,
+                  deletedBy: user.uid,
+                  deletedByName: user.displayName,
+                  deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
 
-            // 2. Logging Aksi ke Koleksi 'logs'
+            // Logging
             await db.collection('logs').add({
                 action: "delete_message",
                 performedBy: user.uid,
@@ -478,10 +487,12 @@
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            showToast('Pesan telah dihapus'); 
+            showToast('Pesan berhasil dihapus');
+            closeGlobalModal();
+
         } catch(e){
-            console.error(e);
-            showToast('Gagal menghapus pesan', 'error');
+            console.error("DELETE ERROR:", e.message);
+            showToast(e.message, 'error');
         }
     }
 
@@ -508,10 +519,10 @@
         return visible.map(m => {
             const mine = m.userId === STATE.currentUser?.uid;
             
-            // UI untuk Pesan yang Dihapus (Soft Delete)
+            // FIX: UI PESAN TERHAPUS
             if (m.isDeleted) {
-                return `<div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade opacity-40">
-                    <div class="px-3 py-2 italic text-[11px] bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center gap-2">
+                return `<div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade">
+                    <div class="px-3 py-2 italic text-[11px] bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center gap-2 opacity-40">
                         <i data-lucide="trash-2" class="w-3 h-3"></i> Pesan ini telah dihapus
                     </div>
                 </div>`;
