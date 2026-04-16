@@ -1,29 +1,14 @@
 <!doctype html>
 <html lang="id" class="h-full">
 <head>
-<script>
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-        var errDiv = document.createElement('div');
-        errDiv.style = "background:red; color:white; padding:20px; position:fixed; top:0; left:0; width:100%; z-index:99999; font-size:14px; word-wrap:break-word;";
-        errDiv.innerHTML = "<b>BOS, ADA ERROR JS!</b><br>Pesan: " + msg + "<br>Baris: " + lineNo;
-        document.body.appendChild(errDiv);
-        return false;
-    };
-    window.addEventListener("unhandledrejection", function(e) {
-        var errDiv = document.createElement('div');
-        errDiv.style = "background:orange; color:black; padding:20px; position:fixed; top:80px; left:0; width:100%; z-index:99999; font-size:14px; word-wrap:break-word;";
-        errDiv.innerHTML = "<b>BOS, ADA PROMISE ERROR!</b><br>Pesan: " + e.reason;
-        document.body.appendChild(errDiv);
-    });
-</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FunGrow Pendidikan - Platform Pembelajaran</title>
-    <script src="https://cdn.tailwindcss.com/3.4.17" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" crossorigin="anonymous"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" crossorigin="anonymous"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; overscroll-behavior-y: none; }
