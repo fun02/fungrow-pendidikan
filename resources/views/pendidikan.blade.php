@@ -1,6 +1,21 @@
 <!doctype html>
 <html lang="id" class="h-full">
 <head>
+<script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var errDiv = document.createElement('div');
+        errDiv.style = "background:red; color:white; padding:20px; position:fixed; top:0; left:0; width:100%; z-index:99999; font-size:14px; word-wrap:break-word;";
+        errDiv.innerHTML = "<b>BOS, ADA ERROR JS!</b><br>Pesan: " + msg + "<br>Baris: " + lineNo;
+        document.body.appendChild(errDiv);
+        return false;
+    };
+    window.addEventListener("unhandledrejection", function(e) {
+        var errDiv = document.createElement('div');
+        errDiv.style = "background:orange; color:black; padding:20px; position:fixed; top:80px; left:0; width:100%; z-index:99999; font-size:14px; word-wrap:break-word;";
+        errDiv.innerHTML = "<b>BOS, ADA PROMISE ERROR!</b><br>Pesan: " + e.reason;
+        document.body.appendChild(errDiv);
+    });
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FunGrow Pendidikan - Platform Pembelajaran</title>
