@@ -560,12 +560,30 @@
         }
 
         return `
-        <div class="animate-fade">
-            <div class="mx-4 mt-2 p-6 rounded-3xl bg-gradient-to-br from-[#2563eb] to-indigo-600 relative overflow-hidden shadow-[0_10px_30px_rgba(37,99,235,0.3)] text-white">
-                <div class="relative z-10">
-                    <h2 class="text-xl font-bold mb-1">Hai, ${STATE.currentUser?.displayName.split(' ')[0] || 'Siswa'}! 👋</h2>
-                    <p class="text-white/80 text-xs font-medium">Siap untuk belajar hari ini?</p>
+                    <div class="swiper banner-swiper mt-2 animate-fade">
+                <div class="swiper-wrapper">
+                    
+                    <div class="swiper-slide px-4">
+                        <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(37,99,235,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
+                            <img src="URL_GAMBAR_1" alt="Unlock Future" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        </div>
+                    </div>
+
+                    <div class="swiper-slide px-4">
+                        <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(168,85,247,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
+                            <img src="URL_GAMBAR_2" alt="Skill Masa Depan" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        </div>
+                    </div>
+
+                    <div class="swiper-slide px-4">
+                        <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(16,185,129,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
+                            <img src="URL_GAMBAR_3" alt="Karir Impian" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                        </div>
+                    </div>
+
                 </div>
+                <div class="swiper-pagination"></div>
+            </div>
                 <i data-lucide="book-open" class="absolute -right-4 -bottom-4 w-32 h-32 text-white opacity-10 transform -rotate-12"></i>
             </div>
             <div class="px-4 mt-6">
