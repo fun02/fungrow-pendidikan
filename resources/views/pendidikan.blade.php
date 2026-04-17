@@ -275,7 +275,7 @@
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get(); const userData = userDoc.exists ? userDoc.data() : {};
                 STATE.currentUser = { uid: user.uid, email: user.email, displayName: user.displayName || userData.displayName || 'User', photoURL: user.photoURL || userData.photoURL, role: userData.role || 'user', joined: user.metadata?.creationTime };
-                STATE.screen = 'dashboard'; STATE.dashboardTab = 'kelas';
+                STATE.screen = 'dashboard'; STATE.dashboardTab = 'home';
                 COURSES.forEach(c => setupAssignmentListener(c.id));
             } catch (e) { STATE.screen = 'login'; }
         } else { STATE.currentUser = null; STATE.screen = 'login'; }
