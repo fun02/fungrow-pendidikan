@@ -264,8 +264,38 @@
         } else { STATE.currentUser = null; STATE.screen = 'login'; }
         renderFull();
     });
-
+    
         // ========== LOGIKA DAFTAR (SIGNUP) + VERIFIKASI EMAIL ==========
+    window.doLogin = async function() {
+    const nim = document.getElementById('login-nim').value;
+    const password = document.getElementById('login-password').value;
+
+    if(!nim || !password) return showToast('Harap isi NIM dan Password!', 'error');
+    showToast("Sedang memverifikasi...", "warning");
+
+    try {
+        const snapshot = await db.collection("users").where("nim", "==", nim).limit(1).get();
+        if (snapshot.empty) return showToast("NIM tidak terdaftar!", "error");
+
+        let emailAsli = "";
+        snapshot.forEach((doc) => { emailAsli = doc.data().email; });
+
+        const userCredential = await auth.signInWithEmailAndPassword(emailAsli, password);
+        const user = userCredential.user;
+
+        // CEK APAKAH EMAIL SUDAH DIVERIFIKASI
+        if (!user.emailVerified) {
+            await auth.signOut(); // Paksa keluar lagi
+            return showToast("Akun belum aktif! Silakan buka email Anda dan klik link verifikasi.", "error");
+        }
+
+        showToast("Login Berhasil, Hai CEO!", "success");
+    } catch (error) {
+        showToast("Login Gagal! Pastikan password benar.", "error");
+    }
+};
+    
+    // ========== LOGIKA DAFTAR (SIGNUP) + POP-UP VERIFIKASI ==========
     window.doSignup = async function() {
         const nama = document.getElementById('signup-name').value;
         const nim = document.getElementById('signup-nim').value;
@@ -273,9 +303,10 @@
         const password = document.getElementById('signup-password').value;
         const confirmPassword = document.getElementById('signup-confirm').value;
 
+        // 1. Validasi Input
         const nimNumber = Number(nim);
         if (nim.length !== 13 || isNaN(nimNumber) || nimNumber < 2403806131001 || nimNumber > 2403806131050) {
-            return showToast("Pendaftaran Gagal! NIM tidak valid.", "error");
+            return showToast("Pendaftaran Gagal! NIM tidak valid/di luar rentang.", "error");
         }
         if (password !== confirmPassword) return showToast("Password tidak sama!", "error");
         if (!email) return showToast("Email wajib diisi!", "error");
@@ -283,29 +314,50 @@
         showToast("Memproses pendaftaran...", "warning");
 
         try {
+            // 2. Cek apakah NIM sudah dipakai
             const checkNim = await db.collection("users").where("nim", "==", nim).get();
-            if (!checkNim.empty) return showToast("NIM ini sudah terdaftar!", "error");
+            if (!checkNim.empty) return showToast("NIM ini sudah terdaftar sebelumnya!", "error");
 
+            // 3. Buat Akun & Kirim Email Verifikasi
             const res = await auth.createUserWithEmailAndPassword(email, password);
             await res.user.updateProfile({ displayName: nama });
+            await res.user.sendEmailVerification();
             
+            // 4. Simpan ke Firestore
             await db.collection('users').doc(res.user.uid).set({ 
                 displayName: nama, nim: nim, email: email, photoURL: null, role: 'mahasiswa' 
             });
 
-            // 🔴 INI KODE SAKTINYA: Kirim email verifikasi setelah berhasil daftar
-            await res.user.sendEmailVerification();
+            // 5. Paksa Logout (Agar tidak bisa nyelonong masuk ke dashboard)
+            await auth.signOut();
 
-            showToast('Daftar Sukses! Cek Kotak Masuk/Spam Email Anda untuk Verifikasi.', 'success');
-            
+            // 6. Sembunyikan form daftar, kembalikan ke form login di latar belakang
             document.getElementById('signup-tab').classList.add('hidden');
             document.getElementById('login-tab').classList.remove('hidden');
+
+            // 7. TAMPILKAN POP-UP PEMBERITAHUAN BESAR
+            showGlobalModal(`
+                <div class="glass p-8 text-center rounded-3xl border border-emerald-500/30 w-full animate-slide shadow-2xl relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                    <div class="w-20 h-20 bg-emerald-500/20 rounded-3xl flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                        <i data-lucide="mail-check" class="w-10 h-10 text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-[color:var(--text)] mb-3 tracking-tight">Pendaftaran Sukses!</h3>
+                    <p class="text-sm text-[color:var(--text2)] mb-8 leading-relaxed">
+                        Link verifikasi telah dikirim ke email:<br>
+                        <b class="text-[color:var(--text)]">${email}</b><br><br>
+                        Silakan tutup halaman ini, buka aplikasi Email/Gmail Anda, cek kotak masuk atau folder <b class="text-orange-400">Spam</b>, lalu klik link tersebut untuk mengaktifkan akun.
+                    </p>
+                    <button onclick="closeGlobalModal()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95">
+                        Siap, Saya Mengerti
+                    </button>
+                </div>
+            `);
 
         } catch(err) { 
             showToast(err.message, 'error'); 
         }
     };
-
 
     // ========== LOGIKA LUPA PASSWORD (CEK NIM & EMAIL) ==========
     window.sendResetLink = async () => {
