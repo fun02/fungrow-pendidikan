@@ -858,32 +858,26 @@
     };
 
         // ==============================================
-    // LOGIKA POP-UP PENGUMUMAN (Tampil 1x Per Sesi)
-    // ==============================================
-    window.showPromoModal = function() {
-        // Cek apakah di sesi ini user sudah melihat pop-up
-        if (!sessionStorage.getItem('promoFunGrowSeen')) {
-            const modal = document.getElementById('promo-modal');
-            const content = document.getElementById('promo-content');
-            
-            if(modal && content) {
-                // Munculkan elemennya dulu
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                
-                // Beri sedikit jeda untuk memicu animasi masuk (fade in & zoom)
-                setTimeout(() => {
-                    modal.classList.remove('opacity-0');
-                    modal.classList.add('opacity-100');
-                    content.classList.remove('scale-95');
-                    content.classList.add('scale-100');
-                }, 50);
-
-                // Catat di memori browser bahwa user sudah melihatnya
-                sessionStorage.setItem('promoFunGrowSeen', 'true');
-            }
-        }
-    };
+// LOGIKA POP-UP PENGUMUMAN (Tampil TERUS untuk Testing)
+// ==============================================
+window.showPromoModal = function() {
+    const modal = document.getElementById('promo-modal');
+    const content = document.getElementById('promo-content');
+    
+    if(modal && content) {
+        // Munculkan elemennya dulu
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // Beri sedikit jeda untuk memicu animasi masuk (fade in & zoom)
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.classList.add('opacity-100');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 50);
+    }
+};
 
     window.closePromoModal = function() {
         const modal = document.getElementById('promo-modal');
