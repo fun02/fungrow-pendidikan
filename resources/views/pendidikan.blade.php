@@ -541,37 +541,56 @@
         
         lucide.createIcons();
     }
-    function getHomeHTML() {
+        function getHomeHTML() {
         return `
-        <div class="animate-fade px-4 py-2">
-            <div class="glass p-8 rounded-3xl relative overflow-hidden shadow-2xl mb-6 bg-gradient-to-br from-[#0f172a] to-[#1e293b] border-slate-700/50">
-                <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#2563eb]/40 rounded-full blur-3xl"></div>
-                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/30 rounded-full blur-3xl"></div>
-                <div class="relative z-10 text-center">
-                    <div class="inline-flex p-3 rounded-2xl bg-white/10 backdrop-blur-md mb-5 border border-white/10 shadow-lg">
-                        <i data-lucide="sparkles" class="w-8 h-8 text-blue-400"></i>
+            <div class="space-y-5 animate-fade px-4 py-2">
+                
+                <div class="flex items-center justify-between glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)]">
+                    <div>
+                        <p class="text-sm text-[color:var(--text2)] mb-0.5">Selamat datang kembali,</p>
+                        <h2 class="text-xl font-bold text-[color:var(--text)]">Hai, ${STATE.currentUser?.displayName?.split(' ')[0] || 'Siswa'}! 👋</h2>
                     </div>
-                    <h2 class="text-2xl font-bold text-white mb-3">Selamat Datang di <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">FunGrow Pendidikan</span></h2>
-                    <p class="text-sm text-slate-300 leading-relaxed mb-6">Platform inovatif dengan desain UI 3D yang memadukan estetika glassmorphism modern untuk pengalaman belajar interaktif masa depan.</p>
-                    <button onclick="switchTab('kelas')" class="px-6 py-3 bg-[#2563eb] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors active:scale-95">Mulai Belajar</button>
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg border-2 border-white/20">
+                        ${STATE.currentUser?.displayName?.charAt(0).toUpperCase() || 'S'}
+                    </div>
                 </div>
+
+                <div class="swiper banner-swiper">
+                    <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+                            <div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group">
+                                <img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <div class="swiper-slide">
+                            <div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group">
+                                <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-pagination"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center mb-3">
+                            <i data-lucide="flame" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">0</h3>
+                        <p class="text-xs text-[color:var(--text2)] font-medium">Tugas Mendesak</p>
+                    </div>
+                    
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center mb-3">
+                            <i data-lucide="book-open" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">6</h3>
+                        <p class="text-xs text-[color:var(--text2)] font-medium">Total Modul</p>
+                    </div>
+                </div>
+                
             </div>
-            <h3 class="text-sm font-bold text-[color:var(--text)] mb-3 px-1">Fitur Unggulan</h3>
-            <div class="space-y-3">
-                <div class="glass p-4 rounded-2xl flex items-start gap-4 border border-[color:var(--border)]">
-                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/30"><i data-lucide="message-square-dashed" class="w-5 h-5"></i></div>
-                    <div><h4 class="font-bold text-[color:var(--text)] text-sm">Real-time Diskusi</h4><p class="text-[11px] text-[color:var(--text2)] mt-1">Obrolan kelas tanpa hambatan dengan dukungan pengiriman voice note dan file instan.</p></div>
-                </div>
-                <div class="glass p-4 rounded-2xl flex items-start gap-4 border border-[color:var(--border)]">
-                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-500 flex items-center justify-center shrink-0 border border-purple-500/30"><i data-lucide="bot" class="w-5 h-5"></i></div>
-                    <div><h4 class="font-bold text-[color:var(--text)] text-sm">Asisten AI Cerdas</h4><p class="text-[11px] text-[color:var(--text2)] mt-1">Ringkasan chat otomatis dan tanya jawab berdasarkan konteks obrolan.</p></div>
-                </div>
-                <div class="glass p-4 rounded-2xl flex items-start gap-4 border border-[color:var(--border)]">
-                    <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-500/30"><i data-lucide="flame" class="w-5 h-5"></i></div>
-                    <div><h4 class="font-bold text-[color:var(--text)] text-sm">Urgency Tracker</h4><p class="text-[11px] text-[color:var(--text2)] mt-1">Pantau deadline tugas terdekat Anda langsung dari dashboard utama.</p></div>
-                </div>
-            </div>
-        </div>`;
+        `;
     }
 
     function getKelasHTML() {
