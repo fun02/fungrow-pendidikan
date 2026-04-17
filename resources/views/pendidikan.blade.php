@@ -1006,22 +1006,20 @@
     window.deleteForMe = async function(id) { closeGlobalModal(); try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(id).update({ deletedFor: firebase.firestore.FieldValue.arrayUnion(STATE.currentUser.uid) }); showToast('Dihapus untuk Anda'); } catch(e){} }
     window.pinMessage = async function(id) { closeGlobalModal(); const msg = STATE.chats[STATE.currentCourse.id].find(m=>m.id===id); const txt = msg.type==='text' ? msg.text : `[${msg.type.toUpperCase()}]`; try { await db.collection('courses').doc(STATE.currentCourse.id).update({ pinnedMessage: { id, text: txt, userName: msg.userName } }); showToast('Disematkan'); } catch(e){} }
     window.unpinMessage = async function() { try { await db.collection('courses').doc(STATE.currentCourse.id).update({ pinnedMessage: null }); showToast('Sematan dilepas'); } catch(e){} }
-    
-    <div id="promo-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-5 transition-opacity duration-300 opacity-0">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closePromoModal()"></div>
-        
-        <div class="relative w-full max-w-sm mx-auto transform scale-95 transition-transform duration-300" id="promo-content">
-            
-            <button onclick="closePromoModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-full flex items-center justify-center shadow-xl border border-slate-200 dark:border-slate-700 z-10 active:scale-90 transition-transform">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
-            
-            <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&q=80&w=600&h=800" 
-                 alt="Pengumuman FunGrow" 
-                 class="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl">
-                 
-        </div>
-    </div>
+
+// 1. TUTUP DULU JAVASCRIPT-NYA DI SINI
 </script>
+
+<div id="promo-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-5 transition-opacity duration-300 opacity-0">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closePromoModal()"></div>
+    
+    <div class="relative w-full max-w-sm mx-auto transform scale-95 transition-transform duration-300" id="promo-content">
+        <button onclick="closePromoModal()" class="absolute -top-4 -right-4 w-10 h-10 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-full flex items-center justify-center shadow-xl border border-slate-200 dark:border-slate-700 z-10 active:scale-90 transition-transform">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&q=80&w=600&h=800" alt="Pengumuman FunGrow" class="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl">
+    </div>
+</div>
+
 </body>
 </html>
