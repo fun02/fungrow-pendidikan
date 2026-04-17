@@ -502,39 +502,35 @@
         </div>`;
         renderDashboardContent();
     }
-    
     function renderDashboardContent() {
         const container = document.getElementById('dashboard-content');
         if (!container) return;
         
         if (STATE.dashboardTab === 'home') {
             container.innerHTML = getHomeHTML();
-        } 
-            // PANGGIL POP-UP DI SINI (Diberi jeda 1 detik agar tampilannya natural)
+            
+            // Pemicu Pop-up Promo (Aman)
             setTimeout(() => {
-                showPromoModal();
+                if (typeof window.showPromoModal === 'function') {
+                    window.showPromoModal();
+                }
             }, 1000); 
-
         } 
         else if (STATE.dashboardTab === 'kelas') {
             container.innerHTML = getKelasHTML();
             
-            // NYALAKAN SWIPER SLIDER SETELAH HTML DIMUAT
+            // Pemicu Banner Swiper (Aman)
             setTimeout(() => {
-                new Swiper('.banner-swiper', {
-                    slidesPerView: 1,
-                    spaceBetween: 0,
-                    loop: true,
-                    autoplay: {
-                        delay: 3500,
-                        disableOnInteraction: false,
-                    },
-                    pagination: {
-                        el: '.swiper-pagination',
-                        clickable: true,
-                    },
-                });
-            }, 100); // Jeda agar HTML selesai dirender dulu
+                if (typeof Swiper !== 'undefined') {
+                    new Swiper('.banner-swiper', {
+                        slidesPerView: 1,
+                        spaceBetween: 0,
+                        loop: true,
+                        autoplay: { delay: 3500, disableOnInteraction: false },
+                        pagination: { el: '.swiper-pagination', clickable: true }
+                    });
+                }
+            }, 100);
         } 
         else if (STATE.dashboardTab === 'jadwal') {
             container.innerHTML = getJadwalHTML();
@@ -542,9 +538,9 @@
         else if (STATE.dashboardTab === 'about') {
             container.innerHTML = getAboutHTML();
         }
+        
         lucide.createIcons();
     }
-
     function getHomeHTML() {
         return `
         <div class="animate-fade px-4 py-2">
