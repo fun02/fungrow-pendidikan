@@ -261,11 +261,75 @@
         renderFull();
     });
 
-    window.doLogin = async function() { const e = document.getElementById('login-email').value, p = document.getElementById('login-password').value;
-    if (!e || !p) return showToast('Isi semua field', 'error'); try { await auth.signInWithEmailAndPassword(e, p); } catch(err) { showToast(err.message, 'error'); } };
-    window.doSignup = async function() { const n = document.getElementById('signup-name').value, e = document.getElementById('signup-email').value, p = document.getElementById('signup-password').value;
-    try { const res = await auth.createUserWithEmailAndPassword(e, p); await res.user.updateProfile({ displayName: n });
-    await db.collection('users').doc(res.user.uid).set({ displayName: n, email: e, photoURL: null, role: 'user' }); showToast('Berhasil daftar!'); } catch(err) { showToast(err.message, 'error'); } };
+    // ========== LOGIKA MASUK (LOGIN) PAKAI NIM ==========
+    window.doLogin = async function() {
+        const nim = document.getElementById('login-nim').value;
+        const password = document.getElementById('login-password').value;
+
+        if(!nim || !password) return showToast('Harap isi NIM dan Password!', 'error');
+        showToast("Sedang memverifikasi...", "warning");
+
+        try {
+            // Cari email asli berdasarkan NIM di database
+            const snapshot = await db.collection("users").where("nim", "==", nim).limit(1).get();
+            if (snapshot.empty) return showToast("NIM tidak terdaftar!", "error");
+
+            let emailAsli = "";
+            snapshot.forEach((doc) => { emailAsli = doc.data().email; });
+
+            // Login ke Firebase pakai email asli yang ketemu
+            await auth.signInWithEmailAndPassword(emailAsli, password);
+            showToast("Login Berhasil, Hai CEO!", "success");
+        } catch (error) {
+            showToast("Login Gagal! Pastikan password benar.", "error");
+        }
+    };
+
+    // ========== LOGIKA DAFTAR (SIGNUP) PAKAI NIM ==========
+    window.doSignup = async function() {
+        const nama = document.getElementById('signup-name').value;
+        const nim = document.getElementById('signup-nim').value;
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const confirmPassword = document.getElementById('signup-confirm').value;
+
+        // 1. Validasi Kekuatan NIM (Hanya 001 sampai 050)
+        const nimNumber = Number(nim);
+        if (nim.length !== 13 || isNaN(nimNumber) || nimNumber < 2403806131001 || nimNumber > 2403806131050) {
+            return showToast("Pendaftaran Gagal! NIM tidak valid/di luar rentang.", "error");
+        }
+        if (password !== confirmPassword) return showToast("Password tidak sama!", "error");
+        if (!email) return showToast("Email wajib diisi untuk keamanan!", "error");
+
+        showToast("Memproses pendaftaran...", "warning");
+
+        try {
+            // 2. Cek apakah NIM sudah dipakai orang lain
+            const checkNim = await db.collection("users").where("nim", "==", nim).get();
+            if (!checkNim.empty) return showToast("NIM ini sudah terdaftar sebelumnya!", "error");
+
+            // 3. Daftar Firebase pakai Email asli
+            const res = await auth.createUserWithEmailAndPassword(email, password);
+            await res.user.updateProfile({ displayName: nama });
+            
+            // 4. Simpan data lengkap ke database
+            await db.collection('users').doc(res.user.uid).set({ 
+                displayName: nama, 
+                nim: nim,
+                email: email, 
+                photoURL: null, 
+                role: 'mahasiswa' 
+            });
+
+            showToast('Pendaftaran Berhasil! Silakan Masuk.', 'success');
+            document.getElementById('signup-tab').classList.add('hidden');
+            document.getElementById('login-tab').classList.remove('hidden');
+
+        } catch(err) { 
+            showToast(err.message, 'error'); 
+        }
+    };
+
     window.doLogout = async function() { closeSidebar(); Object.values(STATE.unsubscribers).forEach(u => u()); STATE.unsubscribers = {}; await auth.signOut(); };
     window.openCourse = function(id) {
         STATE.currentCourse = COURSES.find(c => c.id === id);
@@ -308,7 +372,7 @@
             <div class="glass p-8 w-full max-w-sm animate-slide shadow-2xl border border-[color:var(--border)]">
                 <div class="text-center mb-8"><div class="text-4xl mb-3">🎓</div><h1 class="text-2xl font-bold text-[color:var(--text)]">FunGrow</h1></div>
                 <div id="login-tab" class="space-y-4">
-                    <input type="email" id="login-email" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-[#2563eb]" placeholder="Email">
+                    <input type="number" id="login-nim" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-[#2563eb]" placeholder="NIM">
                     <input type="password" id="login-password" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-[#2563eb]" placeholder="Password">
                     <button onclick="doLogin()" class="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 shadow-lg shadow-indigo-600/20 active:scale-95 transition-transform">Masuk</button>
                     <div class="flex justify-between items-center mt-4">
@@ -318,6 +382,7 @@
                 </div>
                 <div id="signup-tab" class="space-y-4 hidden">
                     <input type="text" id="signup-name" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)]" placeholder="Nama Lengkap">
+                    <input type="number" id="signup-nim" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)]" placeholder="NIM">
                     <input type="email" id="signup-email" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)]" placeholder="Email">
                     <input type="password" id="signup-password" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)]" placeholder="Password">
                     <input type="password" id="signup-confirm" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)]" placeholder="Konfirmasi Password">
@@ -673,19 +738,7 @@
         } catch(e) { console.error(e); showToast('Gagal menerbitkan tugas', 'error'); }
     };
 
-    // ========== LOGIKA FITUR TAMBAHAN (AI & LUPA PASSWORD SESUAI PERMINTAAN) ==========
-    window.openForgotPasswordModal = () => { document.getElementById('reset-modal').classList.add('show'); document.getElementById('reset-step-1').classList.remove('hidden'); document.getElementById('reset-step-2').classList.add('hidden'); document.getElementById('reset-step-3').classList.add('hidden'); lucide.createIcons(); };
-    window.sendOTP = async () => {
-        const email = document.getElementById('reset-email-input').value; if(!email) return showToast('Email wajib diisi!', 'error'); showToast('Sedang mengirim email...', 'warning');
-        try {
-            const response = await fetch('/auth/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ email: email }) });
-            if (!response.ok) { const errorText = await response.text(); console.error(errorText); return showToast('Server Error: ' + response.status, 'error'); }
-            const data = await response.json();
-            if(data.success) { window.currentOTP = data.otp; document.getElementById('reset-step-1').classList.add('hidden'); document.getElementById('reset-step-2').classList.remove('hidden'); showToast('OTP terkirim ke email!'); } else { showToast('Gagal: ' + data.message, 'error'); }
-        } catch(e) { console.error(e); showToast('Kesalahan jaringan: ' + e.message, 'error'); }
-    };
-    window.verifyOTP = () => { const otp = document.getElementById('otp-input').value; if(otp == window.currentOTP && window.currentOTP) { document.getElementById('reset-step-2').classList.add('hidden'); document.getElementById('reset-step-3').classList.remove('hidden'); } else { showToast('Kode OTP salah!', 'error'); } };
-    window.saveNewPassword = () => { const pass = document.getElementById('new-pass-input').value; if(pass.length < 6) return showToast('Password minimal 6 karakter', 'error'); showToast('Password diperbarui!'); document.getElementById('reset-modal').classList.remove('show'); };
+    // ========== LOGIKA FITUR TAMBAHAN (AI) ==========
     window.openProfileModal = function() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async (e) => { const file = e.target.files[0]; if(!file) return; showToast('Mengunggah foto...', 'warning'); try { const url = await fetchCloudinaryUpload(file); await auth.currentUser.updateProfile({ photoURL: url }); await db.collection('users').doc(auth.currentUser.uid).update({ photoURL: url }); STATE.currentUser.photoURL = url; showToast('Foto profil berhasil diubah!'); renderFull(); } catch(err) { showToast('Gagal upload', 'error'); } }; input.click(); };
     window.handleAISummary = async function() {
         const msgs = STATE.chats[STATE.currentCourse.id] || []; if(msgs.length < 5) return showToast('Butuh minimal 5 pesan', 'warning');
@@ -716,6 +769,43 @@
         const fullText = `# ${title}\nTanggal: ${new Date().toLocaleDateString('id-ID')}\n\n---\n\n${content}`;
         const blob = new Blob([fullText], { type: 'text/markdown' }); const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = `Catatan_${STATE.currentCourse.id}.md`; a.click(); showToast('Catatan berhasil diunduh!');
+    };
+
+    // ========== LOGIKA LUPA PASSWORD (FIREBASE LINK) ==========
+    window.openForgotPasswordModal = () => { 
+        document.getElementById('reset-modal').classList.add('show'); 
+        document.getElementById('reset-step-1').classList.remove('hidden'); 
+        if(document.getElementById('reset-step-2')) document.getElementById('reset-step-2').classList.add('hidden'); 
+        if(document.getElementById('reset-step-3')) document.getElementById('reset-step-3').classList.add('hidden'); 
+        lucide.createIcons(); 
+    };
+
+    window.sendResetLink = async () => {
+        const email = document.getElementById('reset-email-input').value; 
+        if(!email) return showToast('Email wajib diisi!', 'error'); 
+        showToast('Meminta Firebase mengirim email...', 'warning');
+
+        try {
+            await firebase.auth().sendPasswordResetEmail(email);
+            
+            document.getElementById('reset-step-1').classList.add('hidden'); 
+            const step2 = document.getElementById('reset-step-2');
+            step2.classList.remove('hidden');
+            step2.innerHTML = `
+                <div class="text-center">
+                    <h3 class="font-bold text-[color:var(--text)] mb-2">Email Terkirim! ✅</h3>
+                    <p class="text-sm text-[color:var(--text2)]">Link pemulihan telah dikirim ke <b>${email}</b>.<br>Cek kotak masuk atau spam.</p>
+                    <button onclick="document.getElementById('reset-modal').classList.remove('show')" class="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-medium">Tutup</button>
+                </div>
+            `;
+            showToast('Email pemulihan berhasil dikirim!', 'success'); 
+        } catch(error) { 
+            if(error.code === 'auth/user-not-found') {
+                showToast('Email tidak terdaftar!', 'error');
+            } else {
+                showToast('Gagal: ' + error.message, 'error'); 
+            }
+        }
     };
 
     // ========== CHAT ACTIONS ==========
