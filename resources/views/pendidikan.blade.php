@@ -6,6 +6,10 @@
     <title>FunGrow Pendidikan - Platform Pembelajaran</title>
     <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -52,6 +56,10 @@
         .msg-active { filter: brightness(0.8); transform: scale(0.98); transition: all 0.2s ease; }
         .sidebar-open { transform: translateX(0) !important; }
         .overlay-open { opacity: 1 !important; pointer-events: auto !important; }
+                  /* Kustomisasi Dots Slider FunGrow */
+        .banner-swiper { padding-bottom: 25px !important; }
+        .swiper-pagination-bullet { background: var(--text2) !important; opacity: 0.4; transition: all 0.3s ease; }
+        .swiper-pagination-bullet-active { background: #2563eb !important; opacity: 1; width: 24px; border-radius: 12px; }
     </style>
 </head>
 <body class="h-full overflow-hidden flex flex-col" style="background:var(--bg);color:var(--text)">
@@ -485,14 +493,40 @@
         </div>`;
         renderDashboardContent();
     }
-
+    
     function renderDashboardContent() {
         const container = document.getElementById('dashboard-content');
         if (!container) return;
-        if (STATE.dashboardTab === 'home') container.innerHTML = getHomeHTML();
-        else if (STATE.dashboardTab === 'kelas') container.innerHTML = getKelasHTML();
-        else if (STATE.dashboardTab === 'jadwal') container.innerHTML = getJadwalHTML();
-        else if (STATE.dashboardTab === 'about') container.innerHTML = getAboutHTML();
+        
+        if (STATE.dashboardTab === 'home') {
+            container.innerHTML = getHomeHTML();
+        } 
+        else if (STATE.dashboardTab === 'kelas') {
+            container.innerHTML = getKelasHTML();
+            
+            // NYALAKAN SWIPER SLIDER SETELAH HTML DIMUAT
+            setTimeout(() => {
+                new Swiper('.banner-swiper', {
+                    slidesPerView: 1,
+                    spaceBetween: 0,
+                    loop: true,
+                    autoplay: {
+                        delay: 3500,
+                        disableOnInteraction: false,
+                    },
+                    pagination: {
+                        el: '.swiper-pagination',
+                        clickable: true,
+                    },
+                });
+            }, 100); // Jeda agar HTML selesai dirender dulu
+        } 
+        else if (STATE.dashboardTab === 'jadwal') {
+            container.innerHTML = getJadwalHTML();
+        } 
+        else if (STATE.dashboardTab === 'about') {
+            container.innerHTML = getAboutHTML();
+        }
         lucide.createIcons();
     }
 
@@ -565,19 +599,19 @@
                     
                     <div class="swiper-slide px-4">
                         <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(37,99,235,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
-                            <img src="URL_GAMBAR_1" alt="Unlock Future" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450">
                         </div>
                     </div>
 
                     <div class="swiper-slide px-4">
                         <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(168,85,247,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
-                            <img src="URL_GAMBAR_2" alt="Skill Masa Depan" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800&h=450">
                         </div>
                     </div>
 
                     <div class="swiper-slide px-4">
                         <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(16,185,129,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
-                            <img src="URL_GAMBAR_3" alt="Karir Impian" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=450">
                         </div>
                     </div>
 
