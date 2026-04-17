@@ -65,8 +65,10 @@
                 <div class="w-16 h-16 bg-orange-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-orange-500/30">
                     <i data-lucide="mail-search" class="w-8 h-8 text-orange-400"></i>
                 </div>
+                <h3 class="text-xl font-bold text-[color:var(--text)] mb-2">NIM</h3>
                 <h3 class="text-xl font-bold text-[color:var(--text)] mb-2">Lupa Password</h3>
-                <p class="text-[11px] text-[color:var(--text2)] mb-6 px-4">Masukkan email Anda untuk menerima kode OTP.</p>
+                <p class="text-[11px] text-[color:var(--text2)] mb-6 px-4">Masukkan NIM dan Email Anda yang terdaftar untuk menerima kode OTP.</p>
+                <input type="number" id="reset-nim-input" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] mb-3 outline-none focus:border-orange-500/50 transition-all" placeholder="NIM Anda">
                 <input type="email" id="reset-email-input" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] mb-4 outline-none focus:border-orange-500/50 transition-all" placeholder="Email Anda">
                 <button onclick="sendOTP()" class="w-full py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-orange-500 to-amber-600 shadow-lg shadow-orange-500/20 active:scale-95 transition-transform">Kirim Kode OTP</button>
             </div>
@@ -261,31 +263,7 @@
         renderFull();
     });
 
-    // ========== LOGIKA MASUK (LOGIN) PAKAI NIM ==========
-    window.doLogin = async function() {
-        const nim = document.getElementById('login-nim').value;
-        const password = document.getElementById('login-password').value;
-
-        if(!nim || !password) return showToast('Harap isi NIM dan Password!', 'error');
-        showToast("Sedang memverifikasi...", "warning");
-
-        try {
-            // Cari email asli berdasarkan NIM di database
-            const snapshot = await db.collection("users").where("nim", "==", nim).limit(1).get();
-            if (snapshot.empty) return showToast("NIM tidak terdaftar!", "error");
-
-            let emailAsli = "";
-            snapshot.forEach((doc) => { emailAsli = doc.data().email; });
-
-            // Login ke Firebase pakai email asli yang ketemu
-            await auth.signInWithEmailAndPassword(emailAsli, password);
-            showToast("Login Berhasil, Hai CEO!", "success");
-        } catch (error) {
-            showToast("Login Gagal! Pastikan password benar.", "error");
-        }
-    };
-
-    // ========== LOGIKA DAFTAR (SIGNUP) PAKAI NIM ==========
+        // ========== LOGIKA DAFTAR (SIGNUP) + VERIFIKASI EMAIL ==========
     window.doSignup = async function() {
         const nama = document.getElementById('signup-name').value;
         const nim = document.getElementById('signup-nim').value;
@@ -293,35 +271,31 @@
         const password = document.getElementById('signup-password').value;
         const confirmPassword = document.getElementById('signup-confirm').value;
 
-        // 1. Validasi Kekuatan NIM (Hanya 001 sampai 050)
         const nimNumber = Number(nim);
         if (nim.length !== 13 || isNaN(nimNumber) || nimNumber < 2403806131001 || nimNumber > 2403806131050) {
-            return showToast("Pendaftaran Gagal! NIM tidak valid/di luar rentang.", "error");
+            return showToast("Pendaftaran Gagal! NIM tidak valid.", "error");
         }
         if (password !== confirmPassword) return showToast("Password tidak sama!", "error");
-        if (!email) return showToast("Email wajib diisi untuk keamanan!", "error");
+        if (!email) return showToast("Email wajib diisi!", "error");
 
         showToast("Memproses pendaftaran...", "warning");
 
         try {
-            // 2. Cek apakah NIM sudah dipakai orang lain
             const checkNim = await db.collection("users").where("nim", "==", nim).get();
-            if (!checkNim.empty) return showToast("NIM ini sudah terdaftar sebelumnya!", "error");
+            if (!checkNim.empty) return showToast("NIM ini sudah terdaftar!", "error");
 
-            // 3. Daftar Firebase pakai Email asli
             const res = await auth.createUserWithEmailAndPassword(email, password);
             await res.user.updateProfile({ displayName: nama });
             
-            // 4. Simpan data lengkap ke database
             await db.collection('users').doc(res.user.uid).set({ 
-                displayName: nama, 
-                nim: nim,
-                email: email, 
-                photoURL: null, 
-                role: 'mahasiswa' 
+                displayName: nama, nim: nim, email: email, photoURL: null, role: 'mahasiswa' 
             });
 
-            showToast('Pendaftaran Berhasil! Silakan Masuk.', 'success');
+            // 🔴 INI KODE SAKTINYA: Kirim email verifikasi setelah berhasil daftar
+            await res.user.sendEmailVerification();
+
+            showToast('Daftar Sukses! Cek Kotak Masuk/Spam Email Anda untuk Verifikasi.', 'success');
+            
             document.getElementById('signup-tab').classList.add('hidden');
             document.getElementById('login-tab').classList.remove('hidden');
 
@@ -330,6 +304,51 @@
         }
     };
 
+
+    // ========== LOGIKA LUPA PASSWORD (CEK NIM & EMAIL) ==========
+    window.sendResetLink = async () => {
+        const nim = document.getElementById('reset-nim-input').value; 
+        const email = document.getElementById('reset-email-input').value; 
+        
+        if(!nim || !email) return showToast('NIM dan Email wajib diisi!', 'error'); 
+        showToast('Memverifikasi data...', 'warning');
+
+        try {
+            // 1. Cek apakah NIM ada di database
+            const snapshot = await db.collection("users").where("nim", "==", nim).limit(1).get();
+            if (snapshot.empty) {
+                return showToast('Gagal: NIM tidak terdaftar!', 'error');
+            }
+
+            // 2. Cocokkan email dari database dengan email yang diketik
+            let emailAsli = "";
+            snapshot.forEach((doc) => { emailAsli = doc.data().email; });
+
+            if (emailAsli !== email) {
+                return showToast('Gagal: Email tidak cocok dengan NIM tersebut!', 'error');
+            }
+
+            // 3. Jika cocok, jalankan fungsi Firebase kirim link reset
+            await firebase.auth().sendPasswordResetEmail(email);
+            
+            // Ubah tampilan modal ke langkah sukses
+            document.getElementById('reset-step-1').classList.add('hidden'); 
+            const step2 = document.getElementById('reset-step-2');
+            step2.classList.remove('hidden');
+            step2.innerHTML = `
+                <div class="text-center">
+                    <h3 class="font-bold text-[color:var(--text)] mb-2">Email Terkirim! ✅</h3>
+                    <p class="text-sm text-[color:var(--text2)]">Link pemulihan telah dikirim ke <b>${email}</b>.<br>Cek kotak masuk atau spam.</p>
+                    <button onclick="document.getElementById('reset-modal').classList.remove('show')" class="mt-4 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-medium">Tutup</button>
+                </div>
+            `;
+            showToast('Email pemulihan berhasil dikirim!', 'success'); 
+            
+        } catch(error) { 
+            showToast('Gagal: ' + error.message, 'error'); 
+        }
+    };
+    
     window.doLogout = async function() { closeSidebar(); Object.values(STATE.unsubscribers).forEach(u => u()); STATE.unsubscribers = {}; await auth.signOut(); };
     window.openCourse = function(id) {
         STATE.currentCourse = COURSES.find(c => c.id === id);
