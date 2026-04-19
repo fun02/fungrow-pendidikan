@@ -125,7 +125,7 @@
         <button onclick="switchTab('kelas')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="layout-dashboard" class="w-5 h-5 text-emerald-500"></i> Kelas FunGrow</button>
         <button onclick="switchTab('jadwal')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="calendar-days" class="w-5 h-5 text-orange-500"></i> Jadwal Perkuliahan</button>
         <div class="h-px bg-[color:var(--border)] my-4 mx-2"></div>
-        <button onclick="switchTab('about')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="user" class="w-5 h-5 text-purple-500"></i> About Me</button>
+        <button onclick="switchTab('about'); closeSidebar();" class="flex items-center gap-3 p-3 w-full rounded-2xl hover:bg-[color:var(--surface)] text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all font-medium"><i data-lucide="user-circle" class="w-5 h-5"></i><span>Profil Akademik</span></button>
         <button onclick="openChangePasswordModal()" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="key-round" class="w-5 h-5 text-amber-500"></i> Ganti Password</button>
         <button onclick="switchTab('mahasiswa'); closeSidebar();" class="flex items-center gap-3 p-3 w-full rounded-2xl hover:bg-[color:var(--surface)] text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all font-medium"><i data-lucide="users" class="w-5 h-5"></i><span>Data Mahasiswa</span></button>
     </div>
@@ -787,7 +787,19 @@
                 const role = user.role || 'mahasiswa';
                 const inisial = nama.charAt(0).toUpperCase();
                 
-                // Desain Kartu Mahasiswa (Glassmorphism + Neon Badges)
+            // Sediakan wadah memori lokal agar data detailnya tidak bocor/error
+            window.cachedMahasiswa = window.cachedMahasiswa || {};
+            
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                window.cachedMahasiswa[doc.id] = user; // Simpan data ke memori sementara
+                
+                const nama = user.displayName || user.name || 'Tanpa Nama';
+                const nim = user.nim || 'NIM Tidak Ada';
+                const email = user.email || 'Email Tidak Ada';
+                const role = user.role || 'mahasiswa';
+                const inisial = nama.charAt(0).toUpperCase();
+                
                 html += `
                     <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] hover:shadow-lg transition-all duration-300">
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-lg shadow-md border-2 border-white/20">
@@ -800,8 +812,14 @@
                                 <span class="text-[color:var(--text2)] truncate">${email}</span>
                             </div>
                         </div>
-                        <div class="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider ${role === 'admin' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'}">
-                            ${role}
+                        
+                        <div class="flex flex-col items-end gap-1.5">
+                            <button onclick="lihatDetailMahasiswa('${doc.id}')" class="text-[9px] font-bold px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors border border-blue-500/30">
+                                LIHAT DETAIL
+                            </button>
+                            <div class="text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${role === 'admin' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'}">
+                                ${role}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -817,39 +835,131 @@
     };
 
     function getAboutHTML() {
-        const photo = STATE.currentUser?.photoURL ? `<img src="${STATE.currentUser.photoURL}" class="w-24 h-24 rounded-3xl object-cover border-4 border-[color:var(--surface)] shadow-xl">` : `<div class="w-24 h-24 rounded-3xl flex items-center justify-center font-bold text-3xl bg-gradient-to-br from-[#2563eb] to-indigo-600 text-white border-4 border-[color:var(--surface)] shadow-xl">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
-        const joinDate = STATE.currentUser?.joined ? new Date(STATE.currentUser.joined).toLocaleDateString('id', { month: 'long', year: 'numeric' }) : '2026';
+            // ==========================================
+    // HALAMAN PROFIL AKADEMIK MAHASISWA
+    // ==========================================
+    window.getAboutHTML = function() {
+        // Tarik data dari memori saat ini
+        const user = STATE.currentUser || {};
+        
         return `
-        <div class="animate-fade px-4 py-2 flex flex-col items-center">
-            <div class="w-full glass rounded-3xl p-6 relative mt-12 border border-[color:var(--border)] shadow-xl text-center">
-                <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 cursor-pointer active:scale-95 transition-transform" onclick="openProfileModal()">
-                    ${photo}
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-indigo-600 rounded-full border border-[color:var(--border)] flex items-center justify-center shadow-lg"><i data-lucide="camera" class="w-4 h-4 text-white"></i></div>
+        <div class="animate-fade px-4 py-2 space-y-4 pb-20">
+            <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)] flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/20">
+                    ${user.displayName ? user.displayName.charAt(0).toUpperCase() : 'M'}
                 </div>
-                <div class="mt-12 mb-2">
-                    <h2 class="text-xl font-bold text-[color:var(--text)] tracking-tight">${STATE.currentUser?.displayName || 'Student'}</h2>
-                    <p class="text-xs text-[color:var(--text2)] mt-0.5">${STATE.currentUser?.email}</p>
-                </div>
-                <div class="inline-block px-3 py-1 rounded-full bg-blue-500/10 text-[#2563eb] text-[10px] font-bold tracking-wider uppercase border border-blue-500/20 mb-6">
-                    Digital Creator & Learner
-                </div>
-                <div class="h-px bg-[color:var(--border)] w-full mb-6"></div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass p-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)]">
-                        <i data-lucide="book-marked" class="w-5 h-5 text-emerald-500 mx-auto mb-2"></i>
-                        <h4 class="text-[10px] text-[color:var(--text2)]">Total Kelas</h4>
-                        <p class="text-lg font-bold text-[color:var(--text)]">${COURSES.length}</p>
-                    </div>
-                    <div class="glass p-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)]">
-                        <i data-lucide="calendar-check" class="w-5 h-5 text-orange-500 mx-auto mb-2"></i>
-                        <h4 class="text-[10px] text-[color:var(--text2)]">Bergabung</h4>
-                        <p class="text-sm font-bold text-[color:var(--text)] mt-1">${joinDate}</p>
-                    </div>
+                <div>
+                    <h2 class="text-xl font-bold text-[color:var(--text)]">Profil Mahasiswa</h2>
+                    <p class="text-xs text-[color:var(--text2)]">Kelola data akademik dan personal Anda</p>
                 </div>
             </div>
-            <p class="text-[10px] text-[color:var(--text2)] mt-8 opacity-60">FunGrow Pendidikan v1.0 • 2026</p>
-        </div>`;
-    }
+
+            <div class="glass p-6 rounded-3xl border border-[color:var(--border)] relative">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Nama Lengkap</label>
+                        <input type="text" id="prof-nama" value="${user.displayName || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] font-medium" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">NIM / Nomor Induk</label>
+                        <input type="text" id="prof-nim" value="${user.nim || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] opacity-70 cursor-not-allowed" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Akun Email (Gmail)</label>
+                        <input type="text" id="prof-email" value="${user.email || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] opacity-70 cursor-not-allowed" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Tanggal Lahir</label>
+                        <input type="date" id="prof-tglLahir" value="${user.tglLahir || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Fakultas</label>
+                        <input type="text" id="prof-fakultas" value="${user.fakultas || ''}" placeholder="Misal: Ekonomi dan Bisnis" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Program Studi</label>
+                        <input type="text" id="prof-prodi" value="${user.prodi || ''}" placeholder="Misal: Manajemen S1" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                    </div>
+                    
+                    <div class="md:col-span-2 mt-2">
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Alamat Lengkap</label>
+                        <textarea id="prof-alamat" rows="2" placeholder="Masukkan alamat domisili..." class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input resize-none" disabled>${user.alamat || ''}</textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-[color:var(--border)]">
+                    <button id="btn-edit-prof" onclick="toggleEditProfil()" class="px-5 py-2.5 rounded-xl font-bold bg-[color:var(--surface)] text-[color:var(--text)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-500 transition-all flex items-center gap-2">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Profil
+                    </button>
+                    <button id="btn-save-prof" onclick="simpanProfil()" class="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hidden hover:bg-indigo-700 hover:scale-105 transition-all flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    };
+
+    // LOGIKA TOMBOL EDIT PROFIL
+    window.toggleEditProfil = function() {
+        const inputs = document.querySelectorAll('.prof-input, #prof-nama');
+        const isEditing = !inputs[0].disabled;
+
+        if(!isEditing) {
+            // Buka gembok form
+            inputs.forEach(i => i.disabled = false);
+            document.getElementById('prof-nama').focus();
+            
+            // Ubah tombol Edit jadi Batal
+            const btnEdit = document.getElementById('btn-edit-prof');
+            btnEdit.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Batal Edit';
+            btnEdit.classList.replace('hover:text-indigo-500', 'hover:text-red-500');
+            
+            // Munculkan tombol Simpan
+            document.getElementById('btn-save-prof').classList.remove('hidden');
+            lucide.createIcons();
+        } else {
+            // Jika Batal, render ulang halaman ke awal
+            document.getElementById('dashboard-content').innerHTML = getAboutHTML();
+            lucide.createIcons();
+        }
+    };
+
+    // LOGIKA SIMPAN KE FIREBASE
+    window.simpanProfil = async function() {
+        const btnSave = document.getElementById('btn-save-prof');
+        btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
+        btnSave.disabled = true;
+
+        try {
+            // Kumpulkan data yang baru diketik
+            const newData = {
+                displayName: document.getElementById('prof-nama').value,
+                tglLahir: document.getElementById('prof-tglLahir').value,
+                fakultas: document.getElementById('prof-fakultas').value,
+                prodi: document.getElementById('prof-prodi').value,
+                alamat: document.getElementById('prof-alamat').value,
+            };
+
+            // Simpan ke database users Firebase
+            await db.collection('users').doc(STATE.currentUser.uid).update(newData);
+
+            // Perbarui memori lokal agar tidak perlu refresh
+            STATE.currentUser = { ...STATE.currentUser, ...newData };
+
+            showToast("Profil berhasil diperbarui!", "success");
+
+            // Kunci kembali form
+            document.getElementById('dashboard-content').innerHTML = getAboutHTML();
+            lucide.createIcons();
+
+        } catch (error) {
+            showToast("Gagal menyimpan: " + error.message, "error");
+            btnSave.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan';
+            btnSave.disabled = false;
+        }
+    };
 
     // ========== RENDER COURSE CHAT ==========
     function renderMessagesOnly() {
@@ -962,6 +1072,67 @@
                 <div class="mt-8 pt-4 border-t border-dashed border-[color:var(--border)]"><p class="text-[11px] font-bold text-emerald-400 mb-3 tracking-wider uppercase">Riwayat Tugas (${asgns.length})</p><div class="space-y-3">${asgns.map(a => `<div class="p-4 rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] shadow-sm relative overflow-hidden">${a.type === 'kelompok' ? `<div class="absolute top-0 right-0 px-2 py-1 bg-indigo-500/20 text-indigo-400 text-[8px] font-bold rounded-bl-lg">KELOMPOK</div>` : ''}<div class="font-bold text-sm text-[color:var(--text)] pr-12 line-clamp-2">${a.title}</div><div class="flex items-center gap-2 mt-2 text-[10px] text-[color:var(--text2)]"><i data-lucide="user" class="w-3 h-3"></i> ${a.dosen || '-'}</div><div class="flex items-center gap-2 mt-1 text-[10px] text-orange-400 font-bold"><i data-lucide="clock" class="w-3 h-3"></i> Batas: ${formatDate(a.deadline)} ${formatTime(a.deadline)}</div></div>`).join('') || '<div class="text-xs text-center text-[color:var(--text2)] mt-4">Belum ada tugas</div>'}</div></div>
             </div>`, true);
         }, 300);
+    };
+
+            // ==========================================
+    // LOGIKA MODAL POP-UP DETAIL MAHASISWA
+    // ==========================================
+    window.lihatDetailMahasiswa = function(uid) {
+        // Ambil data yang diklik dari memori
+        const user = window.cachedMahasiswa[uid];
+        if(!user) return showToast("Data tidak ditemukan!", "error");
+
+        const nama = user.displayName || user.name || 'Tanpa Nama';
+        const inisial = nama.charAt(0).toUpperCase();
+
+        const htmlModal = `
+            <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm mx-auto border border-[color:var(--border)] text-left relative overflow-hidden shadow-2xl">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
+
+                <div class="flex items-center gap-4 border-b border-[color:var(--border)] pb-4 mb-4 relative z-10">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/20 flex-shrink-0">
+                        ${inisial}
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-[color:var(--text)] leading-tight">${nama}</h2>
+                        <p class="text-xs font-mono text-[color:var(--text2)] mt-0.5">${user.nim || 'NIM Kosong'}</p>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${user.role === 'admin' ? 'bg-orange-500/20 text-orange-500' : 'bg-emerald-500/20 text-emerald-500'} uppercase">${user.role || 'Mahasiswa'}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3 relative z-10">
+                    <div>
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Email Terdaftar</p>
+                        <p class="text-sm text-[color:var(--text)] font-medium">${user.email || '-'}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Fakultas</p>
+                            <p class="text-sm text-[color:var(--text)] font-medium truncate">${user.fakultas || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Program Studi</p>
+                            <p class="text-sm text-[color:var(--text)] font-medium truncate">${user.prodi || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Tanggal Lahir</p>
+                        <p class="text-sm text-[color:var(--text)] font-medium">${user.tglLahir || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Alamat Lengkap</p>
+                        <p class="text-sm text-[color:var(--text)] font-medium leading-relaxed bg-[color:var(--surface)] p-2 rounded-xl mt-1 border border-[color:var(--border)]">${user.alamat || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                    </div>
+                </div>
+
+                <button onclick="closeGlobalModal()" class="w-full mt-6 py-2.5 rounded-xl bg-[color:var(--surface)] text-[color:var(--text)] font-bold border border-[color:var(--border)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all relative z-10">
+                    Tutup Profil
+                </button>
+            </div>
+        `;
+        
+        // Panggil sistem Modal utama bawaan aplikasi Anda
+        showGlobalModal(htmlModal);
     };
 
         // ==============================================
