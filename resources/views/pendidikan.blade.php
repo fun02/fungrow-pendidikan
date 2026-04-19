@@ -997,11 +997,12 @@
         const btnSave = document.getElementById('btn-save-prof');
         btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
         btnSave.disabled = true;
+
         try {
-            // 1. Ambil data dari input (Pastikan ID dan Nama Key-nya benar)
+            // 1. Ambil data dari input
             const newData = {
                 displayName: document.getElementById('prof-nama').value,
-                tglLahir: document.getElementById('prof-tglLahir').value, // L-nya harus BESAR
+                tglLahir: document.getElementById('prof-tglLahir').value, 
                 fakultas: document.getElementById('prof-fakultas').value,
                 prodi: document.getElementById('prof-prodi').value,
                 alamat: document.getElementById('prof-alamat').value,
@@ -1010,13 +1011,12 @@
             // 2. Simpan ke Firebase (Awan)
             await db.collection('users').doc(STATE.currentUser.uid).update(newData);
 
-            // 3. === BARIS SAKTI ===
-            // Ini yang bikin data langsung muncul di layar tanpa loading lama
+            // 3. Sinkronkan Memori Lokal
             STATE.currentUser = { ...STATE.currentUser, ...newData };
 
             showToast("Profil berhasil diperbarui!", "success");
 
-            // 4. Render ulang tampilan (Sekarang data pasti muncul karena memori sudah diupdate)
+            // 4. Render ulang tampilan
             document.getElementById('dashboard-content').innerHTML = getAboutHTML();
             lucide.createIcons();
 
@@ -1025,6 +1025,7 @@
             btnSave.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan';
             btnSave.disabled = false;
         }
+    }; 
 
     // ==========================================
     // LOGIKA GANTI & PANGKAS FOTO PROFIL (JURUS UTAMA)
