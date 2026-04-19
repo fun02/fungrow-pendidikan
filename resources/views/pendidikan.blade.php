@@ -826,11 +826,10 @@
             wadah.innerHTML = `<div class="glass p-5 text-center rounded-2xl text-red-400 border-red-500/30">Gagal memuat data: ${error.message}</div>`;
         }
     };
-    // ==========================================
+        // ==========================================
     // LOGIKA MODAL POP-UP DETAIL MAHASISWA
     // ==========================================
     window.lihatDetailMahasiswa = function(uid) {
-        // Ambil data yang diklik dari memori
         const user = window.cachedMahasiswa[uid];
         if(!user) return showToast("Data tidak ditemukan!", "error");
 
