@@ -884,9 +884,8 @@
         
         showGlobalModal(htmlModal);
     };
-
-    function getAboutHTML() {
-            // ==========================================
+    
+    // ==========================================
     // HALAMAN PROFIL AKADEMIK MAHASISWA
     // ==========================================
     window.getAboutHTML = function() {
