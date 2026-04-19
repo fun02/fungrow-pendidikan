@@ -127,6 +127,7 @@
         <div class="h-px bg-[color:var(--border)] my-4 mx-2"></div>
         <button onclick="switchTab('about')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="user" class="w-5 h-5 text-purple-500"></i> About Me</button>
         <button onclick="openChangePasswordModal()" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="key-round" class="w-5 h-5 text-amber-500"></i> Ganti Password</button>
+        <button onclick="switchTab('mahasiswa'); closeSidebar();" class="flex items-center gap-3 p-3 w-full rounded-2xl hover:bg-[color:var(--surface)] text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all font-medium"><i data-lucide="users" class="w-5 h-5"></i><span>Data Mahasiswa</span></button>
     </div>
     <div class="p-6 border-t border-[color:var(--border)]">
         <button onclick="doLogout()" class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i> Keluar</button>
@@ -532,6 +533,14 @@
                 }
             }, 100);
         } 
+            // DATA MAHASISWA:
+        else if (STATE.dashboardTab === 'mahasiswa') {
+            container.innerHTML = getDataMahasiswaHTML();
+            // fungsi penarik data sesaat setelah HTML-nya dimuat
+            setTimeout(() => {
+                loadDataMahasiswa();
+            }, 50);
+        }
         else if (STATE.dashboardTab === 'jadwal') {
             container.innerHTML = getJadwalHTML();
         } 
@@ -540,7 +549,7 @@
         }
         
         lucide.createIcons();
-    }
+    } 
         function getHomeHTML() {
         return `
             <div class="space-y-5 animate-fade px-4 py-2">
@@ -727,6 +736,85 @@
             ${scheduleList}
         </div>`;
     }
+    
+    // ==========================================
+    // TAMPILAN HALAMAN DATA MAHASISWA
+    // ==========================================
+    window.getDataMahasiswaHTML = function() {
+        return `
+            <div class="animate-fade px-4 py-2 space-y-4">
+                <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)] flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-[color:var(--text)] mb-1">Data Mahasiswa</h2>
+                        <p class="text-xs text-[color:var(--text2)]">Daftar pengguna terdaftar di sistem FunGrow</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center border border-indigo-500/30">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                
+                <div id="wadah-data-mahasiswa" class="space-y-3 pb-10">
+                    <div class="text-center py-10 text-[color:var(--text2)] flex flex-col items-center">
+                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3 text-indigo-500"></i>
+                        <p class="text-sm font-medium">Memuat data dari Firebase...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+        // ==========================================
+    // LOGIKA TARIK DATA MAHASISWA DARI FIREBASE
+    // ==========================================
+    window.loadDataMahasiswa = async function() {
+        const wadah = document.getElementById('wadah-data-mahasiswa');
+        if (!wadah) return;
+
+        try {
+            // Ambil semua dokumen dari koleksi 'users'
+            const snapshot = await db.collection('users').get();
+            
+            if (snapshot.empty) {
+                wadah.innerHTML = `<div class="glass p-5 text-center rounded-2xl text-[color:var(--text2)]">Belum ada data mahasiswa terdaftar.</div>`;
+                return;
+            }
+
+            let html = '';
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                const nama = user.displayName || user.name || 'Tanpa Nama';
+                const nim = user.nim || 'NIM Tidak Ada';
+                const email = user.email || 'Email Tidak Ada';
+                const role = user.role || 'mahasiswa';
+                const inisial = nama.charAt(0).toUpperCase();
+                
+                // Desain Kartu Mahasiswa (Glassmorphism + Neon Badges)
+                html += `
+                    <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] hover:shadow-lg transition-all duration-300">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-lg shadow-md border-2 border-white/20">
+                            ${inisial}
+                        </div>
+                        <div class="flex-1 overflow-hidden">
+                            <h3 class="font-bold text-[color:var(--text)] truncate text-base">${nama}</h3>
+                            <div class="flex items-center gap-2 text-[10px] sm:text-xs mt-1">
+                                <span class="bg-[color:var(--surface)] text-[color:var(--text)] px-2 py-1 rounded-md font-bold border border-[color:var(--border)] shadow-sm">${nim}</span>
+                                <span class="text-[color:var(--text2)] truncate">${email}</span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider ${role === 'admin' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'}">
+                            ${role}
+                        </div>
+                    </div>
+                `;
+            });
+
+            wadah.innerHTML = html;
+            lucide.createIcons(); // Render ulang ikon
+
+        } catch (error) {
+            console.error("Error mengambil data mahasiswa:", error);
+            wadah.innerHTML = `<div class="glass p-5 text-center rounded-2xl text-red-400 border-red-500/30">Gagal memuat data: ${error.message}</div>`;
+        }
+    };
 
     function getAboutHTML() {
         const photo = STATE.currentUser?.photoURL ? `<img src="${STATE.currentUser.photoURL}" class="w-24 h-24 rounded-3xl object-cover border-4 border-[color:var(--surface)] shadow-xl">` : `<div class="w-24 h-24 rounded-3xl flex items-center justify-center font-bold text-3xl bg-gradient-to-br from-[#2563eb] to-indigo-600 text-white border-4 border-[color:var(--surface)] shadow-xl">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
