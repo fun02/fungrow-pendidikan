@@ -762,7 +762,7 @@
             </div>
         `;
     };
-        // ==========================================
+    // ==========================================
     // LOGIKA TARIK DATA MAHASISWA DARI FIREBASE
     // ==========================================
     window.loadDataMahasiswa = async function() {
@@ -770,7 +770,6 @@
         if (!wadah) return;
 
         try {
-            // Ambil semua dokumen dari koleksi 'users'
             const snapshot = await db.collection('users').get();
             
             if (snapshot.empty) {
@@ -779,20 +778,14 @@
             }
 
             let html = '';
-            snapshot.forEach(doc => {
-                const user = doc.data();
-                const nama = user.displayName || user.name || 'Tanpa Nama';
-                const nim = user.nim || 'NIM Tidak Ada';
-                const email = user.email || 'Email Tidak Ada';
-                const role = user.role || 'mahasiswa';
-                const inisial = nama.charAt(0).toUpperCase();
-                
-            // Sediakan wadah memori lokal agar data detailnya tidak bocor/error
+            
+            // Sediakan wadah memori lokal (Cukup tulis SEKALI di sini, di luar loop)
             window.cachedMahasiswa = window.cachedMahasiswa || {};
             
+            // Lakukan Looping SEKALI saja
             snapshot.forEach(doc => {
                 const user = doc.data();
-                window.cachedMahasiswa[doc.id] = user; // Simpan data ke memori sementara
+                window.cachedMahasiswa[doc.id] = user; // Simpan ke memori
                 
                 const nama = user.displayName || user.name || 'Tanpa Nama';
                 const nim = user.nim || 'NIM Tidak Ada';
@@ -826,12 +819,71 @@
             });
 
             wadah.innerHTML = html;
-            lucide.createIcons(); // Render ulang ikon
+            lucide.createIcons(); 
 
         } catch (error) {
             console.error("Error mengambil data mahasiswa:", error);
             wadah.innerHTML = `<div class="glass p-5 text-center rounded-2xl text-red-400 border-red-500/30">Gagal memuat data: ${error.message}</div>`;
         }
+    };
+    // ==========================================
+    // LOGIKA MODAL POP-UP DETAIL MAHASISWA
+    // ==========================================
+    window.lihatDetailMahasiswa = function(uid) {
+        // Ambil data yang diklik dari memori
+        const user = window.cachedMahasiswa[uid];
+        if(!user) return showToast("Data tidak ditemukan!", "error");
+
+        const nama = user.displayName || user.name || 'Tanpa Nama';
+        const inisial = nama.charAt(0).toUpperCase();
+
+        const htmlModal = `
+            <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm mx-auto border border-[color:var(--border)] text-left relative overflow-hidden shadow-2xl">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
+
+                <div class="flex items-center gap-4 border-b border-[color:var(--border)] pb-4 mb-4 relative z-10">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/20 flex-shrink-0">
+                        ${inisial}
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-[color:var(--text)] leading-tight">${nama}</h2>
+                        <p class="text-xs font-mono text-[color:var(--text2)] mt-0.5">${user.nim || 'NIM Kosong'}</p>
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${user.role === 'admin' ? 'bg-orange-500/20 text-orange-500' : 'bg-emerald-500/20 text-emerald-500'} uppercase">${user.role || 'Mahasiswa'}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3 relative z-10">
+                    <div>
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Email Terdaftar</p>
+                        <p class="text-sm text-[color:var(--text)] font-medium">${user.email || '-'}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Fakultas</p>
+                            <p class="text-sm text-[color:var(--text)] font-medium truncate">${user.fakultas || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Program Studi</p>
+                            <p class="text-sm text-[color:var(--text)] font-medium truncate">${user.prodi || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Tanggal Lahir</p>
+                        <p class="text-sm text-[color:var(--text)] font-medium">${user.tglLahir || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Alamat Lengkap</p>
+                        <p class="text-sm text-[color:var(--text)] font-medium leading-relaxed bg-[color:var(--surface)] p-2 rounded-xl mt-1 border border-[color:var(--border)]">${user.alamat || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
+                    </div>
+                </div>
+
+                <button onclick="closeGlobalModal()" class="w-full mt-6 py-2.5 rounded-xl bg-[color:var(--surface)] text-[color:var(--text)] font-bold border border-[color:var(--border)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all relative z-10">
+                    Tutup Profil
+                </button>
+            </div>
+        `;
+        
+        showGlobalModal(htmlModal);
     };
 
     function getAboutHTML() {
@@ -1072,68 +1124,7 @@
                 <div class="mt-8 pt-4 border-t border-dashed border-[color:var(--border)]"><p class="text-[11px] font-bold text-emerald-400 mb-3 tracking-wider uppercase">Riwayat Tugas (${asgns.length})</p><div class="space-y-3">${asgns.map(a => `<div class="p-4 rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] shadow-sm relative overflow-hidden">${a.type === 'kelompok' ? `<div class="absolute top-0 right-0 px-2 py-1 bg-indigo-500/20 text-indigo-400 text-[8px] font-bold rounded-bl-lg">KELOMPOK</div>` : ''}<div class="font-bold text-sm text-[color:var(--text)] pr-12 line-clamp-2">${a.title}</div><div class="flex items-center gap-2 mt-2 text-[10px] text-[color:var(--text2)]"><i data-lucide="user" class="w-3 h-3"></i> ${a.dosen || '-'}</div><div class="flex items-center gap-2 mt-1 text-[10px] text-orange-400 font-bold"><i data-lucide="clock" class="w-3 h-3"></i> Batas: ${formatDate(a.deadline)} ${formatTime(a.deadline)}</div></div>`).join('') || '<div class="text-xs text-center text-[color:var(--text2)] mt-4">Belum ada tugas</div>'}</div></div>
             </div>`, true);
         }, 300);
-    };
-
-            // ==========================================
-    // LOGIKA MODAL POP-UP DETAIL MAHASISWA
-    // ==========================================
-    window.lihatDetailMahasiswa = function(uid) {
-        // Ambil data yang diklik dari memori
-        const user = window.cachedMahasiswa[uid];
-        if(!user) return showToast("Data tidak ditemukan!", "error");
-
-        const nama = user.displayName || user.name || 'Tanpa Nama';
-        const inisial = nama.charAt(0).toUpperCase();
-
-        const htmlModal = `
-            <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm mx-auto border border-[color:var(--border)] text-left relative overflow-hidden shadow-2xl">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
-
-                <div class="flex items-center gap-4 border-b border-[color:var(--border)] pb-4 mb-4 relative z-10">
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/20 flex-shrink-0">
-                        ${inisial}
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-[color:var(--text)] leading-tight">${nama}</h2>
-                        <p class="text-xs font-mono text-[color:var(--text2)] mt-0.5">${user.nim || 'NIM Kosong'}</p>
-                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${user.role === 'admin' ? 'bg-orange-500/20 text-orange-500' : 'bg-emerald-500/20 text-emerald-500'} uppercase">${user.role || 'Mahasiswa'}</span>
-                    </div>
-                </div>
-
-                <div class="space-y-3 relative z-10">
-                    <div>
-                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Email Terdaftar</p>
-                        <p class="text-sm text-[color:var(--text)] font-medium">${user.email || '-'}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Fakultas</p>
-                            <p class="text-sm text-[color:var(--text)] font-medium truncate">${user.fakultas || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
-                        </div>
-                        <div>
-                            <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Program Studi</p>
-                            <p class="text-sm text-[color:var(--text)] font-medium truncate">${user.prodi || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Tanggal Lahir</p>
-                        <p class="text-sm text-[color:var(--text)] font-medium">${user.tglLahir || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
-                    </div>
-                    <div>
-                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold tracking-wider">Alamat Lengkap</p>
-                        <p class="text-sm text-[color:var(--text)] font-medium leading-relaxed bg-[color:var(--surface)] p-2 rounded-xl mt-1 border border-[color:var(--border)]">${user.alamat || '<span class="italic text-gray-500">Belum diisi</span>'}</p>
-                    </div>
-                </div>
-
-                <button onclick="closeGlobalModal()" class="w-full mt-6 py-2.5 rounded-xl bg-[color:var(--surface)] text-[color:var(--text)] font-bold border border-[color:var(--border)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all relative z-10">
-                    Tutup Profil
-                </button>
-            </div>
-        `;
-        
-        // Panggil sistem Modal utama bawaan aplikasi Anda
-        showGlobalModal(htmlModal);
-    };
+    }; 
 
         // ==============================================
 // LOGIKA POP-UP PENGUMUMAN (Tampil TERUS untuk Testing)
