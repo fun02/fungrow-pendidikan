@@ -1089,59 +1089,64 @@
             reader.readAsDataURL(input.files[0]);
         }
     };
-
-    // 3. Konversi hasil pangkas & Unggah ke Firebase Storage
-    window.uploadFotoProfil = async function() {
-        if (!cropper || !storage) return showToast("Gagal memproses gambar.", "error");
         
+    // ==========================================
+    // 3. KONVERSI & UPLOAD FOTO PROFIL (CLOUDINARY)
+    // ==========================================
+    window.uploadFotoProfil = async function() {
+        if (!cropper) {
+            showToast("Tunggu sebentar, gambar belum siap dipotong.", "warning");
+            return;
+        }
+
         const btnSave = document.getElementById('btn-save-crop');
         btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Mengunggah...';
         btnSave.disabled = true;
 
-        // Ambil hasil pangkas dalam bentuk kanvas (Persegi 300x300px agar ringan)
-        const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
-        
-        // Konversi kanvas ke Blob (file gambar)
-        canvas.toBlob(async (blob) => {
-            if(!blob) return showToast("Gagal membuat data gambar.", "error");
+        try {
+            // Potong gambar jadi ukuran HD (400x400px) yang ringan
+            const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
+            
+            if (!canvas) throw new Error("Gagal membaca area potongan gambar.");
 
-            try {
-                // Jalur penyimpanan di Firebase Storage: users/[UID_SISWA]/profile_photo.jpg
-                const fileRef = storage.ref().child(`users/${STATE.currentUser.uid}/profile_photo.jpg`);
-                
-                // Unggah file!
-                await fileRef.put(blob, { contentType: 'image/jpeg' });
-                
-                // Ambil link download gambar dari server
-                const downloadURL = await fileRef.getDownloadURL();
+            // Konversi hasil potong menjadi file siap kirim
+            canvas.toBlob(async (blob) => {
+                try {
+                    // Bungkus jadi File gambar
+                    const file = new File([blob], `profil_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                    
+                    // Tembak langsung ke Cloudinary (Sama seperti upload Tugas/Chat)
+                    const url = await fetchCloudinaryUpload(file, false);
+                    
+                    // Simpan URL gambar yang sudah jadi ke Database Firebase
+                    await db.collection('users').doc(STATE.currentUser.uid).update({ photoURL: url });
+                    
+                    if (auth.currentUser) {
+                        await auth.currentUser.updateProfile({ photoURL: url });
+                    }
+                    
+                    // Perbarui memori layar HP agar fotonya langsung berubah
+                    STATE.currentUser.photoURL = url;
+                    
+                    showToast("Foto profil berhasil diperbarui! 🎉", "success");
+                    closeGlobalModal();
+                    
+                    // Render ulang halaman profil
+                    document.getElementById('dashboard-content').innerHTML = getAboutHTML();
+                    lucide.createIcons();
 
-                // Perbarui Database Users (Firestore)
-                await db.collection('users').doc(STATE.currentUser.uid).update({
-                    photoURL: downloadURL
-                });
+                } catch (err) {
+                    showToast("Gagal mengunggah ke awan: " + err.message, "error");
+                    btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Simpan Foto';
+                    btnSave.disabled = false;
+                }
+            }, 'image/jpeg', 0.8); // Kualitas 80% biar irit kuota
 
-                // Perbarui Database Authentikasi Firebase
-                await auth.currentUser.updateProfile({
-                    photoURL: downloadURL
-                });
-
-                // Perbarui memori lokal HP
-                STATE.currentUser.photoURL = downloadURL;
-
-                showToast("Foto profil berhasil diubah!", "success");
-                closeGlobalModal();
-
-                // Render ulang profil agar foto langsung muncul interaktif
-                document.getElementById('dashboard-content').innerHTML = getAboutHTML();
-                lucide.createIcons();
-
-            } catch (error) {
-                console.error("Error upload foto:", error);
-                showToast("Gagal mengunggah foto: " + error.message, "error");
-                btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Simpan Foto';
-                btnSave.disabled = false;
-            }
-        }, 'image/jpeg', 0.8); // Kualitas 80% agar irit kuota
+        } catch (error) {
+            showToast("Error pemangkas: " + error.message, "error");
+            btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Simpan Foto';
+            btnSave.disabled = false;
+        }
     };
 
     // ========== RENDER COURSE CHAT ==========
