@@ -13,6 +13,8 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         html, body { height: 100%; margin: 0; font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; overscroll-behavior-y: none; }
@@ -886,23 +888,38 @@
     };
     
     // ==========================================
-    // HALAMAN PROFIL AKADEMIK MAHASISWA
+    // HALAMAN PROFIL AKADEMIK (DENGAN FITUR FOTO)
     // ==========================================
     window.getAboutHTML = function() {
-        // Tarik data dari memori saat ini
         const user = STATE.currentUser || {};
         
+        // Tentukan gambar profil (pakai foto asli atau inisial jika kosong)
+        const photoContent = user.photoURL ? 
+            `<img src="${user.photoURL}" class="w-full h-full object-cover rounded-full" id="prof-photo-img">` :
+            `<div class="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/20" id="prof-photo-initial">
+                ${user.displayName ? user.displayName.charAt(0).toUpperCase() : 'M'}
+            </div>`;
+
         return `
         <div class="animate-fade px-4 py-2 space-y-4 pb-20">
             <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)] flex items-center gap-4">
-                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/20">
-                    ${user.displayName ? user.displayName.charAt(0).toUpperCase() : 'M'}
+                
+                <div class="relative group cursor-pointer flex-shrink-0" onclick="pilihFotoProfil()">
+                    <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-indigo-500/50 group-hover:border-indigo-500 transition-colors">
+                        ${photoContent}
+                    </div>
+                    <div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="camera" class="w-5 h-5"></i>
+                    </div>
                 </div>
+
                 <div>
-                    <h2 class="text-xl font-bold text-[color:var(--text)]">Profil Mahasiswa</h2>
-                    <p class="text-xs text-[color:var(--text2)]">Kelola data akademik dan personal Anda</p>
+                    <h2 class="text-xl font-bold text-[color:var(--text)]">Profil Akademik</h2>
+                    <p class="text-xs text-[color:var(--text2)]">Ketuk foto untuk mengubahnya</p>
                 </div>
             </div>
+
+            <input type="file" id="input-foto-profil" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
 
             <div class="glass p-6 rounded-3xl border border-[color:var(--border)] relative">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -922,25 +939,24 @@
                         <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Tanggal Lahir</label>
                         <input type="date" id="prof-tglLahir" value="${user.tglLahir || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
                     </div>
-                    
                     <div>
                         <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Fakultas</label>
-                        <input type="text" id="prof-fakultas" value="${user.fakultas || ''}" placeholder="Misal: Ekonomi dan Bisnis" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                        <input type="text" id="prof-fakultas" value="${user.fakultas || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Program Studi</label>
-                        <input type="text" id="prof-prodi" value="${user.prodi || ''}" placeholder="Misal: Manajemen S1" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                        <input type="text" id="prof-prodi" value="${user.prodi || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
                     </div>
-                    
                     <div class="md:col-span-2 mt-2">
                         <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Alamat Lengkap</label>
-                        <textarea id="prof-alamat" rows="2" placeholder="Masukkan alamat domisili..." class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input resize-none" disabled>${user.alamat || ''}</textarea>
+                        <textarea id="prof-alamat" rows="2" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input resize-none" disabled>${user.alamat || ''}</textarea>
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-[color:var(--border)]">
                     <button id="btn-edit-prof" onclick="toggleEditProfil()" class="px-5 py-2.5 rounded-xl font-bold bg-[color:var(--surface)] text-[color:var(--text)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-500 transition-all flex items-center gap-2">
                         <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Profil
+                        <div id="loading-change-password" class="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin hidden"></div>
                     </button>
                     <button id="btn-save-prof" onclick="simpanProfil()" class="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hidden hover:bg-indigo-700 hover:scale-105 transition-all flex items-center gap-2">
                         <i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan
@@ -981,26 +997,26 @@
         const btnSave = document.getElementById('btn-save-prof');
         btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
         btnSave.disabled = true;
-
         try {
-            // Kumpulkan data yang baru diketik
+            // 1. Ambil data dari input (Pastikan ID dan Nama Key-nya benar)
             const newData = {
                 displayName: document.getElementById('prof-nama').value,
-                tglLahir: document.getElementById('prof-tglLahir').value,
+                tglLahir: document.getElementById('prof-tglLahir').value, // L-nya harus BESAR
                 fakultas: document.getElementById('prof-fakultas').value,
                 prodi: document.getElementById('prof-prodi').value,
                 alamat: document.getElementById('prof-alamat').value,
             };
 
-            // Simpan ke database users Firebase
+            // 2. Simpan ke Firebase (Awan)
             await db.collection('users').doc(STATE.currentUser.uid).update(newData);
 
-            // Perbarui memori lokal agar tidak perlu refresh
+            // 3. === BARIS SAKTI ===
+            // Ini yang bikin data langsung muncul di layar tanpa loading lama
             STATE.currentUser = { ...STATE.currentUser, ...newData };
 
             showToast("Profil berhasil diperbarui!", "success");
 
-            // Kunci kembali form
+            // 4. Render ulang tampilan (Sekarang data pasti muncul karena memori sudah diupdate)
             document.getElementById('dashboard-content').innerHTML = getAboutHTML();
             lucide.createIcons();
 
@@ -1009,6 +1025,178 @@
             btnSave.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan';
             btnSave.disabled = false;
         }
+
+    // ==========================================
+    // LOGIKA GANTI & PANGKAS FOTO PROFIL (JURUS UTAMA)
+    // ==========================================
+    let cropper = null; // Memori global untuk pemangkas
+
+    // 1. Trigger saat foto diklik
+    window.pilihFotoProfil = function() {
+        document.getElementById('input-foto-profil').click();
+    };
+
+    // 2. Saat file terpilih, tampilkan Pop-up Pemangkas
+    window.handleFileSelect = function(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Desain Pop-up Modal Khusus Pemangkas (WhatsApp Style)
+                const htmlModal = `
+                    <div class="glass p-5 rounded-3xl animate-slide w-full max-w-sm mx-auto border border-[color:var(--border)] text-left relative shadow-2xl overflow-hidden">
+                        <h3 class="font-bold text-[color:var(--text)] mb-3 flex items-center gap-2">
+                            <i data-lucide="crop" class="w-5 h-5 text-indigo-500"></i> Atur Foto Profil
+                        </h3>
+                        
+                        <div class="w-full aspect-square bg-[color:var(--input-bg)] rounded-2xl overflow-hidden border border-[color:var(--border)] mb-4">
+                            <img src="${e.target.result}" id="image-to-crop" class="max-w-full">
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <button onclick="closeGlobalModal()" class="flex-1 py-2 rounded-xl bg-[color:var(--surface)] text-[color:var(--text)] font-bold border border-[color:var(--border)] active:scale-95 transition-all text-sm">
+                                Batal
+                            </button>
+                            <button onclick="uploadFotoProfil()" id="btn-save-crop" class="flex-1 py-2 rounded-xl bg-indigo-600 text-white font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition-all text-sm flex items-center justify-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4"></i> Simpan Foto
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                showGlobalModal(htmlModal);
+                
+                // Nyalakan Cropper.js (Bulat, Rasio 1:1) setelah modal muncul
+                setTimeout(() => {
+                    const image = document.getElementById('image-to-crop');
+                    if(cropper) cropper.destroy(); // Hapus sisa lama
+                    cropper = new Cropper(image, {
+                        aspectRatio: 1, // Persegi (wajib untuk bulat)
+                        viewMode: 1, // Jaga agar pemangkas tidak keluar dari gambar
+                        guides: false, // Matikan garis bantu
+                        center: true, // Matikan titik tengah
+                        background: false, // Matikan kotak-kotak latar
+                        movable: true,
+                        zoomable: true,
+                        ready() {
+                            // Bikin pandangan WhatsApp: Sudut dibulatkan di tampilan pemangkas
+                            const cropperViewBox = document.querySelector('.cropper-view-box');
+                            if(cropperViewBox) cropperViewBox.style.borderRadius = '50%';
+                        }
+                    });
+                }, 100);
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    };
+
+    // 3. Konversi hasil pangkas & Unggah ke Firebase Storage
+    window.uploadFotoProfil = async function() {
+        if (!cropper || !storage) return showToast("Gagal memproses gambar.", "error");
+        
+        const btnSave = document.getElementById('btn-save-crop');
+        btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Mengunggah...';
+        btnSave.disabled = true;
+
+        // Ambil hasil pangkas dalam bentuk kanvas (Persegi 300x300px agar ringan)
+        const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+        
+        // Konversi kanvas ke Blob (file gambar)
+        canvas.toBlob(async (blob) => {
+            if(!blob) return showToast("Gagal membuat data gambar.", "error");
+
+            try {
+                // Jalur penyimpanan di Firebase Storage: users/[UID_SISWA]/profile_photo.jpg
+                const fileRef = storage.ref().child(`users/${STATE.currentUser.uid}/profile_photo.jpg`);
+                
+                // Unggah file!
+                await fileRef.put(blob, { contentType: 'image/jpeg' });
+                
+                // Ambil link download gambar dari server
+                const downloadURL = await fileRef.getDownloadURL();
+
+                // Perbarui Database Users (Firestore)
+                await db.collection('users').doc(STATE.currentUser.uid).update({
+                    photoURL: downloadURL
+                });
+
+                // Perbarui Database Authentikasi Firebase
+                await auth.currentUser.updateProfile({
+                    photoURL: downloadURL
+                });
+
+                // Perbarui memori lokal HP
+                STATE.currentUser.photoURL = downloadURL;
+
+                showToast("Foto profil berhasil diubah!", "success");
+                closeGlobalModal();
+
+                // Render ulang profil agar foto langsung muncul interaktif
+                document.getElementById('dashboard-content').innerHTML = getAboutHTML();
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error("Error upload foto:", error);
+                showToast("Gagal mengunggah foto: " + error.message, "error");
+                btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Simpan Foto';
+                btnSave.disabled = false;
+            }
+        }, 'image/jpeg', 0.8); // Kualitas 80% agar irit kuota
+    };
+
+
+    
+    // 3. Konversi hasil pangkas & Unggah ke Firebase Storage
+    window.uploadFotoProfil = async function() {
+        if (!cropper || !storage) return showToast("Gagal memproses gambar.", "error");
+        
+        const btnSave = document.getElementById('btn-save-crop');
+        btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Mengunggah...';
+        btnSave.disabled = true;
+
+        // Ambil hasil pangkas dalam bentuk kanvas (Persegi 300x300px agar ringan)
+        const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+        
+        // Konversi kanvas ke Blob (file gambar)
+        canvas.toBlob(async (blob) => {
+            if(!blob) return showToast("Gagal membuat data gambar.", "error");
+
+            try {
+                // Jalur penyimpanan di Firebase Storage: users/[UID_SISWA]/profile_photo.jpg
+                const fileRef = storage.ref().child(`users/${STATE.currentUser.uid}/profile_photo.jpg`);
+                
+                // Unggah file!
+                await fileRef.put(blob, { contentType: 'image/jpeg' });
+                
+                // Ambil link download gambar dari server
+                const downloadURL = await fileRef.getDownloadURL();
+
+                // Perbarui Database Users (Firestore)
+                await db.collection('users').doc(STATE.currentUser.uid).update({
+                    photoURL: downloadURL
+                });
+
+                // Perbarui Database Authentikasi Firebase
+                await auth.currentUser.updateProfile({
+                    photoURL: downloadURL
+                });
+
+                // Perbarui memori lokal HP
+                STATE.currentUser.photoURL = downloadURL;
+
+                showToast("Foto profil berhasil diubah!", "success");
+                closeGlobalModal();
+
+                // Render ulang profil agar foto langsung muncul interaktif
+                document.getElementById('dashboard-content').innerHTML = getAboutHTML();
+                lucide.createIcons();
+
+            } catch (error) {
+                console.error("Error upload foto:", error);
+                showToast("Gagal mengunggah foto: " + error.message, "error");
+                btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Simpan Foto';
+                btnSave.disabled = false;
+            }
+        }, 'image/jpeg', 0.8); // Kualitas 80% agar irit kuota
     };
 
     // ========== RENDER COURSE CHAT ==========
