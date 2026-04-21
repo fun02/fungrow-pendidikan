@@ -1443,92 +1443,143 @@ window.showPromoModal = function() {
         } catch(e) { showToast('Gagal memanggil AI', 'error'); }
     };
 
-            // ==========================================================
-    // 2. TAMPILAN FULL SCREEN AI (MODERN FUTURE UI/UX)
     // ==========================================================
+    // 2. TAMPILAN AI CHAT CENTER (FULL SCREEN & FLOWING)
+    // ==========================================================
+    
+    // Memori lokal untuk chat AI agar tidak hilang saat modal dibuka-tutup selama sesi aktif
+    STATE.aiChatHistory = STATE.aiChatHistory || [];
+
     window.openAskAIModal = function() {
-        const suggestions = [
-            { icon: 'sparkles', title: 'Tugas Terakhir', desc: `Cek tugas di kelas ${STATE.currentCourse.name}`, text: 'Apa tugas terbaru yang diberikan di kelas ini?' },
-            { icon: 'zap', title: 'Ringkas Cepat', desc: 'Poin-poin penting diskusi terakhir.', text: 'Tolong buat ringkasan diskusi hari ini.' },
-            { icon: 'brain-circuit', title: 'Jelaskan Materi', desc: `Pahami konsep ${STATE.currentCourse.name}.`, text: `Jelaskan materi utama hari ini dengan bahasa yang mudah.` },
-            { icon: 'message-square', title: 'Tanya Bebas', desc: 'Ketik apa saja yang ingin kamu tahu.', text: '' },
-        ];
-
-        let suggestionsHtml = '';
-        suggestions.forEach((s, i) => {
-            suggestionsHtml += `
-                <div onclick="fillAIQuestion('${s.text.replace(/'/g, "\\'")}')" 
-                     class="animate-fade glass p-4 rounded-3xl border border-white/5 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all active:scale-[0.95] group" 
-                     style="animation-delay: ${i * 0.1}s">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                        <i data-lucide="${s.icon}" class="w-6 h-6"></i>
-                    </div>
-                    <div class="flex-1 min-w-0 text-left">
-                        <p class="text-sm font-bold text-white mb-0.5">${s.title}</p>
-                        <p class="text-[10px] text-gray-400 truncate uppercase tracking-widest">${s.desc}</p>
-                    </div>
-                </div>
-            `;
-        });
-
-        // Tampilkan Modal Full Screen
         showGlobalModal(`
             <div class="fixed inset-0 bg-[#0a0a0c] z-[2000] flex flex-col animate-slide-up overflow-hidden">
-                <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
-                <div class="absolute -bottom-[10%] -right-[10%] w-[50%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" style="animation-delay: 1s"></div>
+                <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[40%] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+                <div class="absolute -bottom-[10%] -right-[10%] w-[50%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-                <div class="relative z-10 px-6 pt-8 pb-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md bg-black/20">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-r from-[#1795E2] via-[#6F60F3] to-[#E55077] p-[1.5px] shadow-2xl animate-spin-slow">
-                            <div class="w-full h-full rounded-[14px] bg-[#0a0a0c] flex items-center justify-center">
-                                <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                <div class="relative z-10 px-6 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-xl bg-black/40">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1795E2] to-[#E55077] p-[1px]">
+                            <div class="w-full h-full rounded-full bg-[#0a0a0c] flex items-center justify-center">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
                             </div>
                         </div>
                         <div>
-                            <h2 class="text-xl font-black text-white tracking-tight">FunGrow AI</h2>
-                            <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em] animate-pulse">Intelligent Assistant</p>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-widest">FunGrow AI</h2>
+                            <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                            </p>
                         </div>
                     </div>
-                    <button onclick="closeGlobalModal()" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
+                    <button onclick="closeGlobalModal()" class="p-2 rounded-full bg-white/5 text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
                 </div>
 
-                <div class="flex-1 overflow-y-auto px-6 py-8 relative z-10 space-y-6 hide-scrollbar">
-                    <div class="space-y-2">
-                        <h3 class="text-2xl font-bold text-white leading-tight">Halo, ${STATE.currentUser.displayName.split(' ')[0]}!<br><span class="text-gray-500 text-lg">Ada yang bisa saya bantu hari ini?</span></h3>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-3">
-                        ${suggestionsHtml}
-                    </div>
+                <div id="ai-chat-body" class="flex-1 overflow-y-auto px-5 py-6 space-y-6 scroll-smooth hide-scrollbar relative z-10">
+                    ${STATE.aiChatHistory.length === 0 ? `
+                        <div class="h-full flex flex-col items-center justify-center text-center px-4 animate-fade">
+                            <div class="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10 shadow-2xl">
+                                <i data-lucide="bot" class="w-10 h-10 text-indigo-400"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Halo, ${STATE.currentUser.displayName.split(' ')[0]}!</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed max-w-[250px]">Tanyakan apapun tentang kelas <b>${STATE.currentCourse.name}</b>. Saya siap membantu merangkum atau menjelaskan materi.</p>
+                        </div>
+                    ` : ''}
                 </div>
 
-                <div class="relative z-10 p-6 pb-10 border-t border-white/5 bg-black/40 backdrop-blur-2xl">
-                    <div class="glass p-2 rounded-[32px] border border-white/10 flex items-end gap-2 shadow-2xl">
-                        <textarea id="ai-question" 
-                                  class="flex-1 bg-transparent text-white text-sm p-4 h-14 max-h-32 outline-none resize-none" 
-                                  placeholder="Ketik pesan untuk AI..."
+                <div class="relative z-10 p-4 pb-8 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c] to-transparent">
+                    <div class="max-w-2xl mx-auto relative flex items-end gap-2 glass border border-white/10 rounded-[28px] p-2 pr-3 shadow-2xl">
+                        <textarea id="ai-input-field" 
+                                  class="flex-1 bg-transparent text-white text-sm p-3 h-12 max-h-32 outline-none resize-none leading-relaxed" 
+                                  placeholder="Tanya sesuatu..."
                                   oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'"></textarea>
                         <button onclick="submitAskAI()" 
-                                class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/40 active:scale-90 transition-all group">
-                            <i data-lucide="arrow-up" class="w-6 h-6 group-hover:-translate-y-1 transition-transform"></i>
+                                class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center active:scale-90 transition-all shadow-xl">
+                            <i data-lucide="arrow-up" class="w-5 h-5"></i>
                         </button>
                     </div>
+                    <p class="text-[9px] text-center text-gray-500 mt-3 uppercase tracking-tighter">AI dapat membuat kesalahan. Periksa info penting.</p>
                 </div>
             </div>
         `, true);
 
-        window.fillAIQuestion = function(text) {
-            const tx = document.getElementById('ai-question');
-            if(tx && text) { 
-                tx.value = text; tx.focus(); 
-                tx.style.height = 'auto'; tx.style.height = tx.scrollHeight + 'px';
-            }
-        };
-
+        // Jika sudah ada riwayat, langsung render
+        if(STATE.aiChatHistory.length > 0) renderAIChatHistory();
         lucide.createIcons();
     };
+
+    // Fungsi untuk me-render riwayat chat ke dalam body
+    function renderAIChatHistory() {
+        const body = document.getElementById('ai-chat-body');
+        if(!body) return;
+
+        body.innerHTML = STATE.aiChatHistory.map(m => `
+            <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade">
+                <div class="${m.role === 'user' ? 'bg-[#2f2f2f] text-white rounded-[24px] rounded-br-none' : 'text-gray-200'} max-w-[85%] px-4 py-3 shadow-sm border ${m.role === 'user' ? 'border-white/5' : 'border-transparent'}">
+                    ${m.role === 'ai' ? `
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 shrink-0 mt-1 flex items-center justify-center"><i data-lucide="sparkles" class="w-3 h-3 text-white"></i></div>
+                            <div class="text-[14px] leading-relaxed prose prose-invert">${m.text}</div>
+                        </div>
+                    ` : `<div class="text-[14px] leading-relaxed">${m.text}</div>`}
+                </div>
+            </div>
+        `).join('');
+        body.scrollTop = body.scrollHeight;
+        lucide.createIcons();
+    }
+
+    // 3. MESIN TANYA JAWAB (REAL-TIME FLOW)
+    window.submitAskAI = async function() {
+        const input = document.getElementById('ai-input-field');
+        const text = input.value.trim();
+        if(!text) return;
+
+        // 1. Tambah pertanyaan user ke history & UI
+        STATE.aiChatHistory.push({ role: 'user', text: text });
+        input.value = '';
+        input.style.height = '48px';
+        renderAIChatHistory();
+
+        // 2. Tampilkan indikator "AI sedang berpikir"
+        const body = document.getElementById('ai-chat-body');
+        const typingId = 'typing-' + Date.now();
+        body.innerHTML += `
+            <div id="${typingId}" class="flex justify-start animate-fade">
+                <div class="flex items-start gap-3 px-4 py-3">
+                    <div class="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center animate-pulse"><i data-lucide="bot" class="w-3 h-3 text-indigo-400"></i></div>
+                    <div class="flex gap-1 mt-2">
+                        <div class="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"></div>
+                        <div class="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        <div class="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        body.scrollTop = body.scrollHeight;
+        lucide.createIcons();
+
+        try {
+            const msgs = STATE.chats[STATE.currentCourse.id] || [];
+            const history = msgs.slice(-30).map(m => `${m.userName}: ${m.text}`).join('\n');
+            const contextPrompt = `[INSTRUKSI SISTEM: Kamu adalah FunGrow AI. Kamu asisten akademik di kelas ${STATE.currentCourse.name}. User: ${STATE.currentUser.displayName}. Jawab dengan singkat, padat, dan solutif.]\n\nRiwayat Chat Kelas:\n${history}`;
+
+            const response = await fetch('/ai/ask', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, 
+                body: JSON.stringify({ history: contextPrompt, question: text }) 
+            });
+            const data = await response.json();
+
+            // 3. Ganti animasi typing dengan jawaban asli
+            document.getElementById(typingId).remove();
+            STATE.aiChatHistory.push({ role: 'ai', text: data.result });
+            renderAIChatHistory();
+
+        } catch(e) {
+            document.getElementById(typingId).remove();
+            showToast('Koneksi AI terputus', 'error');
+        }
+    };
+
 
     // 3. MESIN TANYA AI (Dengan Injeksi Identitas & Konteks)
     window.submitAskAI = async function() {
