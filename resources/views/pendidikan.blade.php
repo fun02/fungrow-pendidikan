@@ -1163,7 +1163,7 @@
         return { icon: 'file', color: 'text-indigo-500', bg: 'bg-indigo-500/20' };
     };
 
-        function renderMessagesOnly() {
+    function renderMessagesOnly() {
         const container = document.getElementById('chat-messages-container');
         if (!container || STATE.screen !== 'course') return;
         const msgs = STATE.chats[STATE.currentCourse?.id] || [];
@@ -1174,15 +1174,15 @@
             lucide.createIcons(); return; 
         }
 
-        // === 1. MESIN RADAR BACA (AUTO-READ) ===
-        // Cari pesan dari orang lain yang BELUM kita baca, lalu tandai "Sudah Dibaca" ke Database
+        // === 1. MESIN RADAR BACA BATCH (SUPER KUAT) ===
         const unreadMsgs = visible.filter(m => m.userId !== STATE.currentUser?.uid && !(m.readBy || []).includes(STATE.currentUser?.uid));
         if (unreadMsgs.length > 0) {
+            const batch = db.batch(); // Pakai Batch agar tidak diblokir Firebase
             unreadMsgs.forEach(m => {
-                db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(m.id)
-                  .update({ readBy: firebase.firestore.FieldValue.arrayUnion(STATE.currentUser.uid) })
-                  .catch(e => {}); // Update berjalan diam-diam di latar belakang
+                const msgRef = db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(m.id);
+                batch.update(msgRef, { readBy: firebase.firestore.FieldValue.arrayUnion(STATE.currentUser.uid) });
             });
+            batch.commit().catch(e => console.error("Gagal update centang:", e));
         }
 
         let html = ''; let lastDateStr = '';
@@ -1201,46 +1201,22 @@
             }
 
             let content = '';
-            
-            if (m.type === 'image') { 
-                content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-md transition hover:scale-[1.02]" onclick="window.open('${m.text}', '_blank')"></div>`;
-            }
+            if (m.type === 'image') { content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-md transition hover:scale-[1.02]" onclick="window.open('${m.text}', '_blank')"></div>`; }
             else if (m.type === 'file') { 
                 const ui = window.getFileIconUI(m.fileName);
-                content = `
-                <div class="mt-1.5 mb-1 w-[220px] sm:w-[250px]">
-                    <a href="${m.text}" target="_blank" class="flex items-center gap-3 p-3 ${mine ? 'bg-black/20 hover:bg-black/30' : 'bg-[color:var(--surface)] hover:bg-[color:var(--card)]'} rounded-xl transition-all border border-[color:var(--border)] backdrop-blur-sm shadow-sm group">
-                        <div class="p-2.5 rounded-lg ${mine ? 'bg-white/20' : ui.bg} shrink-0 transition-transform group-hover:scale-105">
-                            <i data-lucide="${ui.icon}" class="w-6 h-6 ${mine ? 'text-white' : ui.color}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-[13px] truncate font-bold text-[color:var(--text)] mb-0.5" style="${mine ? 'color:white' : ''}">${m.fileName || 'Dokumen'}</p>
-                            <p class="text-[9px] uppercase tracking-wider font-mono opacity-80" style="${mine ? 'color:rgba(255,255,255,0.8)' : 'color:var(--text2)'}">${m.fileSize || 'FILE'}</p>
-                        </div>
-                        <div class="w-8 h-8 rounded-full ${mine ? 'bg-white/10 text-white' : 'bg-[color:var(--card)] text-[color:var(--text2)]'} flex items-center justify-center shrink-0">
-                            <i data-lucide="download" class="w-4 h-4"></i>
-                        </div>
-                    </a>
-                </div>`;
+                content = `<div class="mt-1.5 mb-1 w-[220px] sm:w-[250px]"><a href="${m.text}" target="_blank" class="flex items-center gap-3 p-3 ${mine ? 'bg-black/20 hover:bg-black/30' : 'bg-[color:var(--surface)] hover:bg-[color:var(--card)]'} rounded-xl transition-all border border-[color:var(--border)] backdrop-blur-sm shadow-sm group"><div class="p-2.5 rounded-lg ${mine ? 'bg-white/20' : ui.bg} shrink-0 transition-transform group-hover:scale-105"><i data-lucide="${ui.icon}" class="w-6 h-6 ${mine ? 'text-white' : ui.color}"></i></div><div class="flex-1 min-w-0"><p class="text-[13px] truncate font-bold text-[color:var(--text)] mb-0.5" style="${mine ? 'color:white' : ''}">${m.fileName || 'Dokumen'}</p><p class="text-[9px] uppercase tracking-wider font-mono opacity-80" style="${mine ? 'color:rgba(255,255,255,0.8)' : 'color:var(--text2)'}">${m.fileSize || 'FILE'}</p></div><div class="w-8 h-8 rounded-full ${mine ? 'bg-white/10 text-white' : 'bg-[color:var(--card)] text-[color:var(--text2)]'} flex items-center justify-center shrink-0"><i data-lucide="download" class="w-4 h-4"></i></div></a></div>`;
             }
-            else if (m.type === 'voice') { 
-                content = `<div class="voice-note-player ${mine ? 'bg-black/20' : 'bg-[color:var(--surface)]'} p-2 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm shadow-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-9 h-9 rounded-full ${mine ? 'bg-white text-[#2563eb]' : 'bg-[color:var(--accent)] text-white'} flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 vn-pause hidden"></i></button><div class="voice-note-progress ml-1 mr-2"><div id="fill-${m.id}" class="voice-note-progress-fill ${mine ? 'bg-white' : 'bg-[color:var(--accent)]'}"></div></div><span id="time-${m.id}" class="text-[10px] font-mono font-bold mr-3" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`;
-            }
-            else { 
-                content = m.text.replace(/\n/g, '<br>');
-            }
+            else if (m.type === 'voice') { content = `<div class="voice-note-player ${mine ? 'bg-black/20' : 'bg-[color:var(--surface)]'} p-2 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm shadow-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-9 h-9 rounded-full ${mine ? 'bg-white text-[#2563eb]' : 'bg-[color:var(--accent)] text-white'} flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 vn-pause hidden"></i></button><div class="voice-note-progress ml-1 mr-2"><div id="fill-${m.id}" class="voice-note-progress-fill ${mine ? 'bg-white' : 'bg-[color:var(--accent)]'}"></div></div><span id="time-${m.id}" class="text-[10px] font-mono font-bold mr-3" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`; }
+            else { content = m.text.replace(/\n/g, '<br>'); }
 
             let bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
             let nameColor = mine ? 'text-white' : 'text-emerald-500';
             let timeColor = mine ? 'text-white/80' : 'text-[color:var(--text2)] opacity-90';
             
-            // === 2. LOGIKA TAMPILAN CENTANG 1 & 2 ===
-            // Mengecek apakah sudah ada orang lain di database yang melihat pesan ini
+            // === 2. PERBAIKAN IKON CENTANG (Pakai check-check) ===
             let isRead = m.readBy && m.readBy.some(uid => uid !== STATE.currentUser.uid);
-            
-            // Jika sudah dibaca = centang 2 biru langit, Jika belum = centang 1 putih pudar
             let checkIcon = mine ? 
-                (isRead ? `<i data-lucide="check-all" class="w-[14px] h-[14px] text-sky-300 ml-0.5 mt-0.5"></i>` 
+                (isRead ? `<i data-lucide="check-check" class="w-[15px] h-[15px] text-sky-300 ml-0.5 mt-0.5"></i>` 
                         : `<i data-lucide="check" class="w-[14px] h-[14px] text-white/60 ml-0.5 mt-0.5"></i>`) 
                 : '';
 
