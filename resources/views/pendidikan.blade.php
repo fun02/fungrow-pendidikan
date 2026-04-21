@@ -1281,7 +1281,25 @@
     async function fetchCloudinaryUpload(file, isAudio = false) { const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', isAudio ? 'fungrow_audio_preset' : 'fungrow_preset'); const res = await fetch(`https://api.cloudinary.com/v1_1/dt51ndddv/${isAudio ? 'video' : 'auto'}/upload`, { method: 'POST', body: fd }); const data = await res.json(); if (data.error) throw new Error(data.error.message); return data.secure_url; }
     window.openAttachmentMenu = () => showGlobalModal(`<div class="bg-[color:var(--surface)] backdrop-blur-2xl p-6 pb-8 rounded-t-3xl animate-slide-attachment w-full border-t border-[color:var(--border)] shadow-2xl relative"><div class="grid grid-cols-4 gap-y-6 gap-x-2 justify-items-center"><button onclick="openSpecificFileForm('.pdf,.doc,.docx,.txt,.xls,.xlsx')" class="flex flex-col items-center gap-2 active:scale-90 transition-transform"><div class="w-14 h-14 rounded-[18px] bg-[#5c37eb] flex items-center justify-center shadow-lg"><i data-lucide="file-text" class="w-6 h-6 text-white"></i></div><span class="text-[11px] text-[color:var(--text)] font-medium tracking-wide">Dokumen</span></button><button onclick="openSpecificFileForm('image/*', true)" class="flex flex-col items-center gap-2 active:scale-90 transition-transform"><div class="w-14 h-14 rounded-[18px] bg-[#eb3765] flex items-center justify-center shadow-lg"><i data-lucide="camera" class="w-6 h-6 text-white"></i></div><span class="text-[11px] text-[color:var(--text)] font-medium tracking-wide">Kamera</span></button><button onclick="openSpecificFileForm('image/*')" class="flex flex-col items-center gap-2 active:scale-90 transition-transform"><div class="w-14 h-14 rounded-[18px] bg-[#0ea5e9] flex items-center justify-center shadow-lg"><i data-lucide="image" class="w-6 h-6 text-white"></i></div><span class="text-[11px] text-[color:var(--text)] font-medium tracking-wide">Galeri</span></button><button onclick="openSpecificFileForm('audio/*')" class="flex flex-col items-center gap-2 active:scale-90 transition-transform"><div class="w-14 h-14 rounded-[18px] bg-[#f97316] flex items-center justify-center shadow-lg"><i data-lucide="headphones" class="w-6 h-6 text-white"></i></div><span class="text-[11px] text-[color:var(--text)] font-medium tracking-wide">Audio</span></button><button onclick="openAssignForm()" class="flex flex-col items-center gap-2 active:scale-90 transition-transform"><div class="w-14 h-14 rounded-[18px] bg-[#10b981] flex items-center justify-center shadow-lg"><i data-lucide="clipboard-list" class="w-6 h-6 text-white"></i></div><span class="text-[11px] text-[color:var(--text)] font-medium tracking-wide">Tugas</span></button></div><div class="w-12 h-1 bg-[color:var(--text2)] opacity-30 rounded-full mx-auto mt-6"></div></div>`, true);
     window.openSpecificFileForm = (acceptType, capture = false) => { closeGlobalModal(); const input = document.getElementById('global-file-input'); input.accept = acceptType; if (capture) input.setAttribute('capture', 'environment'); else input.removeAttribute('capture'); input.click(); };
-    window.handleGlobalFileUpload = async function(event) { const file = event.target.files[0]; if (!file) return; event.target.value = ""; showToast('Mengirim file...', 'warning'); try { const isAudio = file.type.startsWith('audio/'); const isImage = file.type.startsWith('image/'); const type = isImage ? 'image' : (isAudio ? 'voice' : 'file'); const url = await fetchCloudinaryUpload(file, isAudio); await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, text: url, fileName: file.name, fileSize: (file.size/1024).toFixed(1)+' KB', type: type, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch(e) { showToast('Gagal kirim file', 'error'); } };
+    window.handleGlobalFileUpload = async function(event) { 
+        const file = event.target.files[0]; if (!file) return; event.target.value = "";
+        showToast('Mengirim file...', 'warning'); 
+        try { 
+            const isAudio = file.type.startsWith('audio/'); const isImage = file.type.startsWith('image/'); 
+            const type = isImage ? 'image' : (isAudio ? 'voice' : 'file'); 
+            const url = await fetchCloudinaryUpload(file, isAudio);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ 
+                userId: STATE.currentUser.uid, 
+                userName: STATE.currentUser.displayName, 
+                text: url, 
+                fileName: file.name, 
+                fileSize: (file.size/1024).toFixed(1)+' KB', 
+                type: type, 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                readBy: [STATE.currentUser.uid] // <--- INI VAKSINNYA BOS!
+            });
+        } catch(e) { showToast('Gagal kirim file', 'error'); } 
+    };
 
     // ========== PERBAIKAN FORM TUGAS MAHASISWA & DOSEN ==========
     window.handleListInput = function(e) {
@@ -1450,12 +1468,39 @@ window.showPromoModal = function() {
 
     // ========== CHAT ACTIONS ==========
     window.handleInput = function(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; const hasText = el.value.trim().length > 0; document.getElementById('btn-send').style.display = hasText ? 'block' : 'none'; document.getElementById('btn-mic').style.display = hasText ? 'none' : 'block'; }
-    window.sendTextMessage = async function() { const input = document.getElementById('chat-input'); const text = input.value.trim(); if(!text) return; input.value = ''; handleInput(input); try { await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, text: text, type: 'text', timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch(e) { showToast('Gagal kirim', 'error'); } }
+    window.sendTextMessage = async function() { 
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim(); if(!text) return; input.value = ''; handleInput(input);
+        try { 
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ 
+                userId: STATE.currentUser.uid, 
+                userName: STATE.currentUser.displayName, 
+                text: text, 
+                type: 'text', 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                readBy: [STATE.currentUser.uid] // <--- INI VAKSINNYA BOS!
+            });
+        } catch(e) { showToast('Gagal kirim', 'error'); } 
+    }
     window.startRecording = async function() { if(!navigator.mediaDevices) return showToast('Browser tidak mendukung mic', 'error'); try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); STATE.audioChunks = []; STATE.mediaRecorder = new MediaRecorder(stream); STATE.mediaRecorder.ondataavailable = e => STATE.audioChunks.push(e.data); STATE.mediaRecorder.onstop = uploadVoiceMessage; STATE.mediaRecorder.start(); STATE.isRecording = true; STATE.recordingSeconds = 0; document.getElementById('chat-input').style.display = 'none'; document.getElementById('btn-mic').style.display = 'none'; document.getElementById('btn-clip').style.display = 'none'; document.getElementById('recording-ui').classList.remove('hidden'); document.getElementById('recording-ui').classList.add('flex'); STATE.recordingTimer = setInterval(() => { STATE.recordingSeconds++; document.getElementById('rec-time').innerText = formatRecTime(STATE.recordingSeconds); }, 1000); } catch(e) { showToast('Izinkan akses mikrofon di browser', 'error'); } }
     window.stopRecording = function() { if(STATE.mediaRecorder) STATE.mediaRecorder.stop(); resetRecUI(); }
     window.cancelRecording = function() { if(STATE.mediaRecorder) { STATE.mediaRecorder.onstop = null; STATE.mediaRecorder.stop(); STATE.mediaRecorder.stream.getTracks().forEach(t=>t.stop()); } resetRecUI(); showToast('Batal merekam', 'warning'); }
     function resetRecUI() { STATE.isRecording = false; clearInterval(STATE.recordingTimer); document.getElementById('recording-ui').classList.add('hidden'); document.getElementById('recording-ui').classList.remove('flex'); document.getElementById('chat-input').style.display = 'block'; document.getElementById('btn-clip').style.display = 'block'; handleInput(document.getElementById('chat-input')); }
-    async function uploadVoiceMessage() { resetRecUI(); showToast('Mengirim suara...', 'warning'); try { const file = new File(STATE.audioChunks, `vn_${Date.now()}.webm`, { type: 'audio/webm' }); const url = await fetchCloudinaryUpload(file, true); await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, text: url, type: 'voice', timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch(e) { showToast('Gagal kirim suara', 'error'); } }
+        async function uploadVoiceMessage() { 
+        resetRecUI(); showToast('Mengirim suara...', 'warning');
+        try { 
+            const file = new File(STATE.audioChunks, `vn_${Date.now()}.webm`, { type: 'audio/webm' }); 
+            const url = await fetchCloudinaryUpload(file, true);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ 
+                userId: STATE.currentUser.uid, 
+                userName: STATE.currentUser.displayName, 
+                text: url, 
+                type: 'voice', 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                readBy: [STATE.currentUser.uid] // <--- INI VAKSINNYA BOS!
+            }); 
+        } catch(e) { showToast('Gagal kirim suara', 'error'); } 
+    }
     window.playVoice = function(id) { const audio = document.getElementById(`audio-${id}`), btnPlay = document.getElementById(`play-${id}`), btnPause = document.getElementById(`pause-${id}`); const fill = document.getElementById(`fill-${id}`), time = document.getElementById(`time-${id}`); if(audio.paused) { document.querySelectorAll('audio').forEach(a => a.pause()); document.querySelectorAll('.vn-pause').forEach(i => i.classList.add('hidden')); document.querySelectorAll('.vn-play').forEach(i => i.classList.remove('hidden')); audio.play(); btnPlay.classList.add('hidden'); btnPause.classList.remove('hidden'); } else { audio.pause(); btnPause.classList.add('hidden'); btnPlay.classList.remove('hidden'); } audio.ontimeupdate = () => { fill.style.width = (audio.currentTime/audio.duration*100)+'%'; time.innerText = formatRecTime(Math.floor(audio.currentTime)); }; audio.onended = () => { btnPause.classList.add('hidden'); btnPlay.classList.remove('hidden'); fill.style.width='0%'; time.innerText='0:00'; } }
 
     let pressTimer = null;
