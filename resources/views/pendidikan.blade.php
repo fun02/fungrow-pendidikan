@@ -1396,31 +1396,85 @@ window.showPromoModal = function() {
         } catch(e) { console.error(e); showToast('Gagal menerbitkan tugas', 'error'); }
     };
 
-    // ========== LOGIKA FITUR TAMBAHAN (AI) ==========
-    window.openProfileModal = function() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async (e) => { const file = e.target.files[0]; if(!file) return; showToast('Mengunggah foto...', 'warning'); try { const url = await fetchCloudinaryUpload(file); await auth.currentUser.updateProfile({ photoURL: url }); await db.collection('users').doc(auth.currentUser.uid).update({ photoURL: url }); STATE.currentUser.photoURL = url; showToast('Foto profil berhasil diubah!'); renderFull(); } catch(err) { showToast('Gagal upload', 'error'); } }; input.click(); };
+        // ========== LOGIKA FITUR TAMBAHAN (AI) ==========
+    window.openProfileModal = function() { const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.onchange = async (e) => { const file = e.target.files[0]; if(!file) return;
+    showToast('Mengunggah foto...', 'warning'); try { const url = await fetchCloudinaryUpload(file); await auth.currentUser.updateProfile({ photoURL: url }); await db.collection('users').doc(auth.currentUser.uid).update({ photoURL: url });
+    STATE.currentUser.photoURL = url; showToast('Foto profil berhasil diubah!'); renderFull(); } catch(err) { showToast('Gagal upload', 'error'); } }; input.click(); };
+    
+    // 1. RINGKASAN AI (Dengan Konteks Mata Kuliah)
     window.handleAISummary = async function() {
-        const msgs = STATE.chats[STATE.currentCourse.id] || []; if(msgs.length < 5) return showToast('Butuh minimal 5 pesan', 'warning');
-        const chatHistory = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n'); showToast('AI sedang merangkum...', 'warning');
+        const msgs = STATE.chats[STATE.currentCourse.id] || [];
+        if(msgs.length < 3) return showToast('Butuh minimal 3 chat untuk dirangkum', 'warning');
+        const chatHistory = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n'); 
+
+        // == SUNTIKAN KONTEKS RAHASIA ==
+        const contextPrompt = `[INSTRUKSI SISTEM: Buatlah rangkuman poin-poin yang rapi, profesional, dan mudah dipahami dari diskusi di kelas mata kuliah "${STATE.currentCourse.name}". Abaikan chat yang tidak penting/sistem. Format dengan HTML <br> atau <b> jika perlu agar rapi.]\n\nDiskusi:\n${chatHistory}`;
+
+        showToast('AI sedang menyusun ringkasan...', 'warning');
         try {
-            const response = await fetch('/ai/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: chatHistory }) }); const data = await response.json();
+            const response = await fetch('/ai/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt }) });
+            const data = await response.json();
             showGlobalModal(`
-                <div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm animate-slide"><div class="flex items-center gap-2 mb-4"><div class="p-2 rounded-lg bg-indigo-500/20 text-indigo-400"><i data-lucide="sparkles" class="w-5 h-5"></i></div><h3 class="font-bold text-[color:var(--text)]">Ringkasan AI</h3></div><div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--card)] p-4 rounded-2xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto">${data.result.replace(/\n/g, '<br>')}</div><button onclick="closeGlobalModal()" class="w-full mt-6 py-3.5 bg-indigo-600 rounded-xl font-bold text-white active:scale-95 transition-transform">Tutup</button></div>
+                <div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm animate-slide shadow-[0_15px_40px_rgba(99,102,241,0.2)] relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="flex items-center gap-3 mb-4 border-b border-[color:var(--border)] pb-3 relative z-10">
+                        <div class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                        <div><h3 class="font-bold text-[color:var(--text)]">Ringkasan Diskusi</h3><p class="text-[10px] text-indigo-400 font-medium tracking-wider uppercase">Kelas ${STATE.currentCourse.name}</p></div>
+                    </div>
+                    <div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto relative z-10" style="white-space: pre-line;">${data.result.replace(/\n/g, '<br>')}</div>
+                    <button onclick="closeGlobalModal()" class="w-full mt-4 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-400 rounded-xl font-bold text-[color:var(--text)] active:scale-95 transition-all relative z-10">Tutup Ringkasan</button>
+                </div>
             `);
         } catch(e) { showToast('Gagal memanggil AI', 'error'); }
     };
+
+    // 2. TAMPILAN POP-UP TANYA AI (PREMIUM UI)
     window.openAskAIModal = function() { showGlobalModal(`
-        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-purple-500/20"><h3 class="font-bold text-purple-400 mb-2 flex items-center gap-2"><i data-lucide="bot"></i> Tanya AI</h3><p class="text-xs text-[color:var(--text2)] mb-4">Tanyakan apapun terkait obrolan kelas ini.</p><textarea id="ai-question" class="w-full bg-[color:var(--input-bg)] p-3 rounded-xl text-sm text-[color:var(--text)] mb-4 border border-[color:var(--border)] focus:border-purple-500 outline-none resize-none h-24" placeholder="Contoh: Apa tugas yang baru saja diberikan?"></textarea><button onclick="submitAskAI()" class="w-full py-3.5 bg-purple-600 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform">Tanyakan</button><button onclick="closeGlobalModal()" class="w-full mt-2 py-2 text-[color:var(--text2)] font-bold hover:text-[color:var(--text)] transition-colors">Batal</button></div>
+        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-purple-500/30 shadow-[0_20px_50px_rgba(168,85,247,0.15)] relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="flex items-center gap-3 mb-2 relative z-10">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg border border-white/10"><i data-lucide="bot" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="font-bold text-[color:var(--text)] text-lg">FunGrow AI</h3>
+                    <span class="text-[8px] font-bold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Asisten ${STATE.currentCourse.icon}</span>
+                </div>
+            </div>
+            <p class="text-[10px] text-[color:var(--text2)] mb-4 mt-2 relative z-10">AI akan menganalisis obrolan di kelas <b class="text-[color:var(--text)]">${STATE.currentCourse.name}</b> untuk membantu menjawab pertanyaan Anda.</p>
+            <textarea id="ai-question" class="w-full bg-[color:var(--input-bg)] p-4 rounded-2xl text-[13px] text-[color:var(--text)] mb-4 border border-[color:var(--border)] focus:border-purple-500 outline-none resize-none h-24 shadow-inner relative z-10" placeholder="Contoh: Apa tugas yang baru saja diberikan oleh Dosen?"></textarea>
+            <button onclick="submitAskAI()" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg shadow-purple-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2 relative z-10"><i data-lucide="sparkles" class="w-4 h-4"></i> Tanyakan Sekarang</button>
+            <button onclick="closeGlobalModal()" class="w-full mt-2 py-2.5 text-[color:var(--text2)] font-bold hover:text-[color:var(--text)] transition-colors text-xs uppercase tracking-wider relative z-10">Batal</button>
+        </div>
     `); };
+
+    // 3. MESIN TANYA AI (Dengan Injeksi Identitas & Konteks)
     window.submitAskAI = async function() {
-        const question = document.getElementById('ai-question').value; if(!question) return showToast('Masukkan pertanyaan', 'warning');
-        const msgs = STATE.chats[STATE.currentCourse.id] || []; const history = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n'); showToast('AI sedang berpikir...', 'warning'); closeGlobalModal();
+        const question = document.getElementById('ai-question').value;
+        if(!question) return showToast('Masukkan pertanyaan terlebih dahulu', 'warning');
+        const msgs = STATE.chats[STATE.currentCourse.id] || []; 
+        const history = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n');
+        
+        // == SUNTIKAN KONTEKS RAHASIA KEPADA GEMINI AI ==
+        const contextPrompt = `[INSTRUKSI SISTEM: Kamu adalah "FunGrow AI", asisten akademik pintar dan ramah. Saat ini kamu berada di dalam Grup Kelas mata kuliah: "${STATE.currentCourse.name}". Kamu sedang membantu seorang ${STATE.currentUser.role} bernama "${STATE.currentUser.displayName}". Jawablah pertanyaannya dengan sangat akurat menggunakan konteks mata kuliah ini. Jangan kaku.]\n\nRiwayat Chat Kelas Terakhir:\n${history || '(Belum ada chat)'}`;
+
+        showToast('AI sedang berpikir...', 'warning'); closeGlobalModal();
         try {
-            const response = await fetch('/ai/ask', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: history, question: question }) }); const data = await response.json();
+            const response = await fetch('/ai/ask', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt, question: question }) });
+            const data = await response.json();
             showGlobalModal(`
-                <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-purple-500/20"><h3 class="font-bold text-purple-400 mb-4 flex items-center gap-2"><i data-lucide="bot"></i> Jawaban AI</h3><div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--card)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto">${data.result.replace(/\n/g, '<br>')}</div><button onclick="closeGlobalModal()" class="w-full mt-6 py-3.5 bg-purple-600 rounded-xl font-bold text-white active:scale-95 transition-transform">Tutup</button></div>
+                <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-purple-500/30 shadow-[0_20px_50px_rgba(168,85,247,0.15)] relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="flex items-center gap-3 mb-4 border-b border-[color:var(--border)] pb-3 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg"><i data-lucide="bot" class="w-5 h-5"></i></div>
+                        <div><h3 class="font-bold text-[color:var(--text)]">Jawaban AI</h3><p class="text-[10px] text-purple-400 font-medium">Untuk ${STATE.currentUser.displayName}</p></div>
+                    </div>
+                    <div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto relative z-10" style="white-space: pre-line;">${data.result.replace(/\n/g, '<br>')}</div>
+                    <button onclick="closeGlobalModal()" class="w-full mt-5 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] hover:bg-purple-500/10 hover:text-purple-400 rounded-xl font-bold text-[color:var(--text)] active:scale-95 transition-all relative z-10">Tutup</button>
+                </div>
             `);
         } catch(e) { showToast('Gagal memanggil AI', 'error'); }
     };
+
     window.handleExportNotes = function() {
         const messages = STATE.chats[STATE.currentCourse.id] || []; if(messages.length === 0) return showToast('Belum ada pesan', 'warning');
         const title = `CATATAN KELAS: ${STATE.currentCourse.name}`; const content = messages.map(m => `[${formatTime(m.timestamp)}] ${m.userName}: ${m.text}`).join('\n');
