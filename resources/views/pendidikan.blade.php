@@ -1163,7 +1163,7 @@
         return { icon: 'file', color: 'text-indigo-500', bg: 'bg-indigo-500/20' };
     };
 
-    function renderMessagesOnly() {
+        function renderMessagesOnly() {
         const container = document.getElementById('chat-messages-container');
         if (!container || STATE.screen !== 'course') return;
         const msgs = STATE.chats[STATE.currentCourse?.id] || [];
@@ -1174,9 +1174,19 @@
             lucide.createIcons(); return; 
         }
 
+        // === 1. MESIN RADAR BACA (AUTO-READ) ===
+        // Cari pesan dari orang lain yang BELUM kita baca, lalu tandai "Sudah Dibaca" ke Database
+        const unreadMsgs = visible.filter(m => m.userId !== STATE.currentUser?.uid && !(m.readBy || []).includes(STATE.currentUser?.uid));
+        if (unreadMsgs.length > 0) {
+            unreadMsgs.forEach(m => {
+                db.collection('courses').doc(STATE.currentCourse.id).collection('chats').doc(m.id)
+                  .update({ readBy: firebase.firestore.FieldValue.arrayUnion(STATE.currentUser.uid) })
+                  .catch(e => {}); // Update berjalan diam-diam di latar belakang
+            });
+        }
+
         let html = ''; let lastDateStr = '';
         visible.forEach(m => {
-            // 1. Badge Tanggal ala IG/WA di tengah chat
             const dateStr = formatChatDateBadge(m.timestamp);
             if (dateStr !== lastDateStr) { 
                 html += `<div class="flex justify-center my-5 z-10 sticky top-2"><div class="px-3 py-1.5 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text2)] text-[9px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm">${dateStr}</div></div>`; 
@@ -1185,7 +1195,6 @@
             
             const mine = m.userId === STATE.currentUser?.uid;
 
-            // Chat dari Sistem (Bot/Tugas)
             if(m.type === 'system') { 
                 html += `<div class="flex justify-center my-3"><div class="px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[11px] rounded-xl font-medium text-center max-w-[85%] break-words shadow-sm backdrop-blur-sm">${m.text.replace(/\n/g, '<br>')}</div></div>`; 
                 return; 
@@ -1193,11 +1202,9 @@
 
             let content = '';
             
-            // UI Gambar
             if (m.type === 'image') { 
                 content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-md transition hover:scale-[1.02]" onclick="window.open('${m.text}', '_blank')"></div>`;
             }
-            // 2. UI File Dokumen (PREMIUM LOOK)
             else if (m.type === 'file') { 
                 const ui = window.getFileIconUI(m.fileName);
                 content = `
@@ -1216,7 +1223,6 @@
                     </a>
                 </div>`;
             }
-            // UI Voice Note
             else if (m.type === 'voice') { 
                 content = `<div class="voice-note-player ${mine ? 'bg-black/20' : 'bg-[color:var(--surface)]'} p-2 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm shadow-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-9 h-9 rounded-full ${mine ? 'bg-white text-[#2563eb]' : 'bg-[color:var(--accent)] text-white'} flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 vn-pause hidden"></i></button><div class="voice-note-progress ml-1 mr-2"><div id="fill-${m.id}" class="voice-note-progress-fill ${mine ? 'bg-white' : 'bg-[color:var(--accent)]'}"></div></div><span id="time-${m.id}" class="text-[10px] font-mono font-bold mr-3" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`;
             }
@@ -1224,15 +1230,20 @@
                 content = m.text.replace(/\n/g, '<br>');
             }
 
-            // Warna Bubble Chat
             let bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
             let nameColor = mine ? 'text-white' : 'text-emerald-500';
             let timeColor = mine ? 'text-white/80' : 'text-[color:var(--text2)] opacity-90';
             
-            // 3. TANDA CENTANG BIRU (WA Style)
-            let checkIcon = mine ? `<i data-lucide="check-all" class="w-[14px] h-[14px] text-sky-300 ml-0.5 mt-0.5"></i>` : '';
+            // === 2. LOGIKA TAMPILAN CENTANG 1 & 2 ===
+            // Mengecek apakah sudah ada orang lain di database yang melihat pesan ini
+            let isRead = m.readBy && m.readBy.some(uid => uid !== STATE.currentUser.uid);
+            
+            // Jika sudah dibaca = centang 2 biru langit, Jika belum = centang 1 putih pudar
+            let checkIcon = mine ? 
+                (isRead ? `<i data-lucide="check-all" class="w-[14px] h-[14px] text-sky-300 ml-0.5 mt-0.5"></i>` 
+                        : `<i data-lucide="check" class="w-[14px] h-[14px] text-white/60 ml-0.5 mt-0.5"></i>`) 
+                : '';
 
-            // Render Output Bubble Chat
             html += `
             <div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3.5 w-full animate-fade">
                 <div class="relative ${bubbleClass} px-3.5 pt-2.5 pb-6 max-w-[85%] min-w-[110px] shadow-md select-none" oncontextmenu="event.preventDefault();" onmousedown="startHold(this, '${m.id}')" onmouseup="cancelHold(this)" onmouseleave="cancelHold(this)" ontouchstart="startHold(this, '${m.id}')" ontouchend="cancelHold(this)" ontouchmove="cancelHold(this)">
@@ -1248,9 +1259,8 @@
         });
         
         container.innerHTML = html; 
-        lucide.createIcons(); // Render ulang ikon baru (termasuk check-all)
+        lucide.createIcons(); 
         
-        // Auto scroll ke bawah
         if(container.scrollHeight - container.scrollTop <= container.clientHeight + 150) container.scrollTop = container.scrollHeight;
     }
 
