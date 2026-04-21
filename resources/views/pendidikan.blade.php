@@ -1506,109 +1506,9 @@ window.showPromoModal = function() {
                         </div>
                     </div>
                 </div>
-            </div>
-        `, true);
 
-        if(STATE.aiChatHistory.length > 0) renderAIChatHistory();
-        lucide.createIcons();
-    };
 
-    // --- FUNGSI PENDUKUNG INPUT AI ---
     
-    // 1. Logika ganti tombol Mic ke Send saat ngetik
-    window.handleAIInput = function(el) {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-        const hasContent = el.value.trim().length > 0 || STATE.aiPendingImage !== null;
-        document.getElementById('ai-btn-send').classList.toggle('hidden', !hasContent);
-        document.getElementById('ai-btn-mic').classList.toggle('hidden', hasContent);
-    };
-
-    // 2. Logika Upload Gambar ke AI
-    window.handleAIFileUpload = async function(e) {
-        const file = e.target.files[0];
-        if(!file) return;
-        e.target.value = "";
-        showToast('Menyiapkan gambar...', 'warning');
-        try {
-            // Pinjam Cloudinary bawaan Anda untuk simpan gambar sementara
-            const url = await fetchCloudinaryUpload(file, false);
-            STATE.aiPendingImage = url;
-            
-            // Tampilkan thumbnail di atas input
-            const previewBox = document.getElementById('ai-img-preview-container');
-            previewBox.innerHTML = `
-                <div class="relative inline-block border border-[color:var(--border)] p-1 rounded-xl bg-[color:var(--surface)]">
-                    <img src="${url}" class="h-16 w-16 object-cover rounded-lg">
-                    <button onclick="STATE.aiPendingImage=null; document.getElementById('ai-img-preview-container').classList.add('hidden'); handleAIInput(document.getElementById('ai-input-field'));" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md">x</button>
-                </div>
-            `;
-            previewBox.classList.remove('hidden');
-            handleAIInput(document.getElementById('ai-input-field')); // Paksa tombol send muncul
-            showToast('Gambar siap!', 'success');
-        } catch (err) {
-            showToast('Gagal upload gambar', 'error');
-        }
-    };
-
-    // 3. Logika Voice Typing (Suara jadi Teks)
-    window.startAIVoice = function() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) return showToast('Browser Anda tidak mendukung Voice Typing', 'error');
-        
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'id-ID';
-        recognition.start();
-        
-        const micBtn = document.getElementById('ai-btn-mic');
-        micBtn.innerHTML = '<div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>';
-        showToast('Silakan bicara...', 'warning');
-
-        recognition.onresult = function(event) {
-            const transcript = event.results[0][0].transcript;
-            const input = document.getElementById('ai-input-field');
-            input.value += (input.value ? ' ' : '') + transcript;
-            handleAIInput(input);
-        };
-        recognition.onend = function() {
-            micBtn.innerHTML = '<i data-lucide="mic" class="w-5 h-5"></i>';
-            lucide.createIcons();
-        };
-    };
-
-    // --- FUNGSI RENDER & SUBMIT ---
-
-    function renderAIChatHistory() {
-        const body = document.getElementById('ai-chat-body');
-        if(!body) return;
-
-        body.innerHTML = STATE.aiChatHistory.map(m => `
-            <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade w-full">
-                <div class="${m.role === 'user' ? 'bg-[#2563eb] text-white' : 'bg-[color:var(--card)] text-[color:var(--text)] border border-[color:var(--border)]'} max-w-[85%] px-4 py-3 rounded-[20px] shadow-sm ${m.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}">
-                    ${m.role === 'ai' ? `
-                        <div class="flex items-start gap-3">
-                            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 shrink-0 flex items-center justify-center mt-0.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i></div>
-                            <div class="text-[14px] leading-relaxed w-full break-words" style="white-space: pre-line;">${m.text.replace(/\n/g, '<br>')}</div>
-                        </div>
-                    ` : `
-                        <div class="text-[14px] leading-relaxed break-words">
-                            ${m.img ? `<img src="${m.img}" class="w-40 h-40 object-cover rounded-xl mb-2 shadow-sm border border-white/20">` : ''}
-                            ${m.text}
-                        </div>
-                    `}
-                </div>
-            </div>
-        `).join('');
-        body.scrollTop = body.scrollHeight;
-        lucide.createIcons();
-    }
-
-    window.submitAskAI = async function() {
-        const input = document.getElementById('ai-input-field');
-        const text = input.value.trim();
-        const img = STATE.aiPendingImage;
-        
-        if(!text && !img) return;
 
         // Reset Form
         input.value = '';
@@ -1636,35 +1536,241 @@ window.showPromoModal = function() {
                     </div>
                 </div>
             </div>
-        `;
+        
+         // ==========================================================
+    // 2. TAMPILAN AI CHAT CENTER (GEMINI / CHATGPT STYLE)
+    // ==========================================================
+    
+    STATE.aiChatHistory = STATE.aiChatHistory || [];
+    STATE.aiPendingFile = null; // Menyimpan file/gambar sementara
+
+    window.openAskAIModal = function() {
+        showGlobalModal(`
+            <div class="fixed inset-0 z-[2000] flex flex-col animate-slide-up overflow-hidden" style="background: var(--bg); color: var(--text);">
+                
+                <div class="relative z-20 px-4 py-3 flex items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--surface)] backdrop-blur-xl shadow-sm">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold tracking-wide text-[color:var(--text)]">FunGrow AI</h2>
+                        </div>
+                    </div>
+                    <button onclick="closeGlobalModal()" class="p-2 rounded-full text-[color:var(--text2)] hover:bg-[color:var(--card)] hover:text-[color:var(--text)] transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div id="ai-chat-body" class="flex-1 overflow-y-auto px-4 py-6 space-y-6 scroll-smooth hide-scrollbar relative z-10 bg-[color:var(--bg)]" onclick="closeAIAttachMenu()">
+                    ${STATE.aiChatHistory.length === 0 ? `
+                        <div class="h-full flex flex-col items-center justify-center text-center px-4 animate-fade">
+                            <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-500/10 to-purple-500/10 flex items-center justify-center mb-5 border border-[color:var(--border)] shadow-inner">
+                                <i data-lucide="bot" class="w-8 h-8 text-[#2563eb]"></i>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2 text-[color:var(--text)]">Halo, ${STATE.currentUser.displayName.split(' ')[0]}</h3>
+                            <p class="text-xs text-[color:var(--text2)] leading-relaxed max-w-[280px]">Saya asisten AI di kelas <b>${STATE.currentCourse.name}</b>. Ketik pertanyaan, upload file, atau gunakan suara.</p>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="relative z-30 p-4 bg-[color:var(--bg)] border-t border-[color:var(--border)] pb-6">
+                    <div id="ai-img-preview-container" class="max-w-2xl mx-auto hidden mb-2 px-2"></div>
+                    
+                    <div class="max-w-2xl mx-auto relative">
+                        
+                        <div id="ai-attach-menu" class="hidden absolute bottom-full left-0 mb-3 w-48 bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] backdrop-blur-2xl z-50 overflow-hidden transform transition-all origin-bottom-left">
+                            <div class="p-1.5 space-y-0.5">
+                                <button onclick="triggerAIFile('camera')" class="w-full flex items-center gap-3 p-2.5 hover:bg-[color:var(--card)] rounded-xl text-[color:var(--text)] transition-colors text-sm font-medium">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0"><i data-lucide="camera" class="w-4 h-4"></i></div> Kamera
+                                </button>
+                                <button onclick="triggerAIFile('gallery')" class="w-full flex items-center gap-3 p-2.5 hover:bg-[color:var(--card)] rounded-xl text-[color:var(--text)] transition-colors text-sm font-medium">
+                                    <div class="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 shrink-0"><i data-lucide="image" class="w-4 h-4"></i></div> Galeri
+                                </button>
+                                <button onclick="triggerAIFile('file')" class="w-full flex items-center gap-3 p-2.5 hover:bg-[color:var(--card)] rounded-xl text-[color:var(--text)] transition-colors text-sm font-medium">
+                                    <div class="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0"><i data-lucide="file-text" class="w-4 h-4"></i></div> File
+                                </button>
+                                <button onclick="triggerAIFile('drive')" class="w-full flex items-center gap-3 p-2.5 hover:bg-[color:var(--card)] rounded-xl text-[color:var(--text)] transition-colors text-sm font-medium">
+                                    <div class="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0"><i data-lucide="cloud" class="w-4 h-4"></i></div> Drive
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-end gap-2 bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-[24px] p-1.5 pr-2 shadow-sm focus-within:border-[#2563eb]/50 focus-within:shadow-md transition-all">
+                            <button onclick="toggleAIAttachMenu()" class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-[color:var(--text2)] hover:bg-[color:var(--card)] hover:text-[color:var(--text)] transition-colors">
+                                <i data-lucide="plus" class="w-6 h-6"></i>
+                            </button>
+                            <input type="file" id="ai-file-upload" class="hidden" onchange="handleAIFileUpload(event)">
+
+                            <textarea id="ai-input-field" 
+                                      class="flex-1 bg-transparent text-[color:var(--text)] text-[14px] p-2.5 max-h-32 outline-none resize-none hide-scrollbar placeholder-[color:var(--text2)]" 
+                                      placeholder="Tanya FunGrow AI..."
+                                      oninput="handleAIInput(this)"
+                                      onfocus="closeAIAttachMenu()"
+                                      onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); submitAskAI(); }"></textarea>
+                            
+                            <div class="shrink-0 flex items-center justify-center w-10 h-10 mb-0.5">
+                                <button id="ai-btn-mic" onclick="startAIVoice()" class="w-10 h-10 rounded-full flex items-center justify-center text-[color:var(--text2)] hover:bg-[color:var(--card)] hover:text-[#2563eb] transition-colors">
+                                    <i data-lucide="mic" class="w-5 h-5"></i>
+                                </button>
+                                <button id="ai-btn-send" onclick="submitAskAI()" class="hidden w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                                    <i data-lucide="send" class="w-4 h-4 ml-0.5 mt-0.5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `, true);
+
+        if(STATE.aiChatHistory.length > 0) renderAIChatHistory();
+        lucide.createIcons();
+    };
+
+    // --- MENU UPLOAD FILES ---
+    window.toggleAIAttachMenu = function() {
+        document.getElementById('ai-attach-menu').classList.toggle('hidden');
+    };
+    window.closeAIAttachMenu = function() {
+        const menu = document.getElementById('ai-attach-menu');
+        if(menu && !menu.classList.contains('hidden')) menu.classList.add('hidden');
+    };
+
+    window.triggerAIFile = function(type) {
+        closeAIAttachMenu();
+        const input = document.getElementById('ai-file-upload');
+        if(type === 'camera') {
+            input.accept = 'image/*'; input.setAttribute('capture', 'environment');
+        } else if(type === 'gallery') {
+            input.accept = 'image/*'; input.removeAttribute('capture');
+        } else if(type === 'file') {
+            input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.txt'; input.removeAttribute('capture');
+        } else if(type === 'drive') {
+            input.accept = '*/*'; input.removeAttribute('capture'); // Buka system file picker lengkap
+        }
+        input.click();
+    };
+
+    // --- FUNGSI PENDUKUNG INPUT AI ---
+    window.handleAIInput = function(el) {
+        el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
+        const hasContent = el.value.trim().length > 0 || STATE.aiPendingFile !== null;
+        document.getElementById('ai-btn-send').classList.toggle('hidden', !hasContent);
+        document.getElementById('ai-btn-mic').classList.toggle('hidden', hasContent);
+    };
+
+    window.handleAIFileUpload = async function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        e.target.value = "";
+        showToast('Menyiapkan file...', 'warning');
+        try {
+            const isImage = file.type.startsWith('image/');
+            const url = await fetchCloudinaryUpload(file, false);
+            STATE.aiPendingFile = { url: url, isImage: isImage, name: file.name };
+            
+            const previewBox = document.getElementById('ai-img-preview-container');
+            if(isImage) {
+                previewBox.innerHTML = `<div class="relative inline-block border border-[color:var(--border)] p-1 rounded-xl bg-[color:var(--surface)]"><img src="${url}" class="h-16 w-16 object-cover rounded-lg"><button onclick="STATE.aiPendingFile=null; document.getElementById('ai-img-preview-container').classList.add('hidden'); handleAIInput(document.getElementById('ai-input-field'));" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md z-10">x</button></div>`;
+            } else {
+                previewBox.innerHTML = `<div class="relative flex items-center gap-2 border border-[color:var(--border)] p-2 rounded-xl bg-[color:var(--surface)] max-w-[200px]"><i data-lucide="file-text" class="w-6 h-6 text-blue-500 shrink-0"></i><span class="text-xs text-[color:var(--text)] truncate">${file.name}</span><button onclick="STATE.aiPendingFile=null; document.getElementById('ai-img-preview-container').classList.add('hidden'); handleAIInput(document.getElementById('ai-input-field'));" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md z-10">x</button></div>`;
+            }
+            previewBox.classList.remove('hidden');
+            lucide.createIcons();
+            handleAIInput(document.getElementById('ai-input-field')); 
+            showToast('File siap!', 'success');
+        } catch (err) { showToast('Gagal upload', 'error'); }
+    };
+
+    window.startAIVoice = function() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return showToast('Browser tidak mendukung Voice Typing', 'error');
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'id-ID'; recognition.start();
+        
+        const micBtn = document.getElementById('ai-btn-mic');
+        micBtn.innerHTML = '<div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>';
+        showToast('Silakan bicara...', 'warning');
+
+        recognition.onresult = function(e) {
+            const input = document.getElementById('ai-input-field');
+            input.value += (input.value ? ' ' : '') + e.results[0][0].transcript;
+            handleAIInput(input);
+        };
+        recognition.onend = function() {
+            micBtn.innerHTML = '<i data-lucide="mic" class="w-5 h-5"></i>'; lucide.createIcons();
+        };
+    };
+
+    // --- FUNGSI RENDER & SUBMIT ---
+    function renderAIChatHistory() {
+        const body = document.getElementById('ai-chat-body');
+        if(!body) return;
+
+        body.innerHTML = STATE.aiChatHistory.map(m => `
+            <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade w-full">
+                <div class="${m.role === 'user' ? 'bg-[#2563eb] text-white' : 'bg-[color:var(--card)] text-[color:var(--text)] border border-[color:var(--border)]'} max-w-[85%] px-4 py-3 rounded-[20px] shadow-sm ${m.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}">
+                    ${m.role === 'ai' ? `
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 shrink-0 flex items-center justify-center mt-0.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i></div>
+                            <div class="text-[14px] leading-relaxed w-full break-words" style="white-space: pre-line;">${m.text.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    ` : `
+                        <div class="text-[14px] leading-relaxed break-words">
+                            ${m.file ? (m.file.isImage ? `<img src="${m.file.url}" class="w-40 h-40 object-cover rounded-xl mb-2 shadow-sm border border-white/20">` : `<div class="flex items-center gap-2 bg-black/20 p-2 rounded-lg mb-2"><i data-lucide="file-text" class="w-5 h-5 text-blue-100"></i><span class="text-xs truncate">${m.file.name}</span></div>`) : ''}
+                            ${m.text}
+                        </div>
+                    `}
+                </div>
+            </div>
+        `).join('');
         body.scrollTop = body.scrollHeight;
         lucide.createIcons();
+    }
+
+    window.submitAskAI = async function() {
+        const input = document.getElementById('ai-input-field');
+        const text = input.value.trim();
+        const file = STATE.aiPendingFile;
+        
+        if(!text && !file) return;
+
+        input.value = ''; input.style.height = 'auto';
+        document.getElementById('ai-img-preview-container').innerHTML = '';
+        document.getElementById('ai-img-preview-container').classList.add('hidden');
+        STATE.aiPendingFile = null; closeAIAttachMenu(); handleAIInput(input);
+
+        STATE.aiChatHistory.push({ role: 'user', text: text, file: file });
+        renderAIChatHistory();
+
+        const body = document.getElementById('ai-chat-body');
+        const typingId = 'typing-' + Date.now();
+        body.innerHTML += `
+            <div id="${typingId}" class="flex justify-start animate-fade w-full">
+                <div class="bg-[color:var(--card)] border border-[color:var(--border)] rounded-[20px] rounded-bl-sm px-4 py-3 shadow-sm flex items-center gap-3">
+                    <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 shrink-0 flex items-center justify-center"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i></div>
+                    <div class="flex gap-1.5 px-1 mt-1"><div class="w-1.5 h-1.5 bg-[color:var(--text2)] rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-[color:var(--text2)] rounded-full animate-bounce" style="animation-delay: 0.2s"></div><div class="w-1.5 h-1.5 bg-[color:var(--text2)] rounded-full animate-bounce" style="animation-delay: 0.4s"></div></div>
+                </div>
+            </div>`;
+        body.scrollTop = body.scrollHeight; lucide.createIcons();
 
         try {
             const msgs = STATE.chats[STATE.currentCourse.id] || [];
             const history = msgs.slice(-30).map(m => `${m.userName}: ${m.text}`).join('\n');
-            const contextPrompt = `[Kamu adalah FunGrow AI, asisten di kelas ${STATE.currentCourse.name}. User: ${STATE.currentUser.displayName}. Jawab ringkas dan ramah.]\n\nRiwayat Kelas:\n${history}`;
+            const contextPrompt = `[Kamu adalah FunGrow AI, asisten kelas ${STATE.currentCourse.name}. User: ${STATE.currentUser.displayName}. Jawab ringkas.]\n\nRiwayat Kelas:\n${history}`;
+            const finalQuestion = file ? `[User melampirkan file: ${file.name} - ${file.url}]\n${text}` : text;
 
-            // Beri tahu AI jika ada gambar yang diunggah
-            const finalQuestion = img ? `[User melampirkan gambar: ${img}]\n${text}` : text;
-
-            const response = await fetch('/ai/ask', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, 
-                body: JSON.stringify({ history: contextPrompt, question: finalQuestion }) 
-            });
+            const response = await fetch('/ai/ask', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt, question: finalQuestion }) });
             const data = await response.json();
 
             document.getElementById(typingId).remove();
             STATE.aiChatHistory.push({ role: 'ai', text: data.result });
             renderAIChatHistory();
-
         } catch(e) {
-            document.getElementById(typingId).remove();
-            showToast('Koneksi AI gagal', 'error');
+            document.getElementById(typingId).remove(); showToast('Koneksi AI gagal', 'error');
         }
     };
-        
+   
     window.handleExportNotes = function() {
         const messages = STATE.chats[STATE.currentCourse.id] || []; if(messages.length === 0) return showToast('Belum ada pesan', 'warning');
         const title = `CATATAN KELAS: ${STATE.currentCourse.name}`; const content = messages.map(m => `[${formatTime(m.timestamp)}] ${m.userName}: ${m.text}`).join('\n');
