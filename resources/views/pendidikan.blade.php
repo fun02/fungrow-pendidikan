@@ -1149,36 +1149,108 @@
         }
     };
 
-    // ========== RENDER COURSE CHAT ==========
+        // ========== RENDER COURSE CHAT ==========
+    
+    // Mesin Pendeteksi Jenis File & Warna Ikon
+    window.getFileIconUI = function(filename) {
+        if(!filename) return { icon: 'file', color: 'text-white', bg: 'bg-white/20' };
+        const ext = filename.split('.').pop().toLowerCase();
+        if(['pdf'].includes(ext)) return { icon: 'file-text', color: 'text-red-500', bg: 'bg-red-500/20' };
+        if(['doc','docx'].includes(ext)) return { icon: 'file-text', color: 'text-blue-500', bg: 'bg-blue-500/20' };
+        if(['xls','xlsx'].includes(ext)) return { icon: 'table', color: 'text-emerald-500', bg: 'bg-emerald-500/20' };
+        if(['ppt','pptx'].includes(ext)) return { icon: 'presentation', color: 'text-orange-500', bg: 'bg-orange-500/20' };
+        if(['zip','rar'].includes(ext)) return { icon: 'archive', color: 'text-yellow-500', bg: 'bg-yellow-500/20' };
+        return { icon: 'file', color: 'text-indigo-500', bg: 'bg-indigo-500/20' };
+    };
+
     function renderMessagesOnly() {
         const container = document.getElementById('chat-messages-container');
         if (!container || STATE.screen !== 'course') return;
         const msgs = STATE.chats[STATE.currentCourse?.id] || [];
         const visible = msgs.filter(m => !(m.deletedFor || []).includes(STATE.currentUser?.uid));
 
-        if(visible.length === 0) { container.innerHTML = `<div class="flex-1 flex flex-col items-center justify-center text-[color:var(--text2)] h-full pt-20"><i data-lucide="messages-square" class="w-12 h-12 mb-2 opacity-50"></i><p class="text-sm font-medium">Mulai obrolan</p></div>`; lucide.createIcons(); return; }
+        if(visible.length === 0) { 
+            container.innerHTML = `<div class="flex-1 flex flex-col items-center justify-center text-[color:var(--text2)] h-full pt-20"><i data-lucide="messages-square" class="w-12 h-12 mb-3 text-[#2563eb] opacity-50"></i><p class="text-sm font-bold tracking-wide">Mulai obrolan di kelas ini</p></div>`;
+            lucide.createIcons(); return; 
+        }
 
         let html = ''; let lastDateStr = '';
         visible.forEach(m => {
+            // 1. Badge Tanggal ala IG/WA di tengah chat
             const dateStr = formatChatDateBadge(m.timestamp);
-            if (dateStr !== lastDateStr) { html += `<div class="flex justify-center my-4 z-10 sticky top-2"><div class="px-3 py-1 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text2)] text-[11px] font-medium backdrop-blur-md shadow-sm">${dateStr}</div></div>`; lastDateStr = dateStr; }
+            if (dateStr !== lastDateStr) { 
+                html += `<div class="flex justify-center my-5 z-10 sticky top-2"><div class="px-3 py-1.5 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text2)] text-[9px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm">${dateStr}</div></div>`; 
+                lastDateStr = dateStr; 
+            }
+            
             const mine = m.userId === STATE.currentUser?.uid;
 
-            if(m.type === 'system') { html += `<div class="flex justify-center my-3"><div class="px-4 py-2 bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text2)] text-[11px] rounded-xl text-center max-w-[80%] break-words shadow-sm">${m.text.replace(/\n/g, '<br>')}</div></div>`; return; }
+            // Chat dari Sistem (Bot/Tugas)
+            if(m.type === 'system') { 
+                html += `<div class="flex justify-center my-3"><div class="px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[11px] rounded-xl font-medium text-center max-w-[85%] break-words shadow-sm backdrop-blur-sm">${m.text.replace(/\n/g, '<br>')}</div></div>`; 
+                return; 
+            }
 
             let content = '';
-            if (m.type === 'image') { content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-sm transition hover:opacity-90" onclick="window.open('${m.text}', '_blank')"></div>`; }
-            else if (m.type === 'file') { content = `<div class="mt-1"><a href="${m.text}" target="_blank" class="flex items-center gap-3 p-2.5 bg-black/10 hover:bg-black/20 rounded-xl transition border border-[color:var(--border)] backdrop-blur-sm"><div class="p-2 rounded-lg bg-[color:var(--accent)] bg-opacity-20"><i data-lucide="file-text" class="w-5 h-5 text-[color:var(--accent)]"></i></div><div class="flex-1 min-w-0"><p class="text-xs truncate font-semibold text-[color:var(--text)]" style="${mine ? 'color:white' : ''}">${m.fileName}</p><p class="text-[10px] opacity-70" style="${mine ? 'color:rgba(255,255,255,0.7)' : 'color:var(--text2)'}">${m.fileSize}</p></div></a></div>`; }
-            else if (m.type === 'voice') { content = `<div class="voice-note-player bg-black/10 p-1.5 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-8 h-8 rounded-full bg-[color:var(--accent)] flex items-center justify-center shrink-0 shadow-md"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 text-white vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 text-white vn-pause hidden"></i></button><div class="voice-note-progress"><div id="fill-${m.id}" class="voice-note-progress-fill bg-[color:var(--accent)]"></div></div><span id="time-${m.id}" class="text-[10px] font-mono mr-2" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`; }
-            else { content = m.text.replace(/\n/g, '<br>'); }
+            
+            // UI Gambar
+            if (m.type === 'image') { 
+                content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-md transition hover:scale-[1.02]" onclick="window.open('${m.text}', '_blank')"></div>`;
+            }
+            // 2. UI File Dokumen (PREMIUM LOOK)
+            else if (m.type === 'file') { 
+                const ui = window.getFileIconUI(m.fileName);
+                content = `
+                <div class="mt-1.5 mb-1 w-[220px] sm:w-[250px]">
+                    <a href="${m.text}" target="_blank" class="flex items-center gap-3 p-3 ${mine ? 'bg-black/20 hover:bg-black/30' : 'bg-[color:var(--surface)] hover:bg-[color:var(--card)]'} rounded-xl transition-all border border-[color:var(--border)] backdrop-blur-sm shadow-sm group">
+                        <div class="p-2.5 rounded-lg ${mine ? 'bg-white/20' : ui.bg} shrink-0 transition-transform group-hover:scale-105">
+                            <i data-lucide="${ui.icon}" class="w-6 h-6 ${mine ? 'text-white' : ui.color}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] truncate font-bold text-[color:var(--text)] mb-0.5" style="${mine ? 'color:white' : ''}">${m.fileName || 'Dokumen'}</p>
+                            <p class="text-[9px] uppercase tracking-wider font-mono opacity-80" style="${mine ? 'color:rgba(255,255,255,0.8)' : 'color:var(--text2)'}">${m.fileSize || 'FILE'}</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full ${mine ? 'bg-white/10 text-white' : 'bg-[color:var(--card)] text-[color:var(--text2)]'} flex items-center justify-center shrink-0">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </div>
+                    </a>
+                </div>`;
+            }
+            // UI Voice Note
+            else if (m.type === 'voice') { 
+                content = `<div class="voice-note-player ${mine ? 'bg-black/20' : 'bg-[color:var(--surface)]'} p-2 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm shadow-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-9 h-9 rounded-full ${mine ? 'bg-white text-[#2563eb]' : 'bg-[color:var(--accent)] text-white'} flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 vn-pause hidden"></i></button><div class="voice-note-progress ml-1 mr-2"><div id="fill-${m.id}" class="voice-note-progress-fill ${mine ? 'bg-white' : 'bg-[color:var(--accent)]'}"></div></div><span id="time-${m.id}" class="text-[10px] font-mono font-bold mr-3" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`;
+            }
+            else { 
+                content = m.text.replace(/\n/g, '<br>');
+            }
 
-            let bubbleClass = mine ? 'bg-[#2563eb] text-white bubble-right border border-[#2563eb]' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
-            let nameColor = mine ? 'text-white' : 'text-[color:var(--accent2)]';
-            let timeColor = mine ? 'text-white/70' : 'text-[color:var(--text2)] opacity-70';
+            // Warna Bubble Chat
+            let bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
+            let nameColor = mine ? 'text-white' : 'text-emerald-500';
+            let timeColor = mine ? 'text-white/80' : 'text-[color:var(--text2)] opacity-90';
+            
+            // 3. TANDA CENTANG BIRU (WA Style)
+            let checkIcon = mine ? `<i data-lucide="check-all" class="w-[14px] h-[14px] text-sky-300 ml-0.5 mt-0.5"></i>` : '';
 
-            html += `<div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3 w-full animate-fade"><div class="relative ${bubbleClass} px-3 pt-2 pb-5 max-w-[80%] min-w-[90px] shadow-sm select-none" oncontextmenu="event.preventDefault();" onmousedown="startHold(this, '${m.id}')" onmouseup="cancelHold(this)" onmouseleave="cancelHold(this)" ontouchstart="startHold(this, '${m.id}')" ontouchend="cancelHold(this)" ontouchmove="cancelHold(this)">${!mine ? `<div class="text-[10px] font-bold ${nameColor} mb-1 truncate">${m.userName}</div>` : ''}<div class="text-[13px] break-words leading-relaxed">${content}</div><div class="absolute bottom-1 right-2 flex items-center gap-1"><span class="text-[9px] ${timeColor} font-medium">${formatTime(m.timestamp)}</span>${m.isEdited ? `<i data-lucide="pencil" class="w-2.5 h-2.5 opacity-50"></i>` : ''}</div></div></div>`;
+            // Render Output Bubble Chat
+            html += `
+            <div class="flex ${mine ? 'justify-end' : 'justify-start'} mb-3.5 w-full animate-fade">
+                <div class="relative ${bubbleClass} px-3.5 pt-2.5 pb-6 max-w-[85%] min-w-[110px] shadow-md select-none" oncontextmenu="event.preventDefault();" onmousedown="startHold(this, '${m.id}')" onmouseup="cancelHold(this)" onmouseleave="cancelHold(this)" ontouchstart="startHold(this, '${m.id}')" ontouchend="cancelHold(this)" ontouchmove="cancelHold(this)">
+                    ${!mine ? `<div class="text-[10.5px] font-bold ${nameColor} mb-1.5 truncate flex items-center gap-1.5"><i data-lucide="user" class="w-3 h-3 opacity-70"></i> ${m.userName}</div>` : ''}
+                    <div class="text-[13.5px] break-words leading-relaxed">${content}</div>
+                    <div class="absolute bottom-1.5 right-2.5 flex items-center gap-0.5">
+                        ${m.isEdited ? `<i data-lucide="pencil" class="w-2.5 h-2.5 opacity-60 mr-1"></i>` : ''}
+                        <span class="text-[9px] ${timeColor} font-bold tracking-wider pt-0.5">${formatTime(m.timestamp)}</span>
+                        ${checkIcon}
+                    </div>
+                </div>
+            </div>`;
         });
-        container.innerHTML = html; lucide.createIcons();
+        
+        container.innerHTML = html; 
+        lucide.createIcons(); // Render ulang ikon baru (termasuk check-all)
+        
+        // Auto scroll ke bawah
         if(container.scrollHeight - container.scrollTop <= container.clientHeight + 150) container.scrollTop = container.scrollHeight;
     }
 
