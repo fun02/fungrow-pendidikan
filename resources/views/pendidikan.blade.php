@@ -1429,23 +1429,88 @@ window.showPromoModal = function() {
         } catch(e) { showToast('Gagal memanggil AI', 'error'); }
     };
 
-    // 2. TAMPILAN POP-UP TANYA AI (PREMIUM UI)
-    window.openAskAIModal = function() { showGlobalModal(`
-        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-purple-500/30 shadow-[0_20px_50px_rgba(168,85,247,0.15)] relative overflow-hidden">
-            <div class="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="flex items-center gap-3 mb-2 relative z-10">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg border border-white/10"><i data-lucide="bot" class="w-5 h-5"></i></div>
-                <div>
-                    <h3 class="font-bold text-[color:var(--text)] text-lg">FunGrow AI</h3>
-                    <span class="text-[8px] font-bold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Asisten ${STATE.currentCourse.icon}</span>
+        // ===============================================
+    // 2. TAMPILAN POP-UP TANYA AI (WHATSAPP/META STYLE)
+    // ===============================================
+    window.openAskAIModal = function() {
+        // Daftar saran pertanyaan interaktif (Menyesuaikan konteks kelas)
+        const suggestions = [
+            { icon: 'sparkles', title: 'Tugas Terakhir', desc: `Daftar tugas terbaru di kelas ${STATE.currentCourse.name}`, text: 'Apa tugas terbaru yang diberikan di kelas ini?' },
+            { icon: 'pencil', title: 'Ringkas Materi', desc: 'Buat poin-poin penting dari diskusi terakhir.', text: 'Tolong ringkas diskusi penting di kelas ini hari ini.' },
+            { icon: 'file-text', title: 'Jelaskan Konsep', desc: `Bantu jelaskan materi utama kelas ${STATE.currentCourse.name}.`, text: `Bisakah kamu jelaskan konsep utama dalam mata kuliah ${STATE.currentCourse.name} ini secara sederhana?` },
+            { icon: 'megaphone', title: 'Pengumuman Dosen', desc: 'Cek apakah ada info penting dari Dosen.', text: 'Apakah ada pengumuman atau informasi penting dari Dosen di chat terakhir?' },
+        ];
+
+        let suggestionsHtml = '';
+        suggestions.forEach(s => {
+            suggestionsHtml += `
+                <div onclick="fillAIQuestion('${s.text.replace(/'/g, "\\'")}')" class="flex items-center gap-4 p-4 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] cursor-pointer hover:bg-[color:var(--card)] transition-all active:scale-[0.98] group">
+                    <div class="p-3 rounded-full bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                        <i data-lucide="${s.icon}" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-[color:var(--text)] mb-0.5">${s.title}</p>
+                        <p class="text-xs text-[color:var(--text2)] truncate">${s.desc}</p>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--border)] group-hover:text-indigo-500 transition-colors"></i>
+                </div>
+            `;
+        });
+
+        // Tampilkan Modal dengan struktur WA
+        showGlobalModal(`
+            <div class="animate-slide w-full max-w-lg mx-auto overflow-hidden shadow-2xl rounded-t-3xl md:rounded-3xl border border-[color:var(--border)]">
+                
+                <div class="bg-black text-white p-5 flex items-center justify-between border-b border-white/10 relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute -bottom-10 -left-10 w-24 h-24 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div class="flex items-center gap-3.5 relative z-10">
+                        <div class="w-11 h-11 rounded-full bg-gradient-to-r from-[#1795E2] via-[#6F60F3] to-[#E55077] p-0.5 flex items-center justify-center shadow-lg border border-white/10">
+                            <div class="w-full h-full rounded-full bg-black flex items-center justify-center">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg leading-tight">Tanya FunGrow AI</h3>
+                            <p class="text-[11px] text-gray-400 font-medium">Asisten Kelas: <b class="text-gray-200">${STATE.currentCourse.name}</b></p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="closeGlobalModal()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 transition-all relative z-10">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="bg-[color:var(--card)] p-4 md:p-6 space-y-3.5 max-h-[350px] overflow-y-auto">
+                    <p class="text-[11px] text-[color:var(--text2)] font-bold uppercase tracking-wider mb-1">Coba tanyakan:</p>
+                    ${suggestionsHtml}
+                </div>
+
+                <div class="bg-[color:var(--card)] p-4 border-t border-[color:var(--border)] flex items-end gap-3 rounded-b-3xl">
+                    <div class="flex-1 relative">
+                        <textarea id="ai-question" class="w-full bg-[color:var(--input-bg)] p-4 pr-12 rounded-2xl text-[13px] text-[color:var(--text)] border border-[color:var(--border)] focus:border-indigo-500 outline-none resize-none h-14 max-h-32 shadow-inner" placeholder="Tanya AI atau ketik pertanyaan..."></textarea>
+                    </div>
+                    <button onclick="submitAskAI()" class="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-transform flex items-center justify-center flex-shrink-0 group">
+                        <i data-lucide="send" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                    </button>
                 </div>
             </div>
-            <p class="text-[10px] text-[color:var(--text2)] mb-4 mt-2 relative z-10">AI akan menganalisis obrolan di kelas <b class="text-[color:var(--text)]">${STATE.currentCourse.name}</b> untuk membantu menjawab pertanyaan Anda.</p>
-            <textarea id="ai-question" class="w-full bg-[color:var(--input-bg)] p-4 rounded-2xl text-[13px] text-[color:var(--text)] mb-4 border border-[color:var(--border)] focus:border-purple-500 outline-none resize-none h-24 shadow-inner relative z-10" placeholder="Contoh: Apa tugas yang baru saja diberikan oleh Dosen?"></textarea>
-            <button onclick="submitAskAI()" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg shadow-purple-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2 relative z-10"><i data-lucide="sparkles" class="w-4 h-4"></i> Tanyakan Sekarang</button>
-            <button onclick="closeGlobalModal()" class="w-full mt-2 py-2.5 text-[color:var(--text2)] font-bold hover:text-[color:var(--text)] transition-colors text-xs uppercase tracking-wider relative z-10">Batal</button>
-        </div>
-    `); };
+        `);
+
+        // Handler untuk mengisi textarea otomatis saat saran diklik
+        window.fillAIQuestion = function(text) {
+            const textarea = document.getElementById('ai-question');
+            if(textarea) {
+                textarea.value = text;
+                textarea.focus();
+                textarea.style.height = 'auto'; // Reset height
+                textarea.style.height = textarea.scrollHeight + 'px'; // Auto expand
+            }
+        };
+
+        lucide.createIcons(); // Render ulang ikon baru
+    };
 
     // 3. MESIN TANYA AI (Dengan Injeksi Identitas & Konteks)
     window.submitAskAI = async function() {
