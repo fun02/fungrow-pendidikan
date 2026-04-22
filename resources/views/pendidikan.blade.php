@@ -1591,6 +1591,25 @@ window.showPromoModal = function() {
         }, 50);
     }
 };
+    window.closePromoModal = function() {
+        const modal = document.getElementById('promo-modal');
+        const content = document.getElementById('promo-content');
+        
+        if(modal && content) {
+            // Animasi keluar (fade out & un-zoom)
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            
+            // Sembunyikan elemen setelah animasi selesai (300ms)
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+    };
+    
     // ==============================================
     // PERBAIKAN FORM TUGAS (DESAIN PREMIUM UI/UX)
     // ==============================================
@@ -1767,25 +1786,6 @@ window.showPromoModal = function() {
         } catch(e) { 
             console.error(e); 
             showToast('Gagal menerbitkan tugas', 'error'); 
-        }
-    };
-
-    window.closePromoModal = function() {
-        const modal = document.getElementById('promo-modal');
-        const content = document.getElementById('promo-content');
-        
-        if(modal && content) {
-            // Animasi keluar (fade out & un-zoom)
-            modal.classList.remove('opacity-100');
-            modal.classList.add('opacity-0');
-            content.classList.remove('scale-100');
-            content.classList.add('scale-95');
-            
-            // Sembunyikan elemen setelah animasi selesai (300ms)
-            setTimeout(() => {
-                modal.classList.remove('flex');
-                modal.classList.add('hidden');
-            }, 300);
         }
     };
     
