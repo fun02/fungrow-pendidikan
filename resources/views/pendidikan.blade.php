@@ -1502,25 +1502,22 @@
                 </div>
             </header>
             <div id="pinned-container" class="hidden shrink-0 z-20 transition-all"></div>
-            <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 py-4 z-10 scroll-smooth"></div>
-            <div id="chat-input-container" class="glass p-2 shrink-0 z-30 border-t border-[color:var(--border)] flex gap-1 items-end pb-4 pt-2 rounded-b-none relative">  
+                        <div id="pinned-container" class="hidden shrink-0 z-20 transition-all"></div>
+            <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 py-4 z-10 scroll-smooth relative"></div>
+            
+            <div id="chat-input-container" class="glass p-2 shrink-0 z-30 border-t border-[color:var(--border)] flex gap-1 items-end pb-4 pt-2 rounded-b-none relative bg-[color:var(--surface)]">
+                
                 <button id="btn-clip" onclick="openAttachmentMenu()" class="p-2 sm:p-3 rounded-full text-[color:var(--text2)] hover:text-[color:var(--accent)] shrink-0 active:scale-90 transition-all"><i data-lucide="paperclip" class="w-5 h-5 transform -rotate-45"></i></button>
                 <button onclick="toggleStickerPanel()" class="p-2 sm:p-3 rounded-full text-[color:var(--text2)] hover:text-amber-500 shrink-0 active:scale-90 transition-all"><i data-lucide="smile" class="w-6 h-6"></i></button>
+                
                 <div id="recording-ui" class="hidden flex-1 flex items-center gap-2 p-1 bg-[color:var(--input-bg)] rounded-full border border-red-500/30">
                     <button onclick="cancelRecording()" class="p-2 rounded-full text-[color:var(--text2)] hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                     <div class="flex-1 flex items-center justify-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-red-500 pulse"></div><span id="rec-time" class="text-sm font-mono font-bold text-[color:var(--text)]">0:00</span></div>
                     <button onclick="stopRecording()" class="p-2 rounded-full bg-[#2563eb] text-white shadow-lg"><i data-lucide="send" class="w-4 h-4 ml-0.5"></i></button>
                 </div>
+                
                 <textarea id="chat-input" class="flex-1 bg-[color:var(--input-bg)] text-[color:var(--text)] text-[15px] rounded-2xl px-4 py-3 max-h-28 outline-none resize-none border border-[color:var(--border)] focus:border-[color:var(--accent)] transition-colors" placeholder="Ketik pesan..." oninput="handleInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendTextMessage(); }"></textarea>
-                <button id="btn-send" onclick="sendTextMessage()" class="hidden p-3 rounded-full bg-[#2563eb] text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-blue-600/20 mb-0.5"><i data-lucide="send" class="w-5 h-5 ml-0.5"></i></button>
-                <button id="btn-mic" onclick="startRecording()" class="p-3 rounded-full bg-[color:var(--card)] border border-[color:var(--border)] text-[color:var(--text)] shrink-0 active:scale-90 transition-transform mb-0.5"><i data-lucide="mic" class="w-5 h-5"></i></button>
-            </div>
-                <div id="recording-ui" class="hidden flex-1 flex items-center gap-2 p-1 bg-[color:var(--input-bg)] rounded-full border border-red-500/30">
-                    <button onclick="cancelRecording()" class="p-2 rounded-full text-[color:var(--text2)] hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                    <div class="flex-1 flex items-center justify-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-red-500 pulse"></div><span id="rec-time" class="text-sm font-mono font-bold text-[color:var(--text)]">0:00</span></div>
-                    <button onclick="stopRecording()" class="p-2 rounded-full bg-[#2563eb] text-white shadow-lg"><i data-lucide="send" class="w-4 h-4 ml-0.5"></i></button>
-                </div>
-                <textarea id="chat-input" class="flex-1 bg-[color:var(--input-bg)] text-[color:var(--text)] text-[15px] rounded-2xl px-4 py-3 max-h-28 outline-none resize-none border border-[color:var(--border)] focus:border-[color:var(--accent)] transition-colors" placeholder="Ketik pesan..." oninput="handleInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendTextMessage(); }"></textarea>
+                
                 <button id="btn-send" onclick="sendTextMessage()" class="hidden p-3 rounded-full bg-[#2563eb] text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-blue-600/20 mb-0.5"><i data-lucide="send" class="w-5 h-5 ml-0.5"></i></button>
                 <button id="btn-mic" onclick="startRecording()" class="p-3 rounded-full bg-[color:var(--card)] border border-[color:var(--border)] text-[color:var(--text)] shrink-0 active:scale-90 transition-transform mb-0.5"><i data-lucide="mic" class="w-5 h-5"></i></button>
             </div>
@@ -1980,42 +1977,82 @@ window.showPromoModal = function() {
         "https://cdn-icons-png.flaticon.com/512/4632/4632288.png"  // Cinta
     ];
 
-    // 2. Fungsi Buka/Tutup Panel Stiker di bawah input chat
+        // Daftar Emoji Super Lengkap ala WhatsApp (+900 Emojis)
+    STATE.defaultEmojis = [
+        // --- WAJAH & EMOSI ---
+        "😀","😃","😄","😁","😆","😅","😂","🤣","🥲","☺️","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😹","😻","😼","😽","🙀","😿","😾",
+        // --- TANGAN & TUBUH ---
+        "👋","🤚","🖐","✋","🖖","👌","🤌","🤏","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","🦾","🦿","🦵","🦶","👂","🦻","👃","🧠","🫀","🫁","🦷","🦴","👀","👁","👅","👄","💋","🩸",
+        // --- ORANG & PROFESI ---
+        "👶","👧","🧒","👦","👩","🧑","👨","👩‍🦱","🧑‍🦱","👨‍🦱","👩‍🦰","🧑‍🦰","👨‍🦰","👱‍♀️","👱","👱‍♂️","👩‍🦳","🧑‍🦳","👨‍🦳","👩‍🦲","🧑‍🦲","👨‍🦲","🧔‍♀️","🧔","🧔‍♂️","👵","🧓","👴","👲","👳‍♀️","👳","👳‍♂️","🧕","👮‍♀️","👮","👮‍♂️","👷‍♀️","👷","👷‍♂️","💂‍♀️","💂","💂‍♂️","🕵️‍♀️","🕵️","🕵️‍♂️","👩‍⚕️","🧑‍⚕️","👨‍⚕️","👩‍🌾","🧑‍🌾","👨‍🌾","👩‍🍳","🧑‍🍳","👨‍🍳","👩‍🎓","🧑‍🎓","👨‍🎓","👩‍🎤","🧑‍🎤","👨‍🎤","👩‍🏫","🧑‍🏫","👨‍🏫","👩‍🏭","🧑‍🏭","👨‍🏭","👩‍💻","🧑‍💻","👨‍💻","👩‍💼","🧑‍💼","👨‍💼","👩‍🔧","🧑‍🔧","👨‍🔧","👩‍🔬","🧑‍🔬","👨‍🔬","👩‍🎨","🧑‍🎨","👨‍🎨","👩‍🚒","🧑‍🚒","👨‍🚒","👩‍✈️","🧑‍✈️","👨‍✈️","👩‍🚀","🧑‍🚀","👨‍🚀","👩‍⚖️","🧑‍⚖️","👨‍⚖️","👰‍♀️","👰","👰‍♂️","🤵‍♀️","🤵","🤵‍♂️","👸","🤴","🥷","🦸‍♀️","🦸","🦸‍♂️","🦹‍♀️","🦹","🦹‍♂️","🤶","🧑‍🎄","🎅","🧙‍♀️","🧙","🧙‍♂️","🧝‍♀️","🧝","🧝‍♂️","🧛‍♀️","🧛","🧛‍♂️","🧟‍♀️","🧟","🧟‍♂️","🧞‍♀️","🧞","🧞‍♂️","🧜‍♀️","🧜","🧜‍♂️","🧚‍♀️","🧚","🧚‍♂️","👼","🤰","🤱","👩‍🍼","🧑‍🍼","👨‍🍼","🙇‍♀️","🙇","🙇‍♂️","💁‍♀️","💁","💁‍♂️","🙅‍♀️","🙅","🙅‍♂️","🙆‍♀️","🙆","🙆‍♂️","🙋‍♀️","🙋","🙋‍♂️","🧏‍♀️","🧏","🧏‍♂️","🤦‍♀️","🤦","🤦‍♂️","🤷‍♀️","🤷","🤷‍♂️",
+        // --- HEWAN & ALAM ---
+        "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐻‍❄️","🐨","🐯","🦁","🐮","🐷","🐽","🐸","🐵","🙈","🙉","🙊","🐒","🐔","🐧","🐦","🐤","🐣","🐥","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🪱","🐛","🦋","🐌","🐞","🐜","🪰","🪲","🪳","🦟","🦗","🕷","🕸","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦐","🦞","🦀","🐡","🐠","🐟","🐬","🐳","🐋","🦈","🦭","🐊","🐅","🐆","🦓","🦍","🦧","🦣","🐘","🦛","🦏","🐪","🐫","🦒","🦘","🦬","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🦙","🐐","🦌","🐕","🐩","🦮","🐕‍🦺","🐈","🐈‍⬛","🪶","🐓","🦃","🦚","🦜","🦢","🦩","🕊","🐇","🦝","🦨","🦡","🦫","🦦","🦥","🐁","🐀","🐿","🦔","🐾","🐉","🐲","🌵","🎄","🌲","🌳","🌴","🌱","🌿","☘️","🍀","🎍","🪴","🎋","🍃","🍂","🍁","🍄","🐚","🪨","🌾","💐","🌷","🌹","🥀","🌺","🌸","🌼","🌻","🌞","🌝","🌛","🌜","🌚","🌕","🌖","🌗","🌘","🌑","🌒","🌓","🌔","🌙","🌎","🌍","🌏","🪐","💫","⭐️","🌟","✨","⚡️","☄️","💥","🔥","🌪","🌈","☀️","🌤","⛅️","🌥","☁️","🌦","🌧","⛈","🌩","🌨","💧","💦","☔️","☂️","🌊","🌬","💨","🌀","🌫",
+        // --- MAKANAN & MINUMAN ---
+        "🍏","🍎","🍐","🍊","🍋","🍌","🍉","🍇","🍓","🫐","🍈","🍒","🍑","🥭","🍍","🥥","🥝","🍅","🍆","🥑","🥦","🥬","🥒","🌶","🫑","🌽","🥕","🫒","🧄","🧅","🥔","🍠","🥐","🥯","🍞","🥖","🥨","🧀","🥚","🍳","🧈","🥞","🧇","🥓","🥩","🍗","🍖","🦴","🌭","🍔","🍟","🍕","🫓","🥪","🥙","🧆","🌮","🌯","🫔","🥗","🥘","🫕","🥫","🍝","🍜","🍲","🍛","🍣","🍱","🥟","🦪","🍤","🍙","🍚","🍘","🍥","🥠","🥮","🍢","🍡","🍧","🍨","🍦","🥧","🧁","🍰","🎂","🍮","🍭","🍬","🍫","🍿","🍩","🍪","🌰","🥜","🍯","🥛","🍼","☕️","🍵","🧃","🥤","🧋","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧉","🍾","🧊","🥄","🍴","🍽","🥣","🥡","🥢","🧂",
+        // --- AKTIVITAS & OLAHRAGA ---
+        "⚽️","🏀","🏈","⚾️","🥎","🎾","🏐","🏉","🥏","🎱","🪀","🏓","🏸","🏒","🏑","🥍","🏏","🪃","🥅","⛳️","🪁","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛼","🛷","⛸","🥌","🎿","⛷","🏂","🪂","🏋️‍♀️","🏋️","🏋️‍♂️","🤼‍♀️","🤼","🤼‍♂️","🤸‍♀️","🤸","🤸‍♂️","⛹️‍♀️","⛹️","⛹️‍♂️","🤺","🤾‍♀️","🤾","🤾‍♂️","🏌️‍♀️","🏌️","🏌️‍♂️","🏇","🧘‍♀️","🧘","🧘‍♂️","🏄‍♀️","🏄","🏄‍♂️","🏊‍♀️","🏊","🏊‍♂️","🤽‍♀️","🤽","🤽‍♂️","🚣‍♀️","🚣","🚣‍♂️","🧗‍♀️","🧗","🧗‍♂️","🚵‍♀️","🚵","🚵‍♂️","🚴‍♀️","🚴","🚴‍♂️","🏆","🥇","🥈","🥉","🏅","🎖","🏵","🎗","🎫","🎟","🎪","🤹‍♀️","🤹","🤹‍♂️","🎭","🩰","🎨","🎬","🎤","🎧","🎼","🎹","🥁","🪘","🎷","🎺","🪗","🎸","🪕","🎻","🎲","♟","🎯","🎳","🎮","🎰","🧩",
+        // --- TEMPAT & KENDARAAN ---
+        "🚗","🚕","🚙","🚌","🚎","🏎","🚓","🚑","🚒","🚐","🛻","🚚","🚛","🚜","🦯","🦽","🦼","🛴","🚲","🛵","🏍","🛺","🚨","🚔","🚍","🚘","🚖","🚡","🚠","🚟","🚃","🚋","🚞","🚝","🚄","🚅","🚈","🚂","🚆","🚇","🚊","🚉","✈️","🛫","🛬","🛩","💺","🛰","🚀","🛸","🚁","🛶","⛵️","🚤","🛥","🛳","⛴","🚢","⚓️","🪝","⛽️","🚧","🚦","🚥","🚏","🗺","🗿","🗽","🗼","🏰","🏯","🏟","🎡","🎢","🎠","⛲️","⛱","🏖","🏝","🏜","🌋","⛰","🏔","🗻","🏕","⛺️","🛖","🏠","🏡","🏘","🏚","🏗","🏭","🏢","🏬","🏣","🏤","🏥","🏦","🏨","🏪","🏫","🏩","💒","🏛","⛪️","🕌","🕍","🛕","🕋","⛩","🛤","🛣","🗾","🎑","🏞","🌅","🌄","🌠","🎇","🎆","🌇","🌆","🏙","🌃","🌌","🌉","🌁",
+        // --- BENDA ---
+        "⌚️","📱","📲","💻","⌨️","🖥","🖨","🖱","🖲","🕹","🗜","💽","💾","💿","📀","📼","📷","📸","📹","🎥","📽","🎞","📞","☎️","📟","📠","📺","📻","🎙","🎚","🎛","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","📡","🔋","🔌","💡","🔦","🕯","🪔","🧯","🛢","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🪜","🧰","🪛","🔧","🔨","⚒","🛠","⛏","🪚","🔩","⚙️","🪤","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🪦","⚱️","🏺","🔮","📿","🧿","💈","⚗️","🔭","🔬","🕳","🩹","🩺","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🪠","🧺","🧻","🚽","🚰","🚿","🛁","🛀","🧼","🪥","🧽","🪣","🧴","🛎","🔑","🗝","🚪","🪑","🛋","🛏","🛌","🧸","🪆","🖼","🪞","🪟","🛍","🛒","🎁","🎈","🎏","🎀","🪄","🪅","🎊","🎉","🎎","🏮","🎐","🧧","✉️","📩","📨","📧","💌","📥","📤","📦","🏷","🪧","📪","📫","📬","📭","📮","📯","📜","📃","📄","📑","🧾","📊","📈","📉","🗒","🗓","📆","📅","🗑","📇","🗃","🗳","🗄","📋","📁","📂","🗂","🗞","📰","📓","📔","📒","📕","📗","📘","📙","📚","📖","🔖","🧷","🔗","📎","🖇","📐","📏","🧮","📌","📍","✂️","🖊","🖋","✒️","🖌","🖍","📝","✏️","🔍","🔎","🔏","🔐","🔒","🔓",
+        // --- SIMBOL & HATI ---
+        "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","☮️","✝️","☪️","🕉","☸️","✡️","🔯","🕎","☯️","☦️","🛐","⛎","♈️","♉️","♊️","♋️","♌️","♍️","♎️","♏️","♐️","♑️","♒️","♓️","🆔","⚛️","🉑","☢️","☣️","📴","📳","🈶","🈚️","🈸","🈺","🈷️","✴️","🆚","💮","🉐","㊙️","㊗️","🈴","🈵","🈹","🈲","🅰️","🅱️","🆎","🆑","🅾️","🆘","❌","⭕️","🛑","⛔️","📛","🚫","💯","💢","♨️","🚷","🚯","🚳","🚱","🔞","📵","🚭","❗️","❕","❓","❔","‼️","⁉️","🔅","🔆","〽️","⚠️","🚸","🔱","⚜️","🔰","♻️","✅","🈯️","💹","❇️","✳️","❎","🌐","💠","Ⓜ️","🌀","💤","🏧","🚾","♿️","🅿️","🛗","🈳","🈂️","🛂","🛃","🛄","🛅","🚹","🚺","🚼","⚧","🚻","🚮","🎦","📶","🈁","🔣","ℹ️","🔤","🔡","🔠","🆖","🆗","🆙","🆒","🆕","🆓","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","🔢","#️⃣","*️⃣","⏏️","▶️","⏸","⏯","⏹","⏺","⏭","⏮","⏩","⏪","⏫","⏬","◀️","🔼","🔽","➡️","⬅️","⬆️","⬇️","↗️","↘️","↙️","↖️","↕️","↔️","↪️","↩️","⤴️","⤵️","🔀","🔁","🔂","🔄","🔃","🎵","🎶","➕","➖","➗","✖️","♾","💲","💱","™️","©️","®️","〰️","➰","➿","✔️","☑️","✔️","🏁","🚩","🎌","🏴","🏳️","🏳️‍🌈","🏳️‍⚧️","🏴‍☠️"
+    ];
+    
     window.toggleStickerPanel = function() {
         let panel = document.getElementById('sticker-panel');
         if (!panel) {
-            // Buat panel jika belum ada
-            const chatContainer = document.getElementById('chat-input-container'); // Ganti dengan ID bungkus input chat Anda
+            const chatContainer = document.getElementById('chat-input-container');
             if(!chatContainer) return showToast('Buka chat kelas dulu!', 'warning');
-
+            
             panel = document.createElement('div');
             panel.id = 'sticker-panel';
-            panel.className = 'w-full h-64 bg-[color:var(--surface)] border-t border-[color:var(--border)] flex flex-col hidden absolute bottom-full left-0 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.1)]';
+            // Ubah posisi panel agar muncul tepat di atas kotak ketik (Bottom-100%)
+            panel.className = 'w-full h-64 bg-[color:var(--surface)] border-t border-[color:var(--border)] flex flex-col hidden absolute bottom-full left-0 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300';
             
             panel.innerHTML = `
-                <div class="flex items-center gap-4 px-4 py-2 border-b border-[color:var(--border)] bg-[color:var(--input-bg)]">
-                    <button onclick="loadStickers('default')" class="p-2 text-[color:var(--text2)] hover:text-[#2563eb] transition-colors"><i data-lucide="sticker" class="w-5 h-5"></i></button>
-                    <button onclick="loadStickers('favorites')" class="p-2 text-[color:var(--text2)] hover:text-amber-500 transition-colors"><i data-lucide="star" class="w-5 h-5"></i></button>
-                    <button onclick="toggleStickerPanel()" class="ml-auto p-2 text-red-500 hover:bg-red-500/10 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <div class="flex items-center gap-2 px-3 py-2 border-b border-[color:var(--border)] bg-[color:var(--input-bg)]">
+                    <button onclick="loadStickers('emoji')" class="p-2 rounded-xl text-[color:var(--text2)] hover:text-yellow-500 hover:bg-[color:var(--card)] transition-colors" title="Emoji"><i data-lucide="smile" class="w-5 h-5"></i></button>
+                    <button onclick="loadStickers('default')" class="p-2 rounded-xl text-[color:var(--text2)] hover:text-[#2563eb] hover:bg-[color:var(--card)] transition-colors" title="Stiker"><i data-lucide="sticker" class="w-5 h-5"></i></button>
+                    <button onclick="loadStickers('favorites')" class="p-2 rounded-xl text-[color:var(--text2)] hover:text-amber-500 hover:bg-[color:var(--card)] transition-colors" title="Stiker Favorit"><i data-lucide="star" class="w-5 h-5"></i></button>
+                    <button onclick="toggleStickerPanel()" class="ml-auto p-2 text-[color:var(--text2)] hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
                 </div>
-                <div id="sticker-grid" class="flex-1 overflow-y-auto p-4 grid grid-cols-4 sm:grid-cols-5 gap-4 hide-scrollbar"></div>
+                <div id="sticker-grid" class="flex-1 overflow-y-auto p-4 hide-scrollbar bg-[color:var(--bg)]"></div>
             `;
-            chatContainer.style.position = 'relative';
             chatContainer.appendChild(panel);
             lucide.createIcons();
         }
         
         panel.classList.toggle('hidden');
         if (!panel.classList.contains('hidden')) {
-            loadStickers('default'); // Load default saat dibuka
+            loadStickers('emoji'); // Load Tab Emoji pertama kali dibuka
         }
     };
 
-    // 3. Load Stiker ke Panel (Default atau Favorit)
+    window.insertEmoji = function(emoji) {
+        const input = document.getElementById('chat-input');
+        if(input) {
+            input.value += emoji;
+            handleInput(input); // Trigger penyesuaian tinggi kotak & tombol send
+            input.focus(); // Kembalikan kursor ke kotak ketik
+        }
+    };
+
     window.loadStickers = async function(type) {
         const grid = document.getElementById('sticker-grid');
-        grid.innerHTML = '<div class="col-span-4 text-center text-xs text-gray-500 mt-5 animate-pulse">Memuat stiker...</div>';
+        grid.innerHTML = '<div class="col-span-full text-center text-xs text-gray-500 mt-5 animate-pulse">Memuat...</div>';
         
+        // 1. JIKA TAB EMOJI DIPILIH
+        if (type === 'emoji') {
+            grid.className = 'flex-1 overflow-y-auto p-3 grid grid-cols-7 sm:grid-cols-10 gap-2 hide-scrollbar bg-[color:var(--bg)]';
+            grid.innerHTML = STATE.defaultEmojis.map(emoji => `
+                <button onclick="insertEmoji('${emoji}')" class="text-2xl hover:bg-[color:var(--card)] rounded-lg p-1 transition-colors active:scale-90">${emoji}</button>
+            `).join('');
+            return;
+        }
+
+        // 2. JIKA TAB STIKER / FAVORIT DIPILIH
+        grid.className = 'flex-1 overflow-y-auto p-4 grid grid-cols-4 sm:grid-cols-5 gap-4 hide-scrollbar bg-[color:var(--bg)]';
         let stickersToLoad = [];
         if (type === 'default') {
             stickersToLoad = STATE.defaultStickers;
@@ -2027,7 +2064,7 @@ window.showPromoModal = function() {
         }
 
         if (stickersToLoad.length === 0) {
-            grid.innerHTML = `<div class="col-span-4 text-center text-xs text-[color:var(--text2)] mt-5">Belum ada stiker di ${type === 'favorites' ? 'Favorit' : 'sini'}.</div>`;
+            grid.innerHTML = `<div class="col-span-full text-center text-xs text-[color:var(--text2)] mt-5">Belum ada stiker di ${type === 'favorites' ? 'Favorit ⭐' : 'sini'}.</div>`;
             return;
         }
 
