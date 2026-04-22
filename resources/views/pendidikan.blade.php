@@ -1612,40 +1612,38 @@ window.showPromoModal = function() {
     };                
 
     // ==============================================
-    // PERBAIKAN FORM TUGAS (SWAP DOM LANGSUNG & ANTI ERROR)
+    // PERBAIKAN FORM TUGAS (VIP DEDICATED MODAL) - JAMINAN ANTI GELAP
     // ==============================================
 
-    window.toggleKelompokArea = function(val) {
-        const area = document.getElementById('kelompok-area');
-        if(area) area.style.display = (val === 'kelompok') ? 'block' : 'none';
-    };
-
     window.openAssignForm = () => {
-        try {
-            // 1. Ambil nama mata kuliah dan dosen dengan aman
-            let courseName = (typeof STATE !== 'undefined' && STATE.currentCourse) ? STATE.currentCourse.name : 'TUGAS KELAS';
-            let dosenUI = "Dosen Pengampu";
-            
-            if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
-                FULL_SCHEDULE.forEach(day => {
-                    if(day.items) {
-                        day.items.forEach(item => {
-                            if (item.id === STATE.currentCourse.id && item.dosen) dosenUI = item.dosen;
-                        });
-                    }
-                });
-            }
+        // 1. Tutup menu lampiran (global modal) dengan bersih
+        if(typeof closeGlobalModal === 'function') closeGlobalModal();
 
-            // 2. BYPASS TOTAL: Langsung suntik ke HTML modal yang sedang terbuka!
-            const modalContent = document.getElementById('modal-content');
-            if(!modalContent) return showToast("Sistem error, muat ulang halaman.", "error");
+        // 2. Hapus modal tugas lama jika sebelumnya nyangkut di layar
+        let existingModal = document.getElementById('dedicated-asg-modal');
+        if (existingModal) existingModal.remove();
 
-            modalContent.className = "w-full max-w-md mx-auto"; // Perbesar ukuran form
-            
-            // 3. Timpa isi layarnya secara instan (seperti ganti channel TV)
-            modalContent.innerHTML = `
-            <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full">
-                
+        // 3. Ambil data dengan sangat aman
+        let courseName = (typeof STATE !== 'undefined' && STATE.currentCourse) ? STATE.currentCourse.name : 'TUGAS KELAS';
+        let dosenUI = "Dosen Pengampu";
+        if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
+            FULL_SCHEDULE.forEach(day => {
+                if(day.items) {
+                    day.items.forEach(item => {
+                        if (item.id === STATE.currentCourse.id && item.dosen) dosenUI = item.dosen;
+                    });
+                }
+            });
+        }
+
+        // 4. JURUS NUKLIR: Buat Modal VIP Mandiri (Bebas dari bug global modal)
+        const asgModal = document.createElement('div');
+        asgModal.id = 'dedicated-asg-modal';
+        // Z-Index 3000 memastikan form ini berada di kasta paling atas (mengalahkan segalanya)
+        asgModal.className = 'fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade';
+        
+        asgModal.innerHTML = `
+            <div class="glass border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto animate-slide">
                 <div class="bg-[#0f172a] text-white p-6 text-center rounded-t-3xl relative shrink-0">
                     <h2 class="text-xl font-extrabold tracking-wide uppercase mb-1">${courseName}</h2>
                     <p class="text-sm text-gray-300 font-medium">${dosenUI}</p>
@@ -1671,7 +1669,7 @@ window.showPromoModal = function() {
                             <div class="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
                             Target Tugas
                         </label>
-                        <select id="asg-type" onchange="toggleKelompokArea(this.value)" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500 appearance-none font-medium">
+                        <select id="asg-type" onchange="document.getElementById('kelompok-area').style.display = (this.value === 'kelompok') ? 'block' : 'none'" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500 appearance-none font-medium">
                             <option value="" disabled selected>Pilih target tugas</option>
                             <option value="individu">Tugas Individu</option>
                             <option value="kelompok">Tugas Kelompok</option>
@@ -1713,19 +1711,17 @@ window.showPromoModal = function() {
                         <button onclick="sendAssign()" class="w-full py-4 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
                             <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS
                         </button>
-                        <button onclick="closeGlobalModal()" class="w-full py-4 rounded-xl bg-transparent text-[color:var(--text2)] font-bold text-sm border border-[color:var(--border)] active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <button onclick="document.getElementById('dedicated-asg-modal').remove()" class="w-full py-4 rounded-xl bg-transparent text-[color:var(--text2)] font-bold text-sm border border-[color:var(--border)] active:scale-95 transition-all flex items-center justify-center gap-2">
                             <i data-lucide="x" class="w-4 h-4"></i> BATAL
                         </button>
                     </div>
                 </div>
-            </div>`;
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        } catch(err) {
-            console.error("ERROR MEMUAT FORM TUGAS:", err);
-            showToast("Gagal memuat form.", "error");
-        }
+            </div>
+        `;
+        
+        // 5. Suntikkan langsung ke body layar (Tidak bisa diganggu gugat oleh kode lain)
+        document.body.appendChild(asgModal);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
     window.sendAssign = async function() {
@@ -1748,7 +1744,10 @@ window.showPromoModal = function() {
         }
 
         showToast('Memproses tugas...', 'warning'); 
-        closeGlobalModal();
+        
+        // Hapus Modal VIP-nya
+        const asgModal = document.getElementById('dedicated-asg-modal');
+        if(asgModal) asgModal.remove();
         
         try {
             const data = { 
