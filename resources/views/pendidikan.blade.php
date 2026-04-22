@@ -1503,8 +1503,18 @@
             </header>
             <div id="pinned-container" class="hidden shrink-0 z-20 transition-all"></div>
             <div id="chat-messages-container" class="flex-1 overflow-y-auto px-3 py-4 z-10 scroll-smooth"></div>
-            <div class="glass p-2 shrink-0 z-30 border-t border-[color:var(--border)] flex gap-2 items-end pb-4 pt-2 rounded-b-none">
-                <button id="btn-clip" onclick="openAttachmentMenu()" class="p-3 rounded-full text-[color:var(--text2)] hover:text-[color:var(--accent)] shrink-0 active:scale-90 transition-all"><i data-lucide="paperclip" class="w-5 h-5 transform -rotate-45"></i></button>
+            <div id="chat-input-container" class="glass p-2 shrink-0 z-30 border-t border-[color:var(--border)] flex gap-1 items-end pb-4 pt-2 rounded-b-none relative">  
+                <button id="btn-clip" onclick="openAttachmentMenu()" class="p-2 sm:p-3 rounded-full text-[color:var(--text2)] hover:text-[color:var(--accent)] shrink-0 active:scale-90 transition-all"><i data-lucide="paperclip" class="w-5 h-5 transform -rotate-45"></i></button>
+                <button onclick="toggleStickerPanel()" class="p-2 sm:p-3 rounded-full text-[color:var(--text2)] hover:text-amber-500 shrink-0 active:scale-90 transition-all"><i data-lucide="smile" class="w-6 h-6"></i></button>
+                <div id="recording-ui" class="hidden flex-1 flex items-center gap-2 p-1 bg-[color:var(--input-bg)] rounded-full border border-red-500/30">
+                    <button onclick="cancelRecording()" class="p-2 rounded-full text-[color:var(--text2)] hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <div class="flex-1 flex items-center justify-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-red-500 pulse"></div><span id="rec-time" class="text-sm font-mono font-bold text-[color:var(--text)]">0:00</span></div>
+                    <button onclick="stopRecording()" class="p-2 rounded-full bg-[#2563eb] text-white shadow-lg"><i data-lucide="send" class="w-4 h-4 ml-0.5"></i></button>
+                </div>
+                <textarea id="chat-input" class="flex-1 bg-[color:var(--input-bg)] text-[color:var(--text)] text-[15px] rounded-2xl px-4 py-3 max-h-28 outline-none resize-none border border-[color:var(--border)] focus:border-[color:var(--accent)] transition-colors" placeholder="Ketik pesan..." oninput="handleInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendTextMessage(); }"></textarea>
+                <button id="btn-send" onclick="sendTextMessage()" class="hidden p-3 rounded-full bg-[#2563eb] text-white shrink-0 active:scale-90 transition-transform shadow-lg shadow-blue-600/20 mb-0.5"><i data-lucide="send" class="w-5 h-5 ml-0.5"></i></button>
+                <button id="btn-mic" onclick="startRecording()" class="p-3 rounded-full bg-[color:var(--card)] border border-[color:var(--border)] text-[color:var(--text)] shrink-0 active:scale-90 transition-transform mb-0.5"><i data-lucide="mic" class="w-5 h-5"></i></button>
+            </div>
                 <div id="recording-ui" class="hidden flex-1 flex items-center gap-2 p-1 bg-[color:var(--input-bg)] rounded-full border border-red-500/30">
                     <button onclick="cancelRecording()" class="p-2 rounded-full text-[color:var(--text2)] hover:text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                     <div class="flex-1 flex items-center justify-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-red-500 pulse"></div><span id="rec-time" class="text-sm font-mono font-bold text-[color:var(--text)]">0:00</span></div>
