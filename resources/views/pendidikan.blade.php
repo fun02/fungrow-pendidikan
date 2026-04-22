@@ -1622,14 +1622,21 @@ window.showPromoModal = function() {
         }
     };
 
+    // ==============================================
+    // PERBAIKAN FORM TUGAS (JURUS PAKSA TAMPIL)
+    // ==============================================
+
     window.openAssignForm = () => {
-        // KUNCI JAWABAN: Beri delay 400ms agar animasi closeGlobalModal() dari menu attachment selesai 100%
+        // 1. Tutup menu lampiran terlebih dahulu
+        if(typeof closeGlobalModal === 'function') closeGlobalModal();
+
+        // 2. Tunggu setengah detik (500ms) agar layar benar-benar bersih dari animasi lama
         setTimeout(() => {
             try {
+                // 3. Amankan nama dosen & kelas
                 let courseName = (typeof STATE !== 'undefined' && STATE.currentCourse) ? STATE.currentCourse.name : 'TUGAS KELAS';
-                
-                // Cari nama dosen untuk tampilan header dengan sangat aman
                 let dosenUI = "Dosen Pengampu";
+                
                 if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
                     FULL_SCHEDULE.forEach(day => {
                         if(day.items) {
@@ -1640,6 +1647,7 @@ window.showPromoModal = function() {
                     });
                 }
 
+                // 4. Gambar Form Tugas
                 showGlobalModal(`
                 <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto">
                     
@@ -1662,7 +1670,6 @@ window.showPromoModal = function() {
                                 <option value="Karya Tulis Ilmiah">Karya Tulis Ilmiah</option>
                                 <option value="Tulis Tangan">Tulis Tangan</option>
                             </select>
-                            <p class="text-[10px] text-[color:var(--text2)] mt-1.5 ml-1">Makalah / Proposal / Karya Ilmiah / Tulis Tangan</p>
                         </div>
 
                         <div>
@@ -1675,11 +1682,9 @@ window.showPromoModal = function() {
                                 <option value="individu">Tugas Individu</option>
                                 <option value="kelompok">Tugas Kelompok</option>
                             </select>
-                            <p class="text-[10px] text-[color:var(--text2)] mt-1.5 ml-1">Tugas Individu / Tugas Kelompok</p>
                         </div>
 
-                        <div id="kelompok-area" style="display:none;" class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4 animate-fade relative overflow-hidden mt-2">
-                            <div class="absolute -top-6 -right-6 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl"></div>
+                        <div id="kelompok-area" style="display:none;" class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4 relative overflow-hidden mt-2">
                             <div class="relative z-10">
                                 <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Nama Kelompok</label>
                                 <input type="text" id="asg-group-name" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500" placeholder="Cth: Kelompok 1">
@@ -1710,45 +1715,39 @@ window.showPromoModal = function() {
                             <input type="datetime-local" id="asg-date" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-orange-500" style="color-scheme: dark;">
                         </div>
 
-                        <div>
-                            <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
-                                <div class="w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center"><i data-lucide="image" class="w-3.5 h-3.5"></i></div>
-                                Upload Foto (Opsional)
-                            </label>
-                            <div onclick="document.getElementById('asg-file-upload').click()" class="w-full border-2 border-dashed border-[color:var(--border)] rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[color:var(--card)] hover:border-purple-500 transition-colors">
-                                <i data-lucide="upload-cloud" class="w-8 h-8 text-[color:var(--text2)] mb-2"></i>
-                                <p class="text-sm text-[color:var(--text)] font-bold mb-1">Klik untuk upload <span class="font-normal text-[color:var(--text2)]">file di sini</span></p>
-                            </div>
-                            <input type="file" id="asg-file-upload" class="hidden" onchange="handleAsgFileUpload(event)">
-                        </div>
-
-                        <div class="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 mt-4">
-                            <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="info" class="w-3.5 h-3.5"></i></div>
-                            <div>
-                                <h4 class="text-xs font-bold text-[color:var(--text)]">Periksa kembali sebelum mengirim</h4>
-                                <p class="text-[10px] text-[color:var(--text2)] mt-0.5">Pastikan semua informasi sudah benar.</p>
-                            </div>
-                        </div>
-
-                        <div class="pt-2 space-y-3">
+                        <div class="pt-4 space-y-3">
                             <button onclick="sendAssign()" class="w-full py-4 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
                                 <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS
                             </button>
-                            <button onclick="closeGlobalModal()" class="w-full py-4 rounded-xl bg-transparent text-[color:var(--text2)] font-bold text-sm hover:text-[color:var(--text)] hover:bg-[color:var(--card)] border border-[color:var(--border)] active:scale-95 transition-all flex items-center justify-center gap-2">
+                            <button onclick="closeGlobalModal()" class="w-full py-4 rounded-xl bg-transparent text-[color:var(--text2)] font-bold text-sm border border-[color:var(--border)] active:scale-95 transition-all flex items-center justify-center gap-2">
                                 <i data-lucide="x" class="w-4 h-4"></i> BATAL
                             </button>
                         </div>
-                        
                     </div>
                 </div>`, true);
-                
+
+                // 5. JURUS PAKSA TAMPIL (Menghapus efek transparan/gelap yang nyangkut)
+                const modalBox = document.getElementById('global-modal');
+                const contentBox = document.getElementById('global-modal-content');
+                if(modalBox && contentBox) {
+                    modalBox.classList.remove('hidden', 'opacity-0');
+                    modalBox.classList.add('flex', 'opacity-100');
+                    modalBox.style.display = 'flex';
+                    modalBox.style.opacity = '1';
+                    
+                    contentBox.classList.remove('opacity-0', 'scale-95', 'animate-scale-down');
+                    contentBox.classList.add('opacity-100', 'scale-100');
+                    contentBox.style.opacity = '1';
+                    contentBox.style.transform = 'scale(1)';
+                }
+
                 if (typeof lucide !== 'undefined') lucide.createIcons();
 
             } catch(err) {
-                console.error("CRASH DI FORM TUGAS:", err);
-                showToast("Terjadi kesalahan sistem saat memuat form.", "error");
+                console.error("ERROR MEMUAT FORM TUGAS:", err);
+                showToast("Gagal memuat form, silakan coba lagi.", "error");
             }
-        }, 400); // INILAH OBAT ANTI GELAPNYA
+        }, 500); // Timer yang lebih panjang untuk memastikan layar siap
     };
 
     window.sendAssign = async function() {
@@ -1768,8 +1767,6 @@ window.showPromoModal = function() {
                         if (item.id === STATE.currentCourse.id && item.dosen) dosenName = item.dosen;
                     });
                 }
-            });
-        }
 
         showToast('Memproses tugas...', 'warning'); 
         closeGlobalModal();
