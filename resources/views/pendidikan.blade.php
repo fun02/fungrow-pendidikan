@@ -873,8 +873,74 @@
                             </div>
                             <div class="flex items-center justify-between mt-2 z-10">
                                 <div class="text-[10px] font-bold text-orange-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(a.deadline)}</div>
-                                <button onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')" class="text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-all active:scale-95 shadow-sm">LIHAT DETAIL</button>
-                            </div>
+                                <button onclick="window.viewAssignmentDetail = (courseId, asgId) => {
+        const asg = STATE.assignments[courseId]?.find(a => a.id === asgId);
+        if(!asg) return showToast("Data tugas tidak ditemukan", "error");
+
+        showGlobalModal(`
+        <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto relative overflow-hidden">
+            <div class="bg-[#0f172a] text-white p-6 text-center rounded-t-3xl relative shrink-0">
+                <h2 class="text-xl font-extrabold tracking-wide uppercase mb-1">${asg.courseName}</h2>
+                <p class="text-sm text-gray-300 font-medium">${asg.dosen}</p>
+            </div>
+
+            <div class="p-5 md:p-6 space-y-6 bg-[color:var(--surface)]">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3.5 rounded-2xl bg-[color:var(--input-bg)] border border-[color:var(--border)]">
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold mb-1 tracking-wider">Target</p>
+                        <p class="text-sm font-bold text-[color:var(--text)] capitalize">${asg.type}</p>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/20">
+                        <p class="text-[9px] uppercase text-orange-600 dark:text-orange-400 font-bold mb-1 tracking-wider">Deadline</p>
+                        <p class="text-sm font-bold text-orange-600 dark:text-orange-400">${formatDate(asg.deadline)}</p>
+                    </div>
+                </div>
+
+                ${asg.type === 'kelompok' && asg.kelompok ? `
+                <div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center shadow-md"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
+                        <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider">Info Kelompok</h4>
+                    </div>
+                    <div class="bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)]">
+                        <p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-1">Nama & Judul</p>
+                        <p class="text-sm font-bold text-[color:var(--text)] mb-3">${asg.kelompok.nama} - ${asg.kelompok.judul}</p>
+                        <p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-1">Anggota</p>
+                        <div class="text-[13px] text-[color:var(--text)] leading-relaxed whitespace-pre-line">${asg.kelompok.anggota}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div>
+                    <label class="flex items-center gap-2 text-xs font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-blue-500"></i> Keterangan Tugas
+                    </label>
+                    <div class="bg-[color:var(--input-bg)] p-4 rounded-2xl border border-[color:var(--border)] text-sm text-[color:var(--text)] leading-relaxed min-h-[100px] whitespace-pre-line">
+                        ${asg.description || 'Tidak ada keterangan tambahan.'}
+                    </div>
+                </div>
+
+                ${asg.attachment ? `
+                <a href="${asg.attachment.url}" target="_blank" class="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 group hover:bg-emerald-500/20 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <i data-lucide="${asg.attachment.type.startsWith('image/') ? 'image' : 'file-text'}" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">${asg.attachment.name}</p>
+                        <p class="text-[9px] text-[color:var(--text2)] uppercase font-medium">Klik untuk buka file</p>
+                    </div>
+                </a>
+                ` : ''}
+
+                <button onclick="closeGlobalModal()" class="w-full py-4 rounded-2xl bg-[#2563eb] text-white font-bold text-sm shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> SAYA MENGERTI
+                </button>
+            </div>
+        </div>
+        `, true);
+        lucide.createIcons();
+    };
+</div>
                         </div>`).join('') : `<p class="text-[10px] text-[color:var(--text2)] italic px-2">Tidak ada tugas dalam waktu dekat.</p>`}
                 </div>
             </div>
