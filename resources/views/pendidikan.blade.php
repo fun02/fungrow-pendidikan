@@ -831,7 +831,7 @@
             </div>
         `;
     }
-
+    
     function getKelasHTML() {
         const currentDayIndex = new Date().getDay();
         const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -841,97 +841,50 @@
         let allAsg = Object.values(STATE.assignments).flat().sort((a,b) => a.deadline - b.deadline);
         let scheduleHTML = '';
         if (todaysSchedule.length === 0) {
-            scheduleHTML = `<div class="glass p-4 rounded-2xl flex items-center gap-4 border border-dashed border-[color:var(--border)]">
-                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0"><i data-lucide="coffee" class="w-6 h-6 text-emerald-500"></i></div>
-                <div><p class="text-sm font-bold text-[color:var(--text)]">Tidak ada kelas hari ini</p><p class="text-[10px] text-[color:var(--text2)] mt-0.5">Waktunya istirahat atau nugas mandiri.</p></div>
-            </div>`;
+            scheduleHTML = `<div class="glass p-4 rounded-2xl flex items-center gap-4 border border-dashed border-[color:var(--border)]"><div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0"><i data-lucide="coffee" class="w-6 h-6 text-emerald-500"></i></div><div><p class="text-sm font-bold text-[color:var(--text)]">Tidak ada kelas hari ini</p><p class="text-[10px] text-[color:var(--text2)] mt-0.5">Waktunya istirahat atau nugas mandiri.</p></div></div>`;
         } else {
-            scheduleHTML = todaysSchedule.map((c, index) => `
-                <div onclick="openCourse('${c.id}')" class="glass p-3.5 rounded-2xl flex items-center gap-4 border border-[color:var(--border)] relative overflow-hidden cursor-pointer active:scale-95 transition-transform mb-3 hover:bg-[color:var(--card)] shadow-sm">
-                    ${index === 0 ? `<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#2563eb]"></div>` : ''}
-                    <div class="w-14 h-14 rounded-xl bg-[color:var(--card)] flex flex-col items-center justify-center shrink-0 border border-[color:var(--border)]">
-                        <span class="text-[11px] font-bold text-[color:var(--text)]">${c.time.split(' - ')[0]}</span>
-                        <span class="text-[8px] text-[color:var(--text2)]">${c.time.split(' - ')[1]}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-[13px] text-[color:var(--text)] truncate">${c.name}</h4>
-                        <div class="flex items-center gap-1.5 mt-1"><i data-lucide="map-pin" class="w-3 h-3 text-[#2563eb]"></i><span class="text-[10px] text-[color:var(--text2)] font-medium">Ruang ${c.room}</span></div>
-                    </div>
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-50 shrink-0"></i>
-                </div>
-            `).join('');
+            scheduleHTML = todaysSchedule.map((c, index) => `<div onclick="openCourse('${c.id}')" class="glass p-3.5 rounded-2xl flex items-center gap-4 border border-[color:var(--border)] relative overflow-hidden cursor-pointer active:scale-95 transition-transform mb-3 hover:bg-[color:var(--card)] shadow-sm">${index === 0 ? `<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#2563eb]"></div>` : ''}<div class="w-14 h-14 rounded-xl bg-[color:var(--card)] flex flex-col items-center justify-center shrink-0 border border-[color:var(--border)]"><span class="text-[11px] font-bold text-[color:var(--text)]">${c.time.split(' - ')[0]}</span><span class="text-[8px] text-[color:var(--text2)]">${c.time.split(' - ')[1]}</span></div><div class="flex-1 min-w-0"><h4 class="font-bold text-[13px] text-[color:var(--text)] truncate">${c.name}</h4><div class="flex items-center gap-1.5 mt-1"><i data-lucide="map-pin" class="w-3 h-3 text-[#2563eb]"></i><span class="text-[10px] text-[color:var(--text2)] font-medium">Ruang ${c.room}</span></div></div><i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-50 shrink-0"></i></div>`).join('');
         }
 
         return `
-                    <div class="swiper banner-swiper mt-2 animate-fade">
+            <div class="swiper banner-swiper mt-2 animate-fade">
                 <div class="swiper-wrapper">
-                    
-                    <div class="swiper-slide px-4">
-                        <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(37,99,235,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
-                            <img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450">
-                        </div>
-                    </div>
-
-                    <div class="swiper-slide px-4">
-                        <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(168,85,247,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
-                            <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800&h=450">
-                        </div>
-                    </div>
-
-                    <div class="swiper-slide px-4">
-                        <div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(16,185,129,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform">
-                            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=450">
-                        </div>
-                    </div>
-
+                    <div class="swiper-slide px-4"><div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(37,99,235,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform"><img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450"></div></div>
+                    <div class="swiper-slide px-4"><div class="glass rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(168,85,247,0.2)] border border-[color:var(--border)] relative aspect-[16/9] flex items-center justify-center group cursor-pointer active:scale-95 transition-transform"><img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800&h=450"></div></div>
                 </div>
                 <div class="swiper-pagination"></div>
             </div>
-                <i data-lucide="book-open" class="absolute -right-4 -bottom-4 w-32 h-32 text-white opacity-10 transform -rotate-12"></i>
-            </div>
+
             <div class="px-4 mt-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-bold text-[color:var(--text)] flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-[#2563eb]"></i> Jadwal Hari Ini</h3>
-                    <span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-2 py-1 rounded-md tracking-wider uppercase border border-blue-500/20">${todayName}</span>
-                </div>
+                <div class="flex items-center justify-between mb-3"><h3 class="text-sm font-bold text-[color:var(--text)] flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-[#2563eb]"></i> Jadwal Hari Ini</h3><span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-2 py-1 rounded-md tracking-wider uppercase border border-blue-500/20">${todayName}</span></div>
                 <div>${scheduleHTML}</div>
             </div>
+
             <div class="px-4 mt-5">
                 <h3 class="text-sm font-bold text-[color:var(--text)] flex items-center gap-2 mb-3"><i data-lucide="flame" class="w-4 h-4 text-orange-500"></i> Deadline Terdekat</h3>
                 <div class="flex gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar">
                     ${allAsg.length > 0 ? allAsg.map(a => `
-<div class="snap-start shrink-0 w-[260px] glass p-4 rounded-2xl border border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.08)] relative overflow-hidden flex flex-col justify-between h-[140px]">
-    <div class="absolute -top-6 -right-6 w-16 h-16 bg-red-500/20 rounded-full blur-xl"></div>
-    <div class="z-10">
-        <div class="flex items-center gap-2 mb-2">
-            <span class="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[9px] font-bold uppercase tracking-wider border border-red-500/20">DEADLINE</span>
-        </div>
-        <h4 class="text-sm font-bold text-[color:var(--text)] mb-1 line-clamp-1">${a.title}</h4>
-        <p class="text-[10px] text-[color:var(--text2)] truncate">${COURSES.find(c=>c.id===a.courseId)?.name || ''}</p>
-    </div>
-    
-    <div class="flex items-center justify-between mt-2 z-10">
-        <div class="text-[10px] font-bold text-orange-400 flex items-center gap-1">
-            <i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(a.deadline)}
-        </div>
-        <button onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')" class="text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-all active:scale-95 shadow-sm">
-            LIHAT DETAIL
-        </button>
-    </div>
-</div>
+                        <div class="snap-start shrink-0 w-[260px] glass p-4 rounded-2xl border border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.08)] relative overflow-hidden flex flex-col justify-between h-[140px]">
+                            <div class="absolute -top-6 -right-6 w-16 h-16 bg-red-500/20 rounded-full blur-xl"></div>
+                            <div class="z-10">
+                                <div class="flex items-center gap-2 mb-2"><span class="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[9px] font-bold uppercase tracking-wider border border-red-500/20">DEADLINE</span></div>
+                                <h4 class="text-sm font-bold text-[color:var(--text)] mb-1 line-clamp-1">${a.title}</h4>
+                                <p class="text-[10px] text-[color:var(--text2)] truncate">${COURSES.find(c=>c.id===a.courseId)?.name || ''}</p>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 z-10">
+                                <div class="text-[10px] font-bold text-orange-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(a.deadline)}</div>
+                                <button onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')" class="text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-all active:scale-95 shadow-sm">LIHAT DETAIL</button>
+                            </div>
+                        </div>`).join('') : `<p class="text-[10px] text-[color:var(--text2)] italic px-2">Tidak ada tugas dalam waktu dekat.</p>`}
+                </div>
+            </div>
+
             <div class="px-4 mt-2">
                 <h3 class="text-sm font-bold text-[color:var(--text)] flex items-center gap-2 mb-3"><i data-lucide="layout-grid" class="w-4 h-4 text-[#2563eb]"></i> Semua Kelas</h3>
                 <div class="grid grid-cols-2 gap-3">
-                    ${COURSES.map(c => `
-                        <div onclick="openCourse('${c.id}')" class="glass p-3.5 rounded-2xl flex flex-col gap-3 cursor-pointer active:scale-95 transition-transform border border-[color:var(--border)] relative overflow-hidden hover:bg-[color:var(--card)] shadow-sm">
-                            <div class="w-10 h-10 rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] flex items-center justify-center text-xl shrink-0">${c.icon}</div>
-                            <div><h4 class="font-bold text-[11px] text-[color:var(--text)] line-clamp-2 leading-snug">${c.name}</h4></div>
-                            <div class="absolute right-3 top-4"><i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-[color:var(--text2)] opacity-40"></i></div>
-                        </div>
-                    `).join('')}
+                    ${COURSES.map(c => `<div onclick="openCourse('${c.id}')" class="glass p-3.5 rounded-2xl flex flex-col gap-3 cursor-pointer active:scale-95 transition-transform border border-[color:var(--border)] relative overflow-hidden hover:bg-[color:var(--card)] shadow-sm"><div class="w-10 h-10 rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] flex items-center justify-center text-xl shrink-0">${c.icon}</div><div><h4 class="font-bold text-[11px] text-[color:var(--text)] line-clamp-2 leading-snug">${c.name}</h4></div><div class="absolute right-3 top-4"><i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-[color:var(--text2)] opacity-40"></i></div></div>`).join('')}
                 </div>
-            </div>
-        </div>`;
+            </div>`;
     }
 
     function getJadwalHTML() {
@@ -1786,74 +1739,41 @@ window.showPromoModal = function() {
         }
     };
 
+    // --- FUNGSI KIRIM TUGAS (VERSION DEDICATED) ---
     window.sendAssign = async function() {
         const title = document.getElementById('asg-jenis').value;
         const type = document.getElementById('asg-type').value;
         const dl = document.getElementById('asg-date').value;
         const desc = document.getElementById('asg-desc').value;
-        
         if(!title || !type || !dl) return showToast('Jenis tugas, target tugas, dan waktu wajib diisi!', 'warning');
         
         let dosenName = "Dosen Pengampu";
-        if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
+        if (typeof FULL_SCHEDULE !== 'undefined' && STATE.currentCourse) {
             FULL_SCHEDULE.forEach(day => {
-                if(day.items) {
-                    day.items.forEach(item => {
-                        if (item.id === STATE.currentCourse.id && item.dosen) dosenName = item.dosen;
-                    });
-                }
+                if(day.items) day.items.forEach(item => {
+                    if (item.id === STATE.currentCourse.id && item.dosen) dosenName = item.dosen;
+                });
             });
         }
 
-        showToast('Memproses tugas...', 'warning'); 
-        closeGlobalModal();
-        
+        showToast('Memproses tugas...', 'warning');
+        const asgModal = document.getElementById('dedicated-asg-modal');
+        if(asgModal) asgModal.remove();
+
         try {
-            const data = { 
-                title: title, 
-                dosen: dosenName, 
-                type: type, 
-                courseName: STATE.currentCourse.name, 
-                description: desc, 
-                deadline: firebase.firestore.Timestamp.fromDate(new Date(dl)), 
-                createdBy: STATE.currentUser.uid, 
-                createdByRole: STATE.currentUser.role, 
-                attachment: STATE.currentAsgAttachment || null, 
-                createdAt: firebase.firestore.FieldValue.serverTimestamp() 
-            };
-            
-            if(type === 'kelompok') { 
-                data.kelompok = { 
-                    nama: document.getElementById('asg-group-name').value, 
-                    judul: document.getElementById('asg-group-title').value, 
-                    anggota: document.getElementById('asg-group-members').value 
-                };
-            }
-            
+            const data = { title, dosen: dosenName, type, courseName: STATE.currentCourse.name, description: desc, deadline: firebase.firestore.Timestamp.fromDate(new Date(dl)), createdBy: STATE.currentUser.uid, createdByRole: STATE.currentUser.role, attachment: STATE.currentAsgAttachment || null, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if(type === 'kelompok') { data.kelompok = { nama: document.getElementById('asg-group-name').value, judul: document.getElementById('asg-group-title').value, anggota: document.getElementById('asg-group-members').value }; }
             await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add(data);
-            
             if(STATE.currentUser.role === 'admin' || STATE.currentUser.role === 'dosen') {
                 let msg = `📢 *TUGAS BARU: ${title}*\n👨‍🏫 Dosen: ${dosenName}\n⏳ Batas: ${formatDate(new Date(dl))}`;
                 if(type === 'kelompok') msg += `\n👥 ${data.kelompok.nama}: ${data.kelompok.judul}`;
-                await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ 
-                    userId: 'system', 
-                    userName: 'Sistem', 
-                    text: msg, 
-                    type: 'system', 
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp() 
-                });
+                await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: 'system', userName: 'Sistem', text: msg, type: 'system', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             }
-            
-            STATE.currentAsgAttachment = null; 
-            showToast('Tugas berhasil diterbitkan!', 'success');
-        } catch(e) { 
-            showToast('Gagal menerbitkan tugas', 'error'); 
-        }
+            STATE.currentAsgAttachment = null; showToast('Tugas berhasil diterbitkan!', 'success');
+        } catch(e) { showToast('Gagal menerbitkan tugas', 'error'); }
     };
-    
-    // ==============================================
-    // REKOMENDASI TAMPILAN DETAIL TUGAS PREMIUM
-    // ==============================================
+
+    // --- REKOMENDASI TAMPILAN DETAIL TUGAS PREMIUM ---
     window.viewAssignmentDetail = (courseId, asgId) => {
         const asg = STATE.assignments[courseId]?.find(a => a.id === asgId);
         if(!asg) return showToast("Data tugas tidak ditemukan", "error");
@@ -1861,117 +1781,41 @@ window.showPromoModal = function() {
         showGlobalModal(`
         <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto relative overflow-hidden">
             <div class="absolute -top-20 -left-20 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
-            
             <div class="p-6 pb-4 border-b border-[color:var(--border)] relative z-10">
                 <div class="flex justify-between items-start mb-4">
-                    <div class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-bold uppercase tracking-widest border border-blue-500/20">
-                        Detail ${asg.title}
-                    </div>
-                    <button onclick="closeGlobalModal()" class="p-2 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
+                    <div class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-bold uppercase tracking-widest border border-blue-500/20">Detail ${asg.title}</div>
+                    <button onclick="closeGlobalModal()" class="p-2 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
                 </div>
                 <h2 class="text-2xl font-bold text-[color:var(--text)] leading-tight mb-1">${asg.courseName}</h2>
-                <div class="flex items-center gap-2 text-xs text-[color:var(--text2)] font-medium">
-                    <i data-lucide="user" class="w-3.5 h-3.5 text-blue-500"></i> ${asg.dosen}
-                </div>
+                <div class="flex items-center gap-2 text-xs text-[color:var(--text2)] font-medium"><i data-lucide="user" class="w-3.5 h-3.5 text-blue-500"></i> ${asg.dosen}</div>
             </div>
-
             <div class="p-6 space-y-6 relative z-10">
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="p-3.5 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)]">
-                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold mb-1 tracking-wider">Target Tugas</p>
-                        <p class="text-sm font-bold text-[color:var(--text)] capitalize">${asg.type}</p>
-                    </div>
-                    <div class="p-3.5 rounded-2xl bg-orange-500/5 border border-orange-500/20">
-                        <p class="text-[9px] uppercase text-orange-500 font-bold mb-1 tracking-wider">Batas Waktu</p>
-                        <p class="text-sm font-bold text-orange-500">${formatDate(asg.deadline)}</p>
-                    </div>
+                    <div class="p-3.5 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)]"><p class="text-[9px] uppercase text-[color:var(--text2)] font-bold mb-1 tracking-wider">Target Tugas</p><p class="text-sm font-bold text-[color:var(--text)] capitalize">${asg.type}</p></div>
+                    <div class="p-3.5 rounded-2xl bg-orange-500/5 border border-orange-500/20"><p class="text-[9px] uppercase text-orange-500 font-bold mb-1 tracking-wider">Batas Waktu</p><p class="text-sm font-bold text-orange-500">${formatDate(asg.deadline)}</p></div>
                 </div>
-
-                ${asg.type === 'kelompok' && asg.kelompok ? `
-                <div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
-                    <div class="flex items-center gap-2 mb-1">
-                        <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center shadow-md"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
-                        <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider">Info Kelompok</h4>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-0.5">Nama & Judul</p>
-                        <p class="text-sm font-bold text-[color:var(--text)]">${asg.kelompok.nama} - ${asg.kelompok.judul}</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-1">Anggota Kelompok</p>
-                        <div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-black/10 p-3 rounded-xl border border-white/5 whitespace-pre-line">${asg.kelompok.anggota}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                <div>
-                    <label class="flex items-center gap-2 text-xs font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2">
-                        <i data-lucide="info" class="w-3.5 h-3.5 text-blue-500"></i> Keterangan Tugas
-                    </label>
-                    <div class="bg-[color:var(--surface)] p-4 rounded-2xl border border-[color:var(--border)] text-sm text-[color:var(--text)] leading-relaxed min-h-[100px] whitespace-pre-line">
-                        ${asg.description || 'Tidak ada keterangan tambahan.'}
-                    </div>
-                </div>
-
-                ${asg.attachment ? `
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2 block">Lampiran File/Foto</label>
-                    <a href="${asg.attachment.url}" target="_blank" class="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 group hover:bg-emerald-500/20 transition-all">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                            <i data-lucide="${asg.attachment.type.startsWith('image/') ? 'image' : 'file-text'}" class="w-5 h-5"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs font-bold text-emerald-400 truncate">${asg.attachment.name}</p>
-                            <p class="text-[9px] text-[color:var(--text2)] uppercase font-medium">Klik untuk melihat file</p>
-                        </div>
-                        <i data-lucide="external-link" class="w-4 h-4 text-emerald-400 opacity-50"></i>
-                    </a>
-                </div>
-                ` : ''}
+                ${asg.type === 'kelompok' && asg.kelompok ? `<div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3"><div class="flex items-center gap-2 mb-1"><div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center shadow-md"><i data-lucide="users" class="w-3.5 h-3.5"></i></div><h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider">Info Kelompok</h4></div><div><p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-0.5">Nama & Judul</p><p class="text-sm font-bold text-[color:var(--text)]">${asg.kelompok.nama} - ${asg.kelompok.judul}</p></div><div><p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-1">Anggota Kelompok</p><div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-black/10 p-3 rounded-xl border border-white/5 whitespace-pre-line">${asg.kelompok.anggota}</div></div></div>` : ''}
+                <div><label class="flex items-center gap-2 text-xs font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2"><i data-lucide="info" class="w-3.5 h-3.5 text-blue-500"></i> Keterangan Tugas</label><div class="bg-[color:var(--surface)] p-4 rounded-2xl border border-[color:var(--border)] text-sm text-[color:var(--text)] leading-relaxed min-h-[100px] whitespace-pre-line">${asg.description || 'Tidak ada keterangan tambahan.'}</div></div>
+                ${asg.attachment ? `<div><label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2 block">Lampiran File/Foto</label><a href="${asg.attachment.url}" target="_blank" class="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 group hover:bg-emerald-500/20 transition-all"><div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"><i data-lucide="${asg.attachment.type.startsWith('image/') ? 'image' : 'file-text'}" class="w-5 h-5"></i></div><div class="flex-1 min-w-0"><p class="text-xs font-bold text-emerald-400 truncate">${asg.attachment.name}</p><p class="text-[9px] text-[color:var(--text2)] uppercase font-medium">Klik untuk melihat file</p></div><i data-lucide="external-link" class="w-4 h-4 text-emerald-400 opacity-50"></i></a></div>` : ''}
             </div>
-
-            <div class="p-6 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
-                <button onclick="closeGlobalModal()" class="w-full py-4 rounded-2xl bg-[#0f172a] text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-400"></i> SAYA MENGERTI
-                </button>
-            </div>
+            <div class="p-6 bg-[color:var(--surface)] border-t border-[color:var(--border)]"><button onclick="closeGlobalModal()" class="w-full py-4 rounded-2xl bg-[#0f172a] text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-blue-400"></i> SAYA MENGERTI</button></div>
         </div>
         `, true);
         lucide.createIcons();
     };
 
-        // ========== LOGIKA FITUR TAMBAHAN (AI) ==========
-    window.openProfileModal = function() { const input = document.createElement('input');
-    input.type = 'file'; input.accept = 'image/*'; input.onchange = async (e) => { const file = e.target.files[0]; if(!file) return;
-    showToast('Mengunggah foto...', 'warning'); try { const url = await fetchCloudinaryUpload(file); await auth.currentUser.updateProfile({ photoURL: url }); await db.collection('users').doc(auth.currentUser.uid).update({ photoURL: url });
-    STATE.currentUser.photoURL = url; showToast('Foto profil berhasil diubah!'); renderFull(); } catch(err) { showToast('Gagal upload', 'error'); } }; input.click(); };
-    
-    // 1. RINGKASAN AI (Dengan Konteks Mata Kuliah)
+    // --- PERBAIKAN AI SUMMARY (SYNTAX ERROR FIX) ---
     window.handleAISummary = async function() {
         const msgs = STATE.chats[STATE.currentCourse.id] || [];
         if(msgs.length < 3) return showToast('Butuh minimal 3 chat untuk dirangkum', 'warning');
-        const chatHistory = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n'); 
-
-        // == SUNTIKAN KONTEKS RAHASIA ==
-        const contextPrompt = `[INSTRUKSI SISTEM: Buatlah rangkuman poin-poin yang rapi, profesional, dan mudah dipahami dari diskusi di kelas mata kuliah "${STATE.currentCourse.name}". Abaikan chat yang tidak penting/sistem. Format dengan HTML <br> atau <b> jika perlu agar rapi.]\n\nDiskusi:\n${chatHistory}`;
-
+        const chatHistory = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n');
+        const contextPrompt = `[INSTRUKSI SISTEM: Buatlah rangkuman dari diskusi kelas mata kuliah "${STATE.currentCourse.name}".]\n\nDiskusi:\n${chatHistory}`;
         showToast('AI sedang menyusun ringkasan...', 'warning');
         try {
+            // FIX: Menambahkan titik dua (:) setelah headers
             const response = await fetch('/ai/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt }) });
             const data = await response.json();
-            showGlobalModal(`
-                <div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm animate-slide shadow-[0_15px_40px_rgba(99,102,241,0.2)] relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="flex items-center gap-3 mb-4 border-b border-[color:var(--border)] pb-3 relative z-10">
-                        <div class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg"><i data-lucide="file-text" class="w-5 h-5"></i></div>
-                        <div><h3 class="font-bold text-[color:var(--text)]">Ringkasan Diskusi</h3><p class="text-[10px] text-indigo-400 font-medium tracking-wider uppercase">Kelas ${STATE.currentCourse.name}</p></div>
-                    </div>
-                    <div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto relative z-10" style="white-space: pre-line;">${data.result.replace(/\n/g, '<br>')}</div>
-                    <button onclick="closeGlobalModal()" class="w-full mt-4 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-400 rounded-xl font-bold text-[color:var(--text)] active:scale-95 transition-all relative z-10">Tutup Ringkasan</button>
-                </div>
-            `);
+            showGlobalModal(`<div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm animate-slide shadow-2xl relative overflow-hidden"><div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div><div class="flex items-center gap-3 mb-4 border-b border-[color:var(--border)] pb-3 relative z-10"><div class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg"><i data-lucide="file-text" class="w-5 h-5"></i></div><div><h3 class="font-bold text-[color:var(--text)]">Ringkasan Diskusi</h3><p class="text-[10px] text-indigo-400 font-medium tracking-wider uppercase">Kelas ${STATE.currentCourse.name}</p></div></div><div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto relative z-10" style="white-space: pre-line;">${data.result.replace(/\n/g, '<br>')}</div><button onclick="closeGlobalModal()" class="w-full mt-4 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-400 rounded-xl font-bold text-[color:var(--text)] active:scale-95 transition-all relative z-10">Tutup Ringkasan</button></div>`);
         } catch(e) { showToast('Gagal memanggil AI', 'error'); }
     };
 
