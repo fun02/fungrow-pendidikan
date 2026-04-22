@@ -1566,9 +1566,6 @@
     window.toggleKelompokArea = (val) => {
         const area = document.getElementById('kelompok-area'); if(val === 'kelompok') area.style.display = 'block'; else area.style.display = 'none';
     };
-    window.handleAsgFileUpload = async function(e) {
-        const file = e.target.files[0]; if(!file) return; const statusEl = document.getElementById('asg-file-status'); statusEl.innerHTML = `<span class="text-orange-400 italic animate-pulse">Mengunggah ${file.name}...</span>`; try { const url = await fetchCloudinaryUpload(file, false); STATE.currentAsgAttachment = { url, name: file.name, type: file.type }; statusEl.innerHTML = `<span class="text-emerald-400 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Berhasil: ${file.name}</span>`; lucide.createIcons(); } catch(err) { statusEl.innerHTML = `<span class="text-red-400">Gagal upload file!</span>`; }
-    };
     
         // ==============================================
 // LOGIKA POP-UP PENGUMUMAN (Tampil TERUS untuk Testing)
@@ -1619,29 +1616,21 @@ window.showPromoModal = function() {
         const area = document.getElementById('kelompok-area');
         if (area) area.style.display = (val === 'kelompok') ? 'block' : 'none';
     };
-
+    // 1. MODIFIKASI FORM TUGAS (DENGAN PREVIEW & INFO BOX)
     window.openAssignForm = function() {
         try {
-            // 1. Ambil wadah menu lampiran yang sedang terbuka
             const wadahModal = document.getElementById('modal-content');
-            if (!wadahModal) {
-                alert("Wadah modal tidak ditemukan!");
-                return;
-            }
+            if (!wadahModal) return;
 
-            // 2. Ambil Nama Dosen dengan aman
             let dosenName = "Dosen Pengampu";
             if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
                 FULL_SCHEDULE.forEach(day => {
-                    if(day.items) {
-                        day.items.forEach(item => {
-                            if (item.id === STATE.currentCourse.id && item.dosen) dosenName = item.dosen;
-                        });
-                    }
+                    if(day.items) day.items.forEach(item => {
+                        if (item.id === STATE.currentCourse.id && item.dosen) dosenName = item.dosen;
+                    });
                 });
             }
 
-            // 3. SULAP INSTAN: Ganti isi menu lampiran menjadi Form Tugas (Tanpa menutup layar)
             wadahModal.innerHTML = `
             <div class="glass border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto animate-fade">
                 <div class="bg-[#0f172a] text-white p-6 text-center rounded-t-3xl relative shrink-0">
@@ -1662,6 +1651,7 @@ window.showPromoModal = function() {
                             <option value="Tulis Tangan">Tulis Tangan</option>
                         </select>
                     </div>
+
                     <div>
                         <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
                             <div class="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
@@ -1673,6 +1663,7 @@ window.showPromoModal = function() {
                             <option value="kelompok">Tugas Kelompok</option>
                         </select>
                     </div>
+
                     <div id="kelompok-area" style="display:none;" class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4 relative mt-2">
                         <div>
                             <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Nama Kelompok</label>
@@ -1687,6 +1678,7 @@ window.showPromoModal = function() {
                             <textarea id="asg-group-members" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-24 resize-none outline-none focus:border-indigo-500 leading-relaxed" placeholder="1. Nama Anggota..."></textarea>
                         </div>
                     </div>
+
                     <div>
                         <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
                             <div class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i></div>
@@ -1694,6 +1686,7 @@ window.showPromoModal = function() {
                         </label>
                         <textarea id="asg-desc" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-28 resize-none outline-none focus:border-emerald-500 mb-1" placeholder="Tuliskan ketentuan tugas, referensi, dll"></textarea>
                     </div>
+
                     <div>
                         <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
                             <div class="w-6 h-6 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i></div>
@@ -1701,6 +1694,30 @@ window.showPromoModal = function() {
                         </label>
                         <input type="datetime-local" id="asg-date" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-orange-500" style="color-scheme: dark;">
                     </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
+                            <div class="w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center"><i data-lucide="upload" class="w-3.5 h-3.5"></i></div>
+                            Upload File (Opsional)
+                        </label>
+                        <div onclick="document.getElementById('asg-file-upload').click()" class="w-full border-2 border-dashed border-[color:var(--border)] rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[color:var(--card)] hover:border-purple-500 transition-all active:scale-95">
+                            <div id="asg-preview-content" class="flex flex-col items-center">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 text-[color:var(--text2)] mb-2"></i>
+                                <p class="text-sm text-[color:var(--text)] font-bold mb-1">Klik untuk upload <span class="font-normal text-[color:var(--text2)]">atau drag & drop file di sini</span></p>
+                            </div>
+                        </div>
+                        <input type="file" id="asg-file-upload" class="hidden" onchange="handleAsgFileUpload(event)">
+                        <div id="asg-file-status" class="text-[11px] font-bold mt-2 text-center"></div>
+                    </div>
+
+                    <div class="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 mt-4">
+                        <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0"><i data-lucide="info" class="w-3.5 h-3.5"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-[color:var(--text)]">Periksa kembali sebelum mengirim</h4>
+                            <p class="text-[10px] text-[color:var(--text2)] mt-0.5">Pastikan semua informasi sudah benar dan lengkap.</p>
+                        </div>
+                    </div>
+
                     <div class="pt-4 space-y-3">
                         <button onclick="sendAssign()" class="w-full py-4 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
                             <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS
@@ -1714,9 +1731,52 @@ window.showPromoModal = function() {
             
             if(typeof lucide !== 'undefined') lucide.createIcons();
             
-        } catch(e) {
-            // Jaga-jaga kalau masih ngeyel
-            alert("Gagal memunculkan form: " + e.message);
+        } catch(e) { console.error(e); }
+    };
+
+    // 2. MODIFIKASI LOGIKA PREVIEW UPLOAD (GAMBAR VS FILE)
+    window.handleAsgFileUpload = async function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const statusEl = document.getElementById('asg-file-status');
+        const previewContent = document.getElementById('asg-preview-content');
+        
+        statusEl.innerHTML = `<span class="text-orange-400 italic animate-pulse">Sedang mengunggah ${file.name}...</span>`;
+        
+        try {
+            const url = await fetchCloudinaryUpload(file, false);
+            STATE.currentAsgAttachment = { url, name: file.name, type: file.type };
+            
+            // LOGIKA PREVIEW: Jika gambar tampilkan foto, jika file tampilkan icon/nama
+            if(file.type.startsWith('image/')) {
+                previewContent.innerHTML = `
+                    <div class="relative">
+                        <img src="${url}" class="h-24 w-auto rounded-lg shadow-md border border-white/20 mb-2 object-cover">
+                        <div class="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-lg">
+                            <i data-lucide="check" class="w-3 h-3"></i>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-emerald-400 font-bold truncate max-w-[200px]">${file.name}</p>
+                `;
+            } else {
+                previewContent.innerHTML = `
+                    <div class="p-4 bg-blue-500/10 rounded-2xl mb-2 relative">
+                        <i data-lucide="file-text" class="w-10 h-10 text-blue-500"></i>
+                        <div class="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-lg">
+                            <i data-lucide="check" class="w-3 h-3"></i>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-emerald-400 font-bold truncate max-w-[200px]">${file.name}</p>
+                `;
+            }
+            
+            statusEl.innerHTML = `<span class="text-emerald-400 font-bold flex items-center justify-center gap-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Berhasil diunggah!</span>`;
+            lucide.createIcons();
+            
+        } catch(err) {
+            statusEl.innerHTML = `<span class="text-red-400">Gagal upload file!</span>`;
+            console.error(err);
         }
     };
 
