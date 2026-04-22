@@ -454,22 +454,98 @@
     window.closeGlobalModal = function() { document.getElementById('global-modal').classList.remove('show'); setTimeout(() => { document.getElementById('modal-content').innerHTML = ''; }, 200); }
     document.getElementById('global-modal').addEventListener('click', e => { if (e.target.id === 'global-modal') closeGlobalModal(); });
 
+        // ========== LOGIKA KEAMANAN GANTI PASSWORD ==========
     window.openChangePasswordModal = function() {
         closeSidebar();
-        showGlobalModal(`<div class="glass p-6 rounded-3xl animate-slide w-full border border-[color:var(--border)]">
-            <h3 class="font-bold text-center text-[color:var(--text)] mb-2 text-lg">Ganti Password</h3>
-            <p class="text-xs text-[color:var(--text2)] text-center mb-6">Masukkan password baru untuk akun Anda.</p>
-            <input type="password" id="new-password" placeholder="Password Baru (min. 6 karakter)" class="w-full text-sm p-3.5 rounded-xl bg-[color:var(--input-bg)] mb-4 text-[color:var(--text)] border border-[color:var(--border)] focus:border-[#2563eb] outline-none transition-colors">
-            <button onclick="submitNewPassword()" class="w-full py-3.5 rounded-xl text-white font-bold bg-[#2563eb] active:scale-95 transition-transform shadow-lg shadow-blue-500/20">Simpan Password</button>
-            <button onclick="closeGlobalModal()" class="w-full py-2.5 mt-2 rounded-xl text-[color:var(--text2)] font-bold hover:text-[color:var(--text)]">Batal</button>
+        showGlobalModal(`
+        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-amber-500/30 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center gap-3 mb-6 border-b border-[color:var(--border)] pb-4 relative z-10">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg border border-white/10">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-[color:var(--text)] text-lg leading-tight">Keamanan Akun</h3>
+                    <p class="text-[10px] text-amber-500 uppercase tracking-wider font-bold">Verifikasi & Ubah Password</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 relative z-10">
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="old-password" placeholder="Masukkan password lama" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="key-round" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="new-password" placeholder="Minimal 6 karakter" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Konfirmasi Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="confirm-password" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 relative z-10">
+                <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Simpan Keamanan
+                </button>
+                <button onclick="closeGlobalModal()" class="w-full py-2.5 mt-2 rounded-xl text-[color:var(--text2)] font-bold text-xs uppercase tracking-wider hover:text-[color:var(--text)] transition-colors">Batal</button>
+            </div>
         </div>`);
+        lucide.createIcons();
     }
+
     window.submitNewPassword = async function() {
+        const oldPass = document.getElementById('old-password').value;
         const newPass = document.getElementById('new-password').value;
-        if(newPass.length < 6) return showToast('Password minimal 6 karakter', 'error');
-        try { await auth.currentUser.updatePassword(newPass); showToast('Password berhasil diubah!'); closeGlobalModal();
-        } catch(e) { if(e.code === 'auth/requires-recent-login') showToast('Sesi terlalu lama, silakan login ulang dulu', 'error');
-        else showToast(e.message, 'error'); }
+        const confPass = document.getElementById('confirm-password').value;
+        const btn = document.getElementById('btn-save-pass');
+
+        // Validasi Anti-Ngelantur
+        if(!oldPass || !newPass || !confPass) return showToast('Semua kolom wajib diisi!', 'warning');
+        if(newPass.length < 6) return showToast('Password baru minimal 6 karakter!', 'error');
+        if(newPass !== confPass) return showToast('Konfirmasi password tidak cocok!', 'error');
+
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memverifikasi...';
+        btn.disabled = true;
+
+        try {
+            const user = auth.currentUser;
+            
+            // 1. Tembok Keamanan: Verifikasi Identitas dengan Password Lama
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+            await user.reauthenticateWithCredential(credential);
+
+            // 2. Jika lolos, ganti dengan Password Baru
+            await user.updatePassword(newPass);
+            
+            showToast('Keamanan diupdate! Silakan login ulang.', 'success');
+            
+            // 3. Kick (Logout) otomatis agar sesi lama terputus
+            setTimeout(() => {
+                closeGlobalModal();
+                doLogout();
+            }, 1500);
+
+        } catch(e) {
+            if(e.code === 'auth/wrong-password') {
+                showToast('Password lama Anda salah!', 'error');
+            } else {
+                showToast('Gagal: ' + e.message, 'error');
+            }
+            btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Simpan Keamanan';
+            btn.disabled = false;
+        }
     }
 
     // ========== RENDER LOGIN & LUPA PASSWORD ==========
