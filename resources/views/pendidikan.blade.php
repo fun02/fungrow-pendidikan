@@ -604,7 +604,7 @@
         }
     };
 
-    // --- PROSES API FIREBASE ---
+        // --- PROSES API FIREBASE (VERSI BYPASS SUPER AKURAT) ---
     window.submitNewPassword = async function() {
         const nim = document.getElementById('sec-nim').value.trim();
         const email = document.getElementById('sec-email').value.trim();
@@ -616,47 +616,51 @@
         const user = auth.currentUser;
         if(!user) return showToast('Belum login!', 'error');
 
-        // 1. Pengecekan NIM & Email (Validasi Lokal)
-        const myNim = STATE.currentUser.nim || '';
-        if (myNim && nim !== myNim) return showToast('NIM salah!', 'error');
-        if (email !== user.email) return showToast('Email salah!', 'error');
-
-        // 2. Pengecekan Input Kosong & Cocok
-        if (!oldPass || !newPass || !confPass) return showToast('Isi semua kolom!', 'warning');
-        if (newPass.length < 6) return showToast('Password terlalu lemah (Minimal 6)!', 'error');
-        if (newPass !== confPass) return showToast('Konfirmasi tidak cocok!', 'error');
+        // 1. Validasi Kolom Dasar
+        if (!nim || !email || !oldPass || !newPass || !confPass) return showToast('Isi semua kolom!', 'warning');
+        if (email !== user.email) return showToast('Email yang Anda masukkan salah!', 'error');
+        if (newPass.length < 6) return showToast('Password terlalu lemah (Minimal 6 karakter)!', 'error');
+        if (newPass !== confPass) return showToast('Konfirmasi password tidak cocok!', 'error');
 
         btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...';
         btn.disabled = true;
 
         try {
-            if (user.providerData.some(p => p.providerId === 'google.com')) {
-                throw new Error("Akun Google tidak bisa ganti password di sini!");
+            // 2. CEK NIM LANGSUNG KE DATABASE (Pasti Akurat)
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            const dataDb = userDoc.data() || {};
+            const myNim = dataDb.nim || dataDb.NIM || ''; // Antisipasi huruf besar/kecil
+            
+            if (myNim && nim !== myNim) {
+                btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Ubah & Konfirmasi Email';
+                btn.disabled = false;
+                return showToast('NIM yang Anda masukkan SALAH!', 'error');
             }
 
-            // 3. Verifikasi Password Lama (Jika gagal akan melempar error auth/wrong-password)
-            const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
-            await user.reauthenticateWithCredential(credential);
+            // 3. JURUS BYPASS: Login Ulang di Latar Belakang
+            // Ini akan mengecek password lama + menyegarkan sesi Firebase agar tidak error
+            await auth.signInWithEmailAndPassword(user.email, oldPass);
 
-            // 4. Update Password
+            // 4. Jika login latar belakang sukses (password lama benar), baru update password
             await user.updatePassword(newPass);
 
             // 5. Kirim Link Konfirmasi Email
             await user.sendEmailVerification();
 
-            showToast('Selesai! Silakan cek Email Anda untuk konfirmasi.', 'success');
+            showToast('Sukses! Silakan cek Kotak Masuk/Spam Email Anda.', 'success');
             
-            // 6. Logout Paksa
+            // 6. Bersihkan sesi dan arahkan ke Halaman Login
             setTimeout(() => {
                 closeGlobalModal();
-                auth.signOut().then(() => window.location.replace(window.location.pathname + '?refresh=' + Date.now()));
+                auth.signOut().then(() => window.location.replace(window.location.pathname + '?tes=100'));
             }, 3000);
 
         } catch(e) {
+            console.error("Detail Error Keamanan:", e);
             if (e.code === 'auth/wrong-password') {
-                showToast('Password lama salah!', 'error');
-            } else if (e.code === 'auth/requires-recent-login') {
-                showToast('Akses ditolak! Silakan LOGOUT manual dan LOGIN lagi.', 'error');
+                showToast('Password Saat Ini (Lama) SALAH!', 'error');
+            } else if (e.code === 'auth/too-many-requests') {
+                showToast('Terlalu sering mencoba. Tunggu sejenak.', 'error');
             } else {
                 showToast('Gagal: ' + e.message, 'error');
             }
