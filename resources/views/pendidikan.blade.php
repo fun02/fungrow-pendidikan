@@ -1427,17 +1427,37 @@
                 html += `<div class="flex justify-center my-3"><div class="px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[11px] rounded-xl font-medium text-center max-w-[85%] break-words shadow-sm backdrop-blur-sm">${m.text.replace(/\n/g, '<br>')}</div></div>`; 
                 return; 
             }
-
             let content = '';
-            if (m.type === 'image') { content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-md transition hover:scale-[1.02]" onclick="window.open('${m.text}', '_blank')"></div>`; }
+            let bubbleClass = '';
+
+            // 1. JIKA PESAN ADALAH STIKER
+            if (m.sticker) { 
+                content = `<img src="${m.sticker}" onclick="openStickerOptions('${m.sticker}')" class="w-32 h-32 object-contain cursor-pointer drop-shadow-xl hover:scale-105 transition-transform -mb-4">`;
+                // Buat background kotak menjadi transparan khusus untuk stiker
+                bubbleClass = 'bg-transparent shadow-none border-none text-[color:var(--text)]';
+            }
+            // 2. JIKA PESAN ADALAH GAMBAR BIASA
+            else if (m.type === 'image') { 
+                content = `<div class="mt-1"><img src="${m.text}" class="rounded-xl w-full max-w-[240px] max-h-64 object-cover cursor-pointer border border-[color:var(--border)] shadow-md transition hover:scale-[1.02]" onclick="window.open('${m.text}', '_blank')"></div>`;
+                bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
+            }
+            // 3. JIKA PESAN ADALAH FILE DOKUMEN
             else if (m.type === 'file') { 
                 const ui = window.getFileIconUI(m.fileName);
                 content = `<div class="mt-1.5 mb-1 w-[220px] sm:w-[250px]"><a href="${m.text}" target="_blank" class="flex items-center gap-3 p-3 ${mine ? 'bg-black/20 hover:bg-black/30' : 'bg-[color:var(--surface)] hover:bg-[color:var(--card)]'} rounded-xl transition-all border border-[color:var(--border)] backdrop-blur-sm shadow-sm group"><div class="p-2.5 rounded-lg ${mine ? 'bg-white/20' : ui.bg} shrink-0 transition-transform group-hover:scale-105"><i data-lucide="${ui.icon}" class="w-6 h-6 ${mine ? 'text-white' : ui.color}"></i></div><div class="flex-1 min-w-0"><p class="text-[13px] truncate font-bold text-[color:var(--text)] mb-0.5" style="${mine ? 'color:white' : ''}">${m.fileName || 'Dokumen'}</p><p class="text-[9px] uppercase tracking-wider font-mono opacity-80" style="${mine ? 'color:rgba(255,255,255,0.8)' : 'color:var(--text2)'}">${m.fileSize || 'FILE'}</p></div><div class="w-8 h-8 rounded-full ${mine ? 'bg-white/10 text-white' : 'bg-[color:var(--card)] text-[color:var(--text2)]'} flex items-center justify-center shrink-0"><i data-lucide="download" class="w-4 h-4"></i></div></a></div>`;
+                bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
             }
-            else if (m.type === 'voice') { content = `<div class="voice-note-player ${mine ? 'bg-black/20' : 'bg-[color:var(--surface)]'} p-2 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm shadow-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-9 h-9 rounded-full ${mine ? 'bg-white text-[#2563eb]' : 'bg-[color:var(--accent)] text-white'} flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 vn-pause hidden"></i></button><div class="voice-note-progress ml-1 mr-2"><div id="fill-${m.id}" class="voice-note-progress-fill ${mine ? 'bg-white' : 'bg-[color:var(--accent)]'}"></div></div><span id="time-${m.id}" class="text-[10px] font-mono font-bold mr-3" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`; }
-            else { content = m.text.replace(/\n/g, '<br>'); }
-
-            let bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
+            // 4. JIKA PESAN ADALAH VOICE NOTE
+            else if (m.type === 'voice') { 
+                content = `<div class="voice-note-player ${mine ? 'bg-black/20' : 'bg-[color:var(--surface)]'} p-2 rounded-full mt-1 border border-[color:var(--border)] backdrop-blur-sm shadow-sm"><audio id="audio-${m.id}" src="${m.text}" preload="metadata"></audio><button onclick="playVoice('${m.id}')" class="w-9 h-9 rounded-full ${mine ? 'bg-white text-[#2563eb]' : 'bg-[color:var(--accent)] text-white'} flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform"><i data-lucide="play" id="play-${m.id}" class="w-4 h-4 vn-play ml-0.5"></i><i data-lucide="pause" id="pause-${m.id}" class="w-4 h-4 vn-pause hidden"></i></button><div class="voice-note-progress ml-1 mr-2"><div id="fill-${m.id}" class="voice-note-progress-fill ${mine ? 'bg-white' : 'bg-[color:var(--accent)]'}"></div></div><span id="time-${m.id}" class="text-[10px] font-mono font-bold mr-3" style="${mine ? 'color:white' : 'color:var(--text2)'}">0:00</span></div>`;
+                bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
+            }
+            // 5. JIKA PESAN ADALAH TEKS BIASA
+            else { 
+                content = m.text.replace(/\n/g, '<br>');
+                bubbleClass = mine ? 'bg-gradient-to-br from-blue-600 to-[#2563eb] text-white bubble-right border border-blue-500/50' : 'bg-[color:var(--bubble-theirs)] text-[color:var(--text)] bubble-left border border-[color:var(--border)]';
+            }
+            
             let nameColor = mine ? 'text-white' : 'text-emerald-500';
             let timeColor = mine ? 'text-white/80' : 'text-[color:var(--text2)] opacity-90';
             
