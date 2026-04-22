@@ -144,6 +144,7 @@
         <button onclick="switchTab('about'); closeSidebar();" class="flex items-center gap-3 p-3 w-full rounded-2xl hover:bg-[color:var(--surface)] text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all font-medium"><i data-lucide="user-circle" class="w-5 h-5"></i><span>Profil Akademik</span></button>
         <button onclick="openChangePasswordModal()" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left font-semibold text-[color:var(--text)] hover:bg-[color:var(--card)] transition-colors active:scale-95"><i data-lucide="key-round" class="w-5 h-5 text-amber-500"></i> Ganti Password</button>
         <button onclick="switchTab('mahasiswa'); closeSidebar();" class="flex items-center gap-3 p-3 w-full rounded-2xl hover:bg-[color:var(--surface)] text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all font-medium"><i data-lucide="users" class="w-5 h-5"></i><span>Data Mahasiswa</span></button>
+        <button onclick="toggleStickerPanel()" class="p-2 text-[color:var(--text2)] hover:text-amber-500 transition-colors shrink-0"><i data-lucide="smile" class="w-6 h-6"></i></button>
     </div>
     <div class="p-6 border-t border-[color:var(--border)]">
         <button onclick="doLogout()" class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i> Keluar</button>
@@ -1932,6 +1933,121 @@ window.showPromoModal = function() {
             } else {
                 showToast('Gagal: ' + error.message, 'error'); 
             }
+        }
+    };
+
+        // ==========================================================
+    // 🌟 MESIN EMOJI & STIKER (WHATSAPP STYLE)
+    // ==========================================================
+    
+    // 1. Koleksi Stiker Bawaan (Bisa ditambah url gif/png transparan)
+    STATE.defaultStickers = [
+        "https://cdn-icons-png.flaticon.com/512/4632/4632283.png", // Jempol
+        "https://cdn-icons-png.flaticon.com/512/4632/4632295.png", // Ngakak
+        "https://cdn-icons-png.flaticon.com/512/4632/4632338.png", // Keren/Kacamata
+        "https://cdn-icons-png.flaticon.com/512/4632/4632311.png", // Nangis
+        "https://cdn-icons-png.flaticon.com/512/4632/4632320.png", // Marah
+        "https://cdn-icons-png.flaticon.com/512/4632/4632288.png"  // Cinta
+    ];
+
+    // 2. Fungsi Buka/Tutup Panel Stiker di bawah input chat
+    window.toggleStickerPanel = function() {
+        let panel = document.getElementById('sticker-panel');
+        if (!panel) {
+            // Buat panel jika belum ada
+            const chatContainer = document.getElementById('chat-input-container'); // Ganti dengan ID bungkus input chat Anda
+            if(!chatContainer) return showToast('Buka chat kelas dulu!', 'warning');
+
+            panel = document.createElement('div');
+            panel.id = 'sticker-panel';
+            panel.className = 'w-full h-64 bg-[color:var(--surface)] border-t border-[color:var(--border)] flex flex-col hidden absolute bottom-full left-0 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.1)]';
+            
+            panel.innerHTML = `
+                <div class="flex items-center gap-4 px-4 py-2 border-b border-[color:var(--border)] bg-[color:var(--input-bg)]">
+                    <button onclick="loadStickers('default')" class="p-2 text-[color:var(--text2)] hover:text-[#2563eb] transition-colors"><i data-lucide="sticker" class="w-5 h-5"></i></button>
+                    <button onclick="loadStickers('favorites')" class="p-2 text-[color:var(--text2)] hover:text-amber-500 transition-colors"><i data-lucide="star" class="w-5 h-5"></i></button>
+                    <button onclick="toggleStickerPanel()" class="ml-auto p-2 text-red-500 hover:bg-red-500/10 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div id="sticker-grid" class="flex-1 overflow-y-auto p-4 grid grid-cols-4 sm:grid-cols-5 gap-4 hide-scrollbar"></div>
+            `;
+            chatContainer.style.position = 'relative';
+            chatContainer.appendChild(panel);
+            lucide.createIcons();
+        }
+        
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+            loadStickers('default'); // Load default saat dibuka
+        }
+    };
+
+    // 3. Load Stiker ke Panel (Default atau Favorit)
+    window.loadStickers = async function(type) {
+        const grid = document.getElementById('sticker-grid');
+        grid.innerHTML = '<div class="col-span-4 text-center text-xs text-gray-500 mt-5 animate-pulse">Memuat stiker...</div>';
+        
+        let stickersToLoad = [];
+        if (type === 'default') {
+            stickersToLoad = STATE.defaultStickers;
+        } else if (type === 'favorites') {
+            try {
+                const userDoc = await db.collection('users').doc(auth.currentUser.uid).get();
+                stickersToLoad = userDoc.data().favoriteStickers || [];
+            } catch(e) { stickersToLoad = []; }
+        }
+
+        if (stickersToLoad.length === 0) {
+            grid.innerHTML = `<div class="col-span-4 text-center text-xs text-[color:var(--text2)] mt-5">Belum ada stiker di ${type === 'favorites' ? 'Favorit' : 'sini'}.</div>`;
+            return;
+        }
+
+        grid.innerHTML = stickersToLoad.map(url => `
+            <img src="${url}" onclick="sendSticker('${url}')" class="w-16 h-16 object-contain cursor-pointer hover:scale-110 active:scale-95 transition-transform drop-shadow-md">
+        `).join('');
+    };
+
+    // 4. Fungsi Kirim Stiker ke Firestore
+    window.sendSticker = async function(stickerUrl) {
+        if (!STATE.currentCourse) return;
+        toggleStickerPanel(); // Tutup panel
+        
+        try {
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({
+                text: '', // Kosongkan teks karena ini stiker
+                sticker: stickerUrl, // URL Stiker
+                userId: auth.currentUser.uid,
+                userName: STATE.currentUser.displayName,
+                userPhoto: STATE.currentUser.photoURL,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                readBy: [auth.currentUser.uid]
+            });
+        } catch(e) { showToast('Gagal mengirim stiker', 'error'); }
+    };
+
+    // 5. Pop-up Klik Stiker di Chat (Untuk Simpan ke Favorit ala WA)
+    window.openStickerOptions = function(stickerUrl) {
+        showGlobalModal(`
+            <div class="glass p-6 rounded-3xl animate-slide w-full max-w-xs text-center border border-white/10 shadow-2xl">
+                <img src="${stickerUrl}" class="w-32 h-32 object-contain mx-auto mb-6 drop-shadow-xl animate-bounce">
+                <button onclick="addToFavorites('${stickerUrl}')" class="w-full py-3 bg-[color:var(--card)] hover:bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-xl font-bold text-[color:var(--text)] flex items-center justify-center gap-2 transition-colors mb-2">
+                    <i data-lucide="star" class="w-5 h-5 text-amber-500"></i> Tambah ke Favorit
+                </button>
+                <button onclick="closeGlobalModal()" class="w-full py-3 bg-transparent text-[color:var(--text2)] hover:text-red-500 font-bold rounded-xl transition-colors text-sm">Tutup</button>
+            </div>
+        `);
+        lucide.createIcons();
+    };
+
+    // 6. Simpan ke Database Favorit User
+    window.addToFavorites = async function(stickerUrl) {
+        try {
+            await db.collection('users').doc(auth.currentUser.uid).update({
+                favoriteStickers: firebase.firestore.FieldValue.arrayUnion(stickerUrl)
+            });
+            closeGlobalModal();
+            showToast('Stiker ditambahkan ke Favorit! ⭐', 'success');
+        } catch(e) {
+            showToast('Gagal menyimpan stiker', 'error');
         }
     };
 
