@@ -505,13 +505,12 @@
         lucide.createIcons();
     }
 
-    window.submitNewPassword = async function() {
+        window.submitNewPassword = async function() {
         const oldPass = document.getElementById('old-password').value;
         const newPass = document.getElementById('new-password').value;
         const confPass = document.getElementById('confirm-password').value;
         const btn = document.getElementById('btn-save-pass');
 
-        // Validasi Anti-Ngelantur
         if(!oldPass || !newPass || !confPass) return showToast('Semua kolom wajib diisi!', 'warning');
         if(newPass.length < 6) return showToast('Password baru minimal 6 karakter!', 'error');
         if(newPass !== confPass) return showToast('Konfirmasi password tidak cocok!', 'error');
@@ -522,24 +521,36 @@
         try {
             const user = auth.currentUser;
             
-            // 1. Tembok Keamanan: Verifikasi Identitas dengan Password Lama
+            // CEK KHUSUS: Jika user login pakai akun Google, larang ganti password di sini
+            if (user.providerData && user.providerData.some(p => p.providerId === 'google.com')) {
+                throw new Error("Anda login menggunakan Google. Password hanya bisa diganti lewat pengaturan Akun Google Anda.");
+            }
+
+            // 1. Tembok Keamanan (Verifikasi Password Lama)
             const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
             await user.reauthenticateWithCredential(credential);
 
-            // 2. Jika lolos, ganti dengan Password Baru
+            // 2. Ganti Password
             await user.updatePassword(newPass);
             
-            showToast('Keamanan diupdate! Silakan login ulang.', 'success');
+            showToast('Berhasil! Silakan login ulang dengan password baru.', 'success');
             
-            // 3. Kick (Logout) otomatis agar sesi lama terputus
+            // 3. Logout otomatis setelah sukses
             setTimeout(() => {
                 closeGlobalModal();
-                doLogout();
-            }, 1500);
+                auth.signOut().then(() => window.location.reload());
+            }, 2000);
 
         } catch(e) {
-            if(e.code === 'auth/wrong-password') {
+            if (e.code === 'auth/wrong-password') {
                 showToast('Password lama Anda salah!', 'error');
+            } else if (e.code === 'auth/requires-recent-login') {
+                // JIKA SESI NYANGKUT: Paksa aplikasi untuk Logout bersih!
+                showToast('Sesi nyangkut! Mereset keamanan... (Auto Logout)', 'warning');
+                setTimeout(() => {
+                    closeGlobalModal();
+                    auth.signOut().then(() => window.location.reload());
+                }, 2500);
             } else {
                 showToast('Gagal: ' + e.message, 'error');
             }
