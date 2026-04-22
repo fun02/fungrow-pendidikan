@@ -1612,9 +1612,9 @@ window.showPromoModal = function() {
     };                
 
         // ==============================================
-    // PERBAIKAN FORM TUGAS (FINAL FIX ANTI GELAP)
+    // PERBAIKAN FORM TUGAS (SWAP INSTAN - 1000% ANTI GELAP)
     // ==============================================
-    
+
     window.toggleKelompokArea = function(val) {
         const area = document.getElementById('kelompok-area');
         if(area) {
@@ -1622,132 +1622,108 @@ window.showPromoModal = function() {
         }
     };
 
-    // ==============================================
-    // PERBAIKAN FORM TUGAS (JURUS PAKSA TAMPIL)
-    // ==============================================
-
     window.openAssignForm = () => {
-        // 1. Tutup menu lampiran terlebih dahulu
-        if(typeof closeGlobalModal === 'function') closeGlobalModal();
-
-        // 2. Tunggu setengah detik (500ms) agar layar benar-benar bersih dari animasi lama
-        setTimeout(() => {
-            try {
-                // 3. Amankan nama dosen & kelas
-                let courseName = (typeof STATE !== 'undefined' && STATE.currentCourse) ? STATE.currentCourse.name : 'TUGAS KELAS';
-                let dosenUI = "Dosen Pengampu";
-                
-                if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
-                    FULL_SCHEDULE.forEach(day => {
-                        if(day.items) {
-                            day.items.forEach(item => {
-                                if (item.id === STATE.currentCourse.id && item.dosen) dosenUI = item.dosen;
-                            });
-                        }
-                    });
-                }
-
-                // 4. Gambar Form Tugas
-                showGlobalModal(`
-                <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto">
-                    
-                    <div class="bg-[#0f172a] text-white p-6 text-center rounded-t-3xl relative shrink-0">
-                        <h2 class="text-xl font-extrabold tracking-wide uppercase mb-1">${courseName}</h2>
-                        <p class="text-sm text-gray-300 font-medium">${dosenUI}</p>
-                    </div>
-
-                    <div class="p-5 md:p-6 space-y-6 bg-[color:var(--surface)]">
-                        
-                        <div>
-                            <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
-                                <div class="w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></div>
-                                Jenis Tugas
-                            </label>
-                            <select id="asg-jenis" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-blue-500 appearance-none font-medium">
-                                <option value="" disabled selected>Pilih jenis tugas</option>
-                                <option value="Makalah">Makalah</option>
-                                <option value="Proposal">Proposal</option>
-                                <option value="Karya Tulis Ilmiah">Karya Tulis Ilmiah</option>
-                                <option value="Tulis Tangan">Tulis Tangan</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
-                                <div class="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
-                                Target Tugas
-                            </label>
-                            <select id="asg-type" onchange="toggleKelompokArea(this.value)" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500 appearance-none font-medium">
-                                <option value="" disabled selected>Pilih target tugas</option>
-                                <option value="individu">Tugas Individu</option>
-                                <option value="kelompok">Tugas Kelompok</option>
-                            </select>
-                        </div>
-
-                        <div id="kelompok-area" style="display:none;" class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4 relative overflow-hidden mt-2">
-                            <div class="relative z-10">
-                                <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Nama Kelompok</label>
-                                <input type="text" id="asg-group-name" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500" placeholder="Cth: Kelompok 1">
-                            </div>
-                            <div class="relative z-10">
-                                <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Judul Spesifik Kelompok</label>
-                                <input type="text" id="asg-group-title" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500" placeholder="Topik materi kelompok">
-                            </div>
-                            <div class="relative z-10">
-                                <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Daftar Anggota</label>
-                                <textarea id="asg-group-members" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-24 resize-none outline-none focus:border-indigo-500 leading-relaxed" placeholder="1. Nama Anggota..."></textarea>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
-                                <div class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i></div>
-                                Keterangan Tambahan
-                            </label>
-                            <textarea id="asg-desc" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-28 resize-none outline-none focus:border-emerald-500 mb-1" placeholder="Tuliskan ketentuan tugas, referensi, dll"></textarea>
-                        </div>
-
-                        <div>
-                            <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
-                                <div class="w-6 h-6 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i></div>
-                                Waktu Terakhir Pengumpulan
-                            </label>
-                            <input type="datetime-local" id="asg-date" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-orange-500" style="color-scheme: dark;">
-                        </div>
-
-                        <div class="pt-4 space-y-3">
-                            <button onclick="sendAssign()" class="w-full py-4 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
-                                <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS
-                            </button>
-                            <button onclick="closeGlobalModal()" class="w-full py-4 rounded-xl bg-transparent text-[color:var(--text2)] font-bold text-sm border border-[color:var(--border)] active:scale-95 transition-all flex items-center justify-center gap-2">
-                                <i data-lucide="x" class="w-4 h-4"></i> BATAL
-                            </button>
-                        </div>
-                    </div>
-                </div>`, true);
-
-                // 5. JURUS PAKSA TAMPIL (Menghapus efek transparan/gelap yang nyangkut)
-                const modalBox = document.getElementById('global-modal');
-                const contentBox = document.getElementById('global-modal-content');
-                if(modalBox && contentBox) {
-                    modalBox.classList.remove('hidden', 'opacity-0');
-                    modalBox.classList.add('flex', 'opacity-100');
-                    modalBox.style.display = 'flex';
-                    modalBox.style.opacity = '1';
-                    
-                    contentBox.classList.remove('opacity-0', 'scale-95', 'animate-scale-down');
-                    contentBox.classList.add('opacity-100', 'scale-100');
-                    contentBox.style.opacity = '1';
-                    contentBox.style.transform = 'scale(1)';
-                }
-
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-
-            } catch(err) {
-                console.error("ERROR MEMUAT FORM TUGAS:", err);
-                showToast("Gagal memuat form, silakan coba lagi.", "error");
+        try {
+            // 1. Amankan nama dosen & kelas
+            let courseName = (typeof STATE !== 'undefined' && STATE.currentCourse) ? STATE.currentCourse.name : 'TUGAS KELAS';
+            let dosenUI = "Dosen Pengampu";
+            
+            if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
+                FULL_SCHEDULE.forEach(day => {
+                    if(day.items) {
+                        day.items.forEach(item => {
+                            if (item.id === STATE.currentCourse.id && item.dosen) dosenUI = item.dosen;
+                        });
+                    }
+                });
             }
-        }, 500); // Timer yang lebih panjang untuk memastikan layar siap
+
+            // 2. JURUS SWAP INSTAN: Langsung timpa HTML-nya TANPA menutup modal!
+            // (Tidak ada lagi closeGlobalModal atau setTimeout di sini)
+            showGlobalModal(`
+            <div class="glass border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto">
+                
+                <div class="bg-[#0f172a] text-white p-6 text-center rounded-t-3xl relative shrink-0">
+                    <h2 class="text-xl font-extrabold tracking-wide uppercase mb-1">${courseName}</h2>
+                    <p class="text-sm text-gray-300 font-medium">${dosenUI}</p>
+                </div>
+
+                <div class="p-5 md:p-6 space-y-6 bg-[color:var(--surface)]">
+                    
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
+                            <div class="w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></div>
+                            Jenis Tugas
+                        </label>
+                        <select id="asg-jenis" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-blue-500 appearance-none font-medium">
+                            <option value="" disabled selected>Pilih jenis tugas</option>
+                            <option value="Makalah">Makalah</option>
+                            <option value="Proposal">Proposal</option>
+                            <option value="Karya Tulis Ilmiah">Karya Tulis Ilmiah</option>
+                            <option value="Tulis Tangan">Tulis Tangan</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
+                            <div class="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
+                            Target Tugas
+                        </label>
+                        <select id="asg-type" onchange="toggleKelompokArea(this.value)" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500 appearance-none font-medium">
+                            <option value="" disabled selected>Pilih target tugas</option>
+                            <option value="individu">Tugas Individu</option>
+                            <option value="kelompok">Tugas Kelompok</option>
+                        </select>
+                    </div>
+
+                    <div id="kelompok-area" style="display:none;" class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4 relative overflow-hidden mt-2">
+                        <div class="relative z-10">
+                            <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Nama Kelompok</label>
+                            <input type="text" id="asg-group-name" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500" placeholder="Cth: Kelompok 1">
+                        </div>
+                        <div class="relative z-10">
+                            <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Judul Spesifik Kelompok</label>
+                            <input type="text" id="asg-group-title" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-indigo-500" placeholder="Topik materi kelompok">
+                        </div>
+                        <div class="relative z-10">
+                            <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5 block">Daftar Anggota</label>
+                            <textarea id="asg-group-members" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-24 resize-none outline-none focus:border-indigo-500 leading-relaxed" placeholder="1. Nama Anggota..."></textarea>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
+                            <div class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i></div>
+                            Keterangan Tambahan
+                        </label>
+                        <textarea id="asg-desc" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-28 resize-none outline-none focus:border-emerald-500 mb-1" placeholder="Tuliskan ketentuan tugas, referensi, dll"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
+                            <div class="w-6 h-6 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center"><i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i></div>
+                            Waktu Terakhir Pengumpulan
+                        </label>
+                        <input type="datetime-local" id="asg-date" class="w-full p-3.5 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] outline-none focus:border-orange-500" style="color-scheme: dark;">
+                    </div>
+
+                    <div class="pt-4 space-y-3">
+                        <button onclick="sendAssign()" class="w-full py-4 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS
+                        </button>
+                        <button onclick="closeGlobalModal()" class="w-full py-4 rounded-xl bg-transparent text-[color:var(--text2)] font-bold text-sm border border-[color:var(--border)] active:scale-95 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="x" class="w-4 h-4"></i> BATAL
+                        </button>
+                    </div>
+                </div>
+            </div>`, true);
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        } catch(err) {
+            console.error("ERROR MEMUAT FORM TUGAS:", err);
+            showToast("Gagal memuat form, silakan coba lagi.", "error");
+        }
     };
 
     window.sendAssign = async function() {
@@ -1758,7 +1734,6 @@ window.showPromoModal = function() {
         
         if(!title || !type || !dl) return showToast('Jenis tugas, target tugas, dan waktu wajib diisi!', 'warning');
         
-        // Cari nama dosen dengan aman di dalam fungsi ini
         let dosenName = "Dosen Pengampu";
         if (typeof FULL_SCHEDULE !== 'undefined' && typeof STATE !== 'undefined' && STATE.currentCourse) {
             FULL_SCHEDULE.forEach(day => {
@@ -1767,6 +1742,8 @@ window.showPromoModal = function() {
                         if (item.id === STATE.currentCourse.id && item.dosen) dosenName = item.dosen;
                     });
                 }
+            });
+        }
 
         showToast('Memproses tugas...', 'warning'); 
         closeGlobalModal();
