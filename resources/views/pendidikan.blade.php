@@ -454,110 +454,7 @@
     window.closeGlobalModal = function() { document.getElementById('global-modal').classList.remove('show'); setTimeout(() => { document.getElementById('modal-content').innerHTML = ''; }, 200); }
     document.getElementById('global-modal').addEventListener('click', e => { if (e.target.id === 'global-modal') closeGlobalModal(); });
 
-        // ========== LOGIKA KEAMANAN GANTI PASSWORD ==========
-    window.openChangePasswordModal = function() {
-        closeSidebar();
-        showGlobalModal(`
-        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-sm border border-amber-500/30 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="flex items-center gap-3 mb-6 border-b border-[color:var(--border)] pb-4 relative z-10">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg border border-white/10">
-                    <i data-lucide="shield-check" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-[color:var(--text)] text-lg leading-tight">Keamanan Akun</h3>
-                    <p class="text-[10px] text-amber-500 uppercase tracking-wider font-bold">Verifikasi & Ubah Password</p>
-                </div>
-            </div>
-
-            <div class="space-y-4 relative z-10">
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
-                    <div class="relative">
-                        <i data-lucide="lock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="old-password" placeholder="Masukkan password lama" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Baru</label>
-                    <div class="relative">
-                        <i data-lucide="key-round" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="new-password" placeholder="Minimal 6 karakter" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Konfirmasi Password Baru</label>
-                    <div class="relative">
-                        <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="confirm-password" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-8 relative z-10">
-                <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
-                    <i data-lucide="save" class="w-4 h-4"></i> Simpan Keamanan
-                </button>
-                <button onclick="closeGlobalModal()" class="w-full py-2.5 mt-2 rounded-xl text-[color:var(--text2)] font-bold text-xs uppercase tracking-wider hover:text-[color:var(--text)] transition-colors">Batal</button>
-            </div>
-        </div>`);
-        lucide.createIcons();
-    }
-
-        window.submitNewPassword = async function() {
-        const oldPass = document.getElementById('old-password').value;
-        const newPass = document.getElementById('new-password').value;
-        const confPass = document.getElementById('confirm-password').value;
-        const btn = document.getElementById('btn-save-pass');
-
-        if(!oldPass || !newPass || !confPass) return showToast('Semua kolom wajib diisi!', 'warning');
-        if(newPass.length < 6) return showToast('Password baru minimal 6 karakter!', 'error');
-        if(newPass !== confPass) return showToast('Konfirmasi password tidak cocok!', 'error');
-
-        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memverifikasi...';
-        btn.disabled = true;
-
-        try {
-            const user = auth.currentUser;
-            
-            // CEK KHUSUS: Jika user login pakai akun Google, larang ganti password di sini
-            if (user.providerData && user.providerData.some(p => p.providerId === 'google.com')) {
-                throw new Error("Anda login menggunakan Google. Password hanya bisa diganti lewat pengaturan Akun Google Anda.");
-            }
-
-            // 1. Tembok Keamanan (Verifikasi Password Lama)
-            const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
-            await user.reauthenticateWithCredential(credential);
-
-            // 2. Ganti Password
-            await user.updatePassword(newPass);
-            
-            showToast('Berhasil! Silakan login ulang dengan password baru.', 'success');
-            
-            // 3. Logout otomatis setelah sukses
-            setTimeout(() => {
-                closeGlobalModal();
-                auth.signOut().then(() => window.location.reload());
-            }, 2000);
-
-        } catch(e) {
-            if (e.code === 'auth/wrong-password') {
-                showToast('Password lama Anda salah!', 'error');
-            } else if (e.code === 'auth/requires-recent-login') {
-                // JIKA SESI NYANGKUT: Paksa aplikasi untuk Logout bersih!
-                showToast('Sesi nyangkut! Mereset keamanan... (Auto Logout)', 'warning');
-                setTimeout(() => {
-                    closeGlobalModal();
-                    auth.signOut().then(() => window.location.reload());
-                }, 2500);
-            } else {
-                showToast('Gagal: ' + e.message, 'error');
-            }
-            btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Simpan Keamanan';
-            btn.disabled = false;
-        }
-    }
+        
 
     // ========== RENDER LOGIN & LUPA PASSWORD ==========
     function renderLogin(el) {
@@ -586,6 +483,187 @@
             </div>
         </div>`;
     }
+
+        // ========== LOGIKA KEAMANAN (VERIFIKASI 4 LAPIS & KEKUATAN PASSWORD) ==========
+    window.openChangePasswordModal = function() {
+        closeSidebar();
+        showGlobalModal(`
+        <div class="glass p-5 md:p-6 rounded-3xl animate-slide w-full max-w-md border border-amber-500/30 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden h-max max-h-[90vh] overflow-y-auto hide-scrollbar">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center gap-3 mb-5 border-b border-[color:var(--border)] pb-4 relative z-10">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg border border-white/10 shrink-0">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-[color:var(--text)] text-lg leading-tight">Keamanan Akun</h3>
+                    <p class="text-[10px] text-amber-500 uppercase tracking-wider font-bold">Verifikasi Identitas & Password</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 relative z-10">
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Masukkan NIM</label>
+                    <div class="relative">
+                        <i data-lucide="id-card" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="text" id="sec-nim" placeholder="Ketik NIM Anda" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Masukkan Email</label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="email" id="sec-email" placeholder="email@kampus.ac.id" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
+                    <div class="relative">
+                        <i data-lucide="unlock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="old-password" placeholder="Password lama Anda" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-white/5">
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="key-round" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="new-password" placeholder="Buat password baru" oninput="checkPasswordStrength(this.value)" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                    <div class="flex items-center gap-3 mt-2.5">
+                        <div class="flex-1 h-1.5 bg-[color:var(--border)] rounded-full overflow-hidden flex">
+                            <div id="pw-bar" class="h-full w-0 transition-all duration-300"></div>
+                        </div>
+                        <span id="pw-text" class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider w-16 text-right">Lemah</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Konfirmasi Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="confirm-password" oninput="checkPasswordMatch()" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                    <p id="pw-match-text" class="text-[10px] mt-2 font-bold hidden"></p>
+                </div>
+            </div>
+
+            <div class="mt-8 relative z-10">
+                <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i> Ubah & Konfirmasi Email
+                </button>
+                <button onclick="closeGlobalModal()" class="w-full py-2.5 mt-2 rounded-xl text-[color:var(--text2)] font-bold text-xs uppercase tracking-wider hover:text-[color:var(--text)] transition-colors">Batal</button>
+            </div>
+        </div>`);
+        lucide.createIcons();
+    }
+
+    // --- LOGIKA REAL-TIME UI KEKUATAN PASSWORD ---
+    window.checkPasswordStrength = function(val) {
+        const bar = document.getElementById('pw-bar');
+        const txt = document.getElementById('pw-text');
+        
+        let strength = 0;
+        if (val.length >= 6) strength += 1;
+        if (val.match(/[a-zA-Z]/) && val.match(/[0-9]/)) strength += 1;
+        if (val.match(/[^a-zA-Z0-9]/)) strength += 1;
+
+        if (val.length === 0) {
+            bar.style.width = '0%'; bar.className = 'h-full w-0 transition-all duration-300';
+            txt.innerText = 'Kosong'; txt.className = 'text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider w-16 text-right';
+        } else if (strength === 1) {
+            bar.style.width = '33%'; bar.className = 'h-full bg-red-500 transition-all duration-300';
+            txt.innerText = 'Lemah'; txt.className = 'text-[10px] font-bold text-red-500 uppercase tracking-wider w-16 text-right';
+        } else if (strength === 2) {
+            bar.style.width = '66%'; bar.className = 'h-full bg-yellow-500 transition-all duration-300';
+            txt.innerText = 'Sedang'; txt.className = 'text-[10px] font-bold text-yellow-500 uppercase tracking-wider w-16 text-right';
+        } else if (strength === 3) {
+            bar.style.width = '100%'; bar.className = 'h-full bg-green-500 transition-all duration-300 shadow-[0_0_10px_rgba(34,197,94,0.5)]';
+            txt.innerText = 'Kuat'; txt.className = 'text-[10px] font-bold text-green-500 uppercase tracking-wider w-16 text-right';
+        }
+        checkPasswordMatch();
+    };
+
+    window.checkPasswordMatch = function() {
+        const p1 = document.getElementById('new-password').value;
+        const p2 = document.getElementById('confirm-password').value;
+        const matchTxt = document.getElementById('pw-match-text');
+        
+        if (p2.length === 0) {
+            matchTxt.classList.add('hidden');
+        } else if (p1 !== p2) {
+            matchTxt.classList.remove('hidden');
+            matchTxt.innerText = '* Harap masukkan password baru yang sama';
+            matchTxt.className = 'text-[10px] mt-1.5 font-bold text-red-500 animate-pulse';
+        } else {
+            matchTxt.classList.remove('hidden');
+            matchTxt.innerText = '* Password cocok';
+            matchTxt.className = 'text-[10px] mt-1.5 font-bold text-green-500';
+        }
+    };
+
+    // --- PROSES API FIREBASE ---
+    window.submitNewPassword = async function() {
+        const nim = document.getElementById('sec-nim').value.trim();
+        const email = document.getElementById('sec-email').value.trim();
+        const oldPass = document.getElementById('old-password').value;
+        const newPass = document.getElementById('new-password').value;
+        const confPass = document.getElementById('confirm-password').value;
+        const btn = document.getElementById('btn-save-pass');
+
+        const user = auth.currentUser;
+        if(!user) return showToast('Belum login!', 'error');
+
+        // 1. Pengecekan NIM & Email (Validasi Lokal)
+        const myNim = STATE.currentUser.nim || '';
+        if (myNim && nim !== myNim) return showToast('NIM salah!', 'error');
+        if (email !== user.email) return showToast('Email salah!', 'error');
+
+        // 2. Pengecekan Input Kosong & Cocok
+        if (!oldPass || !newPass || !confPass) return showToast('Isi semua kolom!', 'warning');
+        if (newPass.length < 6) return showToast('Password terlalu lemah (Minimal 6)!', 'error');
+        if (newPass !== confPass) return showToast('Konfirmasi tidak cocok!', 'error');
+
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...';
+        btn.disabled = true;
+
+        try {
+            if (user.providerData.some(p => p.providerId === 'google.com')) {
+                throw new Error("Akun Google tidak bisa ganti password di sini!");
+            }
+
+            // 3. Verifikasi Password Lama (Jika gagal akan melempar error auth/wrong-password)
+            const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+            await user.reauthenticateWithCredential(credential);
+
+            // 4. Update Password
+            await user.updatePassword(newPass);
+
+            // 5. Kirim Link Konfirmasi Email
+            await user.sendEmailVerification();
+
+            showToast('Selesai! Silakan cek Email Anda untuk konfirmasi.', 'success');
+            
+            // 6. Logout Paksa
+            setTimeout(() => {
+                closeGlobalModal();
+                auth.signOut().then(() => window.location.replace(window.location.pathname + '?refresh=' + Date.now()));
+            }, 3000);
+
+        } catch(e) {
+            if (e.code === 'auth/wrong-password') {
+                showToast('Password lama salah!', 'error');
+            } else if (e.code === 'auth/requires-recent-login') {
+                showToast('Akses ditolak! Silakan LOGOUT manual dan LOGIN lagi.', 'error');
+            } else {
+                showToast('Gagal: ' + e.message, 'error');
+            }
+            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Ubah & Konfirmasi Email';
+            btn.disabled = false;
+        }
+    };
 
     // ========== DASHBOARD LAYOUT & TABS ==========
     function renderDashboardLayout(el) {
