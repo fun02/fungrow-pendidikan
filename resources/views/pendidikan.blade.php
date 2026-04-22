@@ -900,19 +900,25 @@
                 <h3 class="text-sm font-bold text-[color:var(--text)] flex items-center gap-2 mb-3"><i data-lucide="flame" class="w-4 h-4 text-orange-500"></i> Deadline Terdekat</h3>
                 <div class="flex gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar">
                     ${allAsg.length > 0 ? allAsg.map(a => `
-                        <div class="snap-start shrink-0 w-[240px] glass p-4 rounded-2xl border border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.08)] relative overflow-hidden flex flex-col justify-between h-[130px]">
-                            <div class="absolute -top-6 -right-6 w-16 h-16 bg-red-500/20 rounded-full blur-xl"></div>
-                            <div class="z-10">
-                                <div class="flex items-center gap-2 mb-2"><span class="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[9px] font-bold uppercase tracking-wider border border-red-500/20">DEADLINE</span></div>
-                                <h4 class="text-sm font-bold text-[color:var(--text)] mb-1 line-clamp-1">${a.title}</h4>
-                                <p class="text-[10px] text-[color:var(--text2)] truncate">${COURSES.find(c=>c.id===a.courseId)?.name || ''}</p>
-                            </div>
-                            <div class="text-[10px] font-bold text-orange-400 z-10 flex items-center gap-1 mt-2">
-                                <i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(a.deadline)}
-                            </div>
-                        </div>`).join('') : `<p class="text-[10px] text-[color:var(--text2)] italic px-2">Tidak ada tugas dalam waktu dekat.</p>`}
-                </div>
-            </div>
+<div class="snap-start shrink-0 w-[260px] glass p-4 rounded-2xl border border-red-500/30 shadow-[0_4px_20px_rgba(239,68,68,0.08)] relative overflow-hidden flex flex-col justify-between h-[140px]">
+    <div class="absolute -top-6 -right-6 w-16 h-16 bg-red-500/20 rounded-full blur-xl"></div>
+    <div class="z-10">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[9px] font-bold uppercase tracking-wider border border-red-500/20">DEADLINE</span>
+        </div>
+        <h4 class="text-sm font-bold text-[color:var(--text)] mb-1 line-clamp-1">${a.title}</h4>
+        <p class="text-[10px] text-[color:var(--text2)] truncate">${COURSES.find(c=>c.id===a.courseId)?.name || ''}</p>
+    </div>
+    
+    <div class="flex items-center justify-between mt-2 z-10">
+        <div class="text-[10px] font-bold text-orange-400 flex items-center gap-1">
+            <i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(a.deadline)}
+        </div>
+        <button onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')" class="text-[9px] font-extrabold px-2.5 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-all active:scale-95 shadow-sm">
+            LIHAT DETAIL
+        </button>
+    </div>
+</div>
             <div class="px-4 mt-2">
                 <h3 class="text-sm font-bold text-[color:var(--text)] flex items-center gap-2 mb-3"><i data-lucide="layout-grid" class="w-4 h-4 text-[#2563eb]"></i> Semua Kelas</h3>
                 <div class="grid grid-cols-2 gap-3">
@@ -1843,6 +1849,96 @@ window.showPromoModal = function() {
         } catch(e) { 
             showToast('Gagal menerbitkan tugas', 'error'); 
         }
+    };
+    // ==============================================
+    // REKOMENDASI TAMPILAN DETAIL TUGAS PREMIUM
+    // ==============================================
+    window.viewAssignmentDetail = (courseId, asgId) => {
+        const asg = STATE.assignments[courseId]?.find(a => a.id === asgId);
+        if(!asg) return showToast("Data tugas tidak ditemukan", "error");
+
+        showGlobalModal(`
+        <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto relative overflow-hidden">
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
+            
+            <div class="p-6 pb-4 border-b border-[color:var(--border)] relative z-10">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-bold uppercase tracking-widest border border-blue-500/20">
+                        Detail ${asg.title}
+                    </div>
+                    <button onclick="closeGlobalModal()" class="p-2 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <h2 class="text-2xl font-bold text-[color:var(--text)] leading-tight mb-1">${asg.courseName}</h2>
+                <div class="flex items-center gap-2 text-xs text-[color:var(--text2)] font-medium">
+                    <i data-lucide="user" class="w-3.5 h-3.5 text-blue-500"></i> ${asg.dosen}
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6 relative z-10">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3.5 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)]">
+                        <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold mb-1 tracking-wider">Target Tugas</p>
+                        <p class="text-sm font-bold text-[color:var(--text)] capitalize">${asg.type}</p>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-orange-500/5 border border-orange-500/20">
+                        <p class="text-[9px] uppercase text-orange-500 font-bold mb-1 tracking-wider">Batas Waktu</p>
+                        <p class="text-sm font-bold text-orange-500">${formatDate(asg.deadline)}</p>
+                    </div>
+                </div>
+
+                ${asg.type === 'kelompok' && asg.kelompok ? `
+                <div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center shadow-md"><i data-lucide="users" class="w-3.5 h-3.5"></i></div>
+                        <h4 class="text-xs font-bold text-indigo-500 uppercase tracking-wider">Info Kelompok</h4>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-0.5">Nama & Judul</p>
+                        <p class="text-sm font-bold text-[color:var(--text)]">${asg.kelompok.nama} - ${asg.kelompok.judul}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-[color:var(--text2)] font-bold uppercase mb-1">Anggota Kelompok</p>
+                        <div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-black/10 p-3 rounded-xl border border-white/5 whitespace-pre-line">${asg.kelompok.anggota}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div>
+                    <label class="flex items-center gap-2 text-xs font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-blue-500"></i> Keterangan Tugas
+                    </label>
+                    <div class="bg-[color:var(--surface)] p-4 rounded-2xl border border-[color:var(--border)] text-sm text-[color:var(--text)] leading-relaxed min-h-[100px] whitespace-pre-line">
+                        ${asg.description || 'Tidak ada keterangan tambahan.'}
+                    </div>
+                </div>
+
+                ${asg.attachment ? `
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-2 block">Lampiran File/Foto</label>
+                    <a href="${asg.attachment.url}" target="_blank" class="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 group hover:bg-emerald-500/20 transition-all">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <i data-lucide="${asg.attachment.type.startsWith('image/') ? 'image' : 'file-text'}" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-emerald-400 truncate">${asg.attachment.name}</p>
+                            <p class="text-[9px] text-[color:var(--text2)] uppercase font-medium">Klik untuk melihat file</p>
+                        </div>
+                        <i data-lucide="external-link" class="w-4 h-4 text-emerald-400 opacity-50"></i>
+                    </a>
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="p-6 bg-[color:var(--surface)] border-t border-[color:var(--border)]">
+                <button onclick="closeGlobalModal()" class="w-full py-4 rounded-2xl bg-[#0f172a] text-white font-bold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-blue-400"></i> SAYA MENGERTI
+                </button>
+            </div>
+        </div>
+        `, true);
+        lucide.createIcons();
     };
 
         // ========== LOGIKA FITUR TAMBAHAN (AI) ==========
