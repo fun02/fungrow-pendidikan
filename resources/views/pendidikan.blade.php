@@ -1850,6 +1850,7 @@ window.showPromoModal = function() {
             showToast('Gagal menerbitkan tugas', 'error'); 
         }
     };
+    
     // ==============================================
     // REKOMENDASI TAMPILAN DETAIL TUGAS PREMIUM
     // ==============================================
