@@ -1818,7 +1818,7 @@ window.showPromoModal = function() {
 
         showToast('AI sedang menyusun ringkasan...', 'warning');
         try {
-            const response = await fetch('/ai/summarize', { method: 'POST', headers { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt }) });
+            const response = await fetch('/ai/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt }) });
             const data = await response.json();
             showGlobalModal(`
                 <div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm animate-slide shadow-[0_15px_40px_rgba(99,102,241,0.2)] relative overflow-hidden">
