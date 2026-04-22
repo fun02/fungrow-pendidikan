@@ -484,7 +484,22 @@
         </div>`;
     }
 
-        // ========== LOGIKA KEAMANAN (VERIFIKASI 4 LAPIS & KEKUATAN PASSWORD) ==========
+    // ========== LOGIKA KEAMANAN (INLINE ERROR & FIREBASE V9 FIX) ==========
+    
+    // Fungsi bantuan untuk menampilkan/menyembunyikan teks merah di bawah kolom
+    window.hideInlineError = function(id) {
+        const el = document.getElementById(id);
+        if(el) el.classList.add('hidden');
+    };
+    window.showInlineError = function(id, msg) {
+        const el = document.getElementById(id);
+        if(el) {
+            el.innerText = '* ' + msg;
+            el.classList.remove('hidden');
+            el.classList.add('animate-pulse');
+        }
+    };
+
     window.openChangePasswordModal = function() {
         closeSidebar();
         showGlobalModal(`
@@ -506,24 +521,27 @@
                     <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Masukkan NIM</label>
                     <div class="relative">
                         <i data-lucide="id-card" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="text" id="sec-nim" placeholder="Ketik NIM Anda" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                        <input type="text" id="sec-nim" oninput="hideInlineError('err-nim')" placeholder="Ketik NIM Anda" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
                     </div>
+                    <p id="err-nim" class="text-[10px] mt-1.5 font-bold text-red-500 hidden"></p>
                 </div>
 
                 <div>
                     <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Masukkan Email</label>
                     <div class="relative">
                         <i data-lucide="mail" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="email" id="sec-email" placeholder="email@kampus.ac.id" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                        <input type="email" id="sec-email" oninput="hideInlineError('err-email')" placeholder="email@kampus.ac.id" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
                     </div>
+                    <p id="err-email" class="text-[10px] mt-1.5 font-bold text-red-500 hidden"></p>
                 </div>
 
                 <div>
                     <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
                     <div class="relative">
                         <i data-lucide="unlock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="old-password" placeholder="Password lama Anda" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                        <input type="password" id="old-password" oninput="hideInlineError('err-old-pass')" placeholder="Password lama Anda" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
                     </div>
+                    <p id="err-old-pass" class="text-[10px] mt-1.5 font-bold text-red-500 hidden"></p>
                 </div>
 
                 <div class="pt-2 border-t border-white/5">
@@ -536,7 +554,7 @@
                         <div class="flex-1 h-1.5 bg-[color:var(--border)] rounded-full overflow-hidden flex">
                             <div id="pw-bar" class="h-full w-0 transition-all duration-300"></div>
                         </div>
-                        <span id="pw-text" class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider w-16 text-right">Lemah</span>
+                        <span id="pw-text" class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider w-16 text-right">Kosong</span>
                     </div>
                 </div>
 
@@ -546,13 +564,13 @@
                         <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
                         <input type="password" id="confirm-password" oninput="checkPasswordMatch()" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
                     </div>
-                    <p id="pw-match-text" class="text-[10px] mt-2 font-bold hidden"></p>
+                    <p id="pw-match-text" class="text-[10px] mt-1.5 font-bold hidden"></p>
                 </div>
             </div>
 
             <div class="mt-8 relative z-10">
                 <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i> Ubah & Konfirmasi Email
+                    <i data-lucide="send" class="w-4 h-4"></i> Ubah Password & Kirim Link
                 </button>
                 <button onclick="closeGlobalModal()" class="w-full py-2.5 mt-2 rounded-xl text-[color:var(--text2)] font-bold text-xs uppercase tracking-wider hover:text-[color:var(--text)] transition-colors">Batal</button>
             </div>
@@ -560,11 +578,10 @@
         lucide.createIcons();
     }
 
-    // --- LOGIKA REAL-TIME UI KEKUATAN PASSWORD ---
+    // --- LOGIKA KEKUATAN & MATCHING ---
     window.checkPasswordStrength = function(val) {
         const bar = document.getElementById('pw-bar');
         const txt = document.getElementById('pw-text');
-        
         let strength = 0;
         if (val.length >= 6) strength += 1;
         if (val.match(/[a-zA-Z]/) && val.match(/[0-9]/)) strength += 1;
@@ -604,7 +621,7 @@
         }
     };
 
-        // --- PROSES API FIREBASE (VERSI BYPASS SUPER AKURAT) ---
+    // --- PROSES API FIREBASE ---
     window.submitNewPassword = async function() {
         const nim = document.getElementById('sec-nim').value.trim();
         const email = document.getElementById('sec-email').value.trim();
@@ -614,57 +631,84 @@
         const btn = document.getElementById('btn-save-pass');
 
         const user = auth.currentUser;
-        if(!user) return showToast('Belum login!', 'error');
+        if(!user) return;
 
-        // 1. Validasi Kolom Dasar
-        if (!nim || !email || !oldPass || !newPass || !confPass) return showToast('Isi semua kolom!', 'warning');
-        if (email !== user.email) return showToast('Email yang Anda masukkan salah!', 'error');
-        if (newPass.length < 6) return showToast('Password terlalu lemah (Minimal 6 karakter)!', 'error');
-        if (newPass !== confPass) return showToast('Konfirmasi password tidak cocok!', 'error');
+        // Reset semua tulisan error merah
+        ['err-nim', 'err-email', 'err-old-pass'].forEach(hideInlineError);
+
+        let hasError = false;
+
+        // 1. Validasi Lokal & Inline Error
+        if (!nim || !email || !oldPass || !newPass || !confPass) {
+            return showToast('Isi semua kolom terlebih dahulu!', 'warning');
+        }
+
+        const myNim = STATE.currentUser.nim || STATE.currentUser.NIM || '';
+        if (myNim && nim !== myNim) {
+            showInlineError('err-nim', 'NIM yang Anda masukkan tidak sesuai data kami.');
+            hasError = true;
+        }
+        if (email !== user.email) {
+            showInlineError('err-email', 'Email yang Anda masukkan tidak terdaftar di sesi ini.');
+            hasError = true;
+        }
+        if (newPass.length < 6) {
+            showToast('Password baru minimal 6 karakter!', 'error');
+            hasError = true;
+        }
+        if (newPass !== confPass) {
+            hasError = true; // Error match sudah dihandle secara real-time
+        }
+
+        if(hasError) return; // Berhenti jika ada error di tahap ini
 
         btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...';
         btn.disabled = true;
 
         try {
-            // 2. CEK NIM LANGSUNG KE DATABASE (Pasti Akurat)
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            const dataDb = userDoc.data() || {};
-            const myNim = dataDb.nim || dataDb.NIM || ''; // Antisipasi huruf besar/kecil
-            
-            if (myNim && nim !== myNim) {
-                btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Ubah & Konfirmasi Email';
-                btn.disabled = false;
-                return showToast('NIM yang Anda masukkan SALAH!', 'error');
+            // Pengecekan Login Google
+            if (user.providerData.some(p => p.providerId === 'google.com')) {
+                throw new Error("Akun Google tidak bisa ganti password di sini!");
             }
 
-            // 3. JURUS BYPASS: Login Ulang di Latar Belakang
-            // Ini akan mengecek password lama + menyegarkan sesi Firebase agar tidak error
+            // 2. Bypass Sesi & Cek Password Lama
             await auth.signInWithEmailAndPassword(user.email, oldPass);
 
-            // 4. Jika login latar belakang sukses (password lama benar), baru update password
+            // 3. Update Password
             await user.updatePassword(newPass);
 
-            // 5. Kirim Link Konfirmasi Email
+            // 4. Kirim Link Konfirmasi Email
             await user.sendEmailVerification();
 
-            showToast('Sukses! Silakan cek Kotak Masuk/Spam Email Anda.', 'success');
+            showGlobalModal(`
+                <div class="glass p-8 rounded-3xl w-full max-w-sm text-center border border-green-500/30">
+                    <div class="w-20 h-20 mx-auto bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="mail-check" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-[color:var(--text)] mb-2">Password Berhasil Diubah!</h2>
+                    <p class="text-sm text-[color:var(--text2)] leading-relaxed">Sistem telah mengirimkan link verifikasi ke <b class="text-[color:var(--text)]">${user.email}</b>. Silakan buka kotak masuk Anda.</p>
+                    <p class="text-xs text-amber-500 mt-4 font-bold animate-pulse">Mengalihkan ke halaman login...</p>
+                </div>
+            `, true);
+            lucide.createIcons();
             
-            // 6. Bersihkan sesi dan arahkan ke Halaman Login
+            // 5. Logout Paksa
             setTimeout(() => {
                 closeGlobalModal();
-                auth.signOut().then(() => window.location.replace(window.location.pathname + '?tes=100'));
-            }, 3000);
+                auth.signOut().then(() => window.location.replace(window.location.pathname + '?tes=200'));
+            }, 5000);
 
         } catch(e) {
-            console.error("Detail Error Keamanan:", e);
-            if (e.code === 'auth/wrong-password') {
-                showToast('Password Saat Ini (Lama) SALAH!', 'error');
+            console.error("Firebase Error Code:", e.code);
+            // PENANGKAL ERROR FIREBASE VERSI BARU
+            if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
+                showInlineError('err-old-pass', 'Password lama yang Anda masukkan salah.');
             } else if (e.code === 'auth/too-many-requests') {
-                showToast('Terlalu sering mencoba. Tunggu sejenak.', 'error');
+                showInlineError('err-old-pass', 'Terlalu banyak percobaan salah. Tunggu beberapa menit.');
             } else {
                 showToast('Gagal: ' + e.message, 'error');
             }
-            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Ubah & Konfirmasi Email';
+            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Ubah Password & Kirim Link';
             btn.disabled = false;
         }
     };
