@@ -1611,20 +1611,18 @@ window.showPromoModal = function() {
         }
     };                
 
-        // ==============================================
-    // PERBAIKAN FORM TUGAS (SWAP INSTAN - 1000% ANTI GELAP)
+    // ==============================================
+    // PERBAIKAN FORM TUGAS (SWAP DOM LANGSUNG & ANTI ERROR)
     // ==============================================
 
     window.toggleKelompokArea = function(val) {
         const area = document.getElementById('kelompok-area');
-        if(area) {
-            area.style.display = (val === 'kelompok') ? 'block' : 'none';
-        }
+        if(area) area.style.display = (val === 'kelompok') ? 'block' : 'none';
     };
 
     window.openAssignForm = () => {
         try {
-            // 1. Amankan nama dosen & kelas
+            // 1. Ambil nama mata kuliah dan dosen dengan aman
             let courseName = (typeof STATE !== 'undefined' && STATE.currentCourse) ? STATE.currentCourse.name : 'TUGAS KELAS';
             let dosenUI = "Dosen Pengampu";
             
@@ -1638,10 +1636,15 @@ window.showPromoModal = function() {
                 });
             }
 
-            // 2. JURUS SWAP INSTAN: Langsung timpa HTML-nya TANPA menutup modal!
-            // (Tidak ada lagi closeGlobalModal atau setTimeout di sini)
-            showGlobalModal(`
-            <div class="glass border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-md mx-auto">
+            // 2. BYPASS TOTAL: Langsung suntik ke HTML modal yang sedang terbuka!
+            const modalContent = document.getElementById('modal-content');
+            if(!modalContent) return showToast("Sistem error, muat ulang halaman.", "error");
+
+            modalContent.className = "w-full max-w-md mx-auto"; // Perbesar ukuran form
+            
+            // 3. Timpa isi layarnya secara instan (seperti ganti channel TV)
+            modalContent.innerHTML = `
+            <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full">
                 
                 <div class="bg-[#0f172a] text-white p-6 text-center rounded-t-3xl relative shrink-0">
                     <h2 class="text-xl font-extrabold tracking-wide uppercase mb-1">${courseName}</h2>
@@ -1649,7 +1652,6 @@ window.showPromoModal = function() {
                 </div>
 
                 <div class="p-5 md:p-6 space-y-6 bg-[color:var(--surface)]">
-                    
                     <div>
                         <label class="flex items-center gap-2 text-xs font-extrabold text-[color:var(--text)] uppercase tracking-wider mb-2">
                             <div class="w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center"><i data-lucide="file-text" class="w-3.5 h-3.5"></i></div>
@@ -1716,13 +1718,13 @@ window.showPromoModal = function() {
                         </button>
                     </div>
                 </div>
-            </div>`, true);
+            </div>`;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
         } catch(err) {
             console.error("ERROR MEMUAT FORM TUGAS:", err);
-            showToast("Gagal memuat form, silakan coba lagi.", "error");
+            showToast("Gagal memuat form.", "error");
         }
     };
 
