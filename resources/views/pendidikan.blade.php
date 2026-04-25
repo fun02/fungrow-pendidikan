@@ -593,74 +593,6 @@ window.getAboutHTML = function() {
         `;
     };
 
- function renderDashboardLayout(el) {
-        if(!STATE.dashboardTab) STATE.dashboardTab = 'home';
-
-        // Ambil foto profil atau inisial
-        const photo = STATE.currentUser?.photoURL ? 
-            `<img src="${STATE.currentUser.photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-[#2563eb] shadow-sm">` : 
-            `<div class="w-10 h-10 rounded-full flex items-center justify-center font-bold bg-[#2563eb] text-white border-2 border-[#2563eb] shadow-sm">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
-
-        el.innerHTML = `
-            <div class="flex flex-col h-full bg-[color:var(--bg)] text-[color:var(--text)] overflow-hidden relative">
-                
-                <header class="px-5 py-4 flex justify-between items-center shrink-0 bg-[color:var(--surface)] border-b border-[color:var(--border)] relative z-30 shadow-sm backdrop-blur-xl">
-                    <div class="flex items-center gap-3">
-                        <button onclick="switchTab('about')" class="shrink-0 active:scale-95 transition-transform">
-                            ${photo}
-                        </button>
-                        <div>
-                            <h2 class="text-sm font-black tracking-tight leading-none">${STATE.currentUser.displayName}</h2>
-                            <span class="text-[9px] font-bold uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block border border-blue-500/20">${STATE.currentUser.role}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)] active:scale-95 transition-all"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>
-                        <button onclick="handleAISummary()" class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg active:scale-95 transition-all"><i data-lucide="sparkles" class="w-5 h-5"></i></button>
-                    </div>
-                </header>
-
-                <main id="dashboard-content" class="flex-1 overflow-y-auto hide-scrollbar pb-[85px] relative pt-2">
-                </main>
-
-                <nav class="fixed bottom-0 left-0 right-0 h-[72px] bg-[color:var(--surface)] border-t border-[color:var(--border)] flex items-center justify-around px-2 z-50 backdrop-blur-xl pb-1 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-                    <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='home' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='home' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="home" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Home</span>
-                    </button>
-                    
-                    <button onclick="switchTab('jadwal')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='jadwal' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='jadwal' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="calendar" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Jadwal</span>
-                    </button>
-                    
-                    <button onclick="switchTab('kelas')" class="flex flex-col items-center justify-center -mt-8">
-                        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2563eb] to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-4 border-[color:var(--bg)] active:scale-95 transition-transform"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold text-[color:var(--text)] mt-1">Kelas</span>
-                    </button>
-                    
-                    ${STATE.currentUser?.role === 'admin' ? `
-                    <button onclick="switchTab('mahasiswa')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='mahasiswa' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='mahasiswa' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="users" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Data</span>
-                    </button>
-                    ` : `
-                    <button onclick="switchTab('tasks')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='tasks' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='tasks' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="check-square" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Tugas</span>
-                    </button>
-                    `}
-                    
-                    <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='settings' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='settings' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="settings" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Setelan</span>
-                    </button>
-                </nav>
-            </div>
-        `;
-        renderDashboardContent();
-    }
-
     
         // ========== LOGIKA DAFTAR (SIGNUP) + VERIFIKASI EMAIL ==========
     window.doLogin = async function() {
@@ -1075,8 +1007,6 @@ window.getAboutHTML = function() {
             btn.disabled = false;
         }
     };
-
-    // ========== DASHBOARD LAYOUT & TABS (NEW BOTTOM NAV ENTERPRISE) ==========
 
 
     // Fungsi Utama Pindah Tab
