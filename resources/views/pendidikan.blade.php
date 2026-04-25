@@ -1259,6 +1259,216 @@
         }
     };
 
+        // =====================================================================
+    // PAKET LENGKAP: FORM TUGAS (DESAIN + UPLOAD FILE + FIREBASE)
+    // =====================================================================
+
+    // 1. PASTIKAN WADAH FILE TERSEDIA
+    if (typeof STATE !== 'undefined') {
+        STATE.asgPendingFile = null;
+    }
+
+    // 2. FUNGSI SAKLAR PINTAR
+    window.toggleGroupSection = function(val) {
+        const sec = document.getElementById('group-section');
+        const memberInput = document.getElementById('asg-group-members');
+        if(val === 'kelompok') {
+            sec.classList.remove('hidden');
+            if(!memberInput.value.trim()) memberInput.value = "1. \n2. ";
+        } else {
+            sec.classList.add('hidden');
+        }
+    };
+
+    window.toggleJenisLainnya = function(val) {
+        const inputLainnya = document.getElementById('asg-jenis-lainnya');
+        if (val === 'Lainnya') {
+            inputLainnya.classList.remove('hidden');
+            inputLainnya.focus();
+        } else {
+            inputLainnya.classList.add('hidden');
+        }
+    };
+
+    // 3. FUNGSI PENANGKAP FILE (SUDAH DIPERBAIKI)
+    window.handleAsgFileUpload = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (file.size > 5 * 1024 * 1024) { 
+            alert("Gagal: Ukuran file maksimal 5 MB!");
+            event.target.value = ''; // Reset
+            return;
+        }
+        
+        STATE.asgPendingFile = file; 
+        
+        const uploadBox = document.getElementById('asg-upload-box');
+        const uploadText = document.getElementById('asg-upload-text');
+        const uploadIcon = document.getElementById('asg-upload-icon');
+        
+        if(uploadBox && uploadText && uploadIcon) {
+            uploadBox.classList.replace('border-slate-300', 'border-emerald-500');
+            uploadBox.classList.add('bg-emerald-50');
+            uploadText.innerText = "FILE SIAP: " + file.name;
+            uploadText.classList.add('text-emerald-700');
+            uploadIcon.classList.replace('text-[#0B1D3A]', 'text-emerald-500');
+        } else {
+            alert("Error: Elemen kotak upload tidak ditemukan di HTML!");
+        }
+    };
+
+    // 4. DESAIN POP-UP FORM TUGAS
+    window.openAssignForm = function() {
+        const dosenName = STATE.currentCourse?.dosen || STATE.currentUser?.displayName || 'Dosen Pengampu';
+        const courseName = STATE.currentCourse?.name?.toUpperCase() || 'MATA KULIAH';
+
+        showGlobalModal(`
+        <div class="bg-white w-full max-w-md mx-auto rounded-none sm:rounded-xl overflow-hidden shadow-2xl relative flex flex-col h-max max-h-[90vh]">
+            
+            <div class="bg-[#0B1D3A] px-6 py-5 text-center shrink-0">
+                <h2 class="text-white text-lg font-black tracking-wide">${courseName}</h2>
+                <p class="text-slate-300 text-[11px] mt-1 tracking-wider">${dosenName}</p>
+            </div>
+
+            <div class="p-5 md:p-6 overflow-y-auto hide-scrollbar space-y-6 bg-slate-50 flex-1">
+                
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-3 h-3"></i></div> JENIS TUGAS</label>
+                    <div class="relative">
+                        <select id="asg-jenis" onchange="window.toggleJenisLainnya(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                            <option value="" disabled selected hidden>Pilih jenis tugas</option>
+                            <option value="Makalah">Makalah</option>
+                            <option value="Proposal">Proposal</option>
+                            <option value="Karya Ilmiah">Karya Ilmiah</option>
+                            <option value="Tulis Tangan">Tulis Tangan</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                    </div>
+                    <input type="text" id="asg-jenis-lainnya" class="hidden w-full bg-white border border-slate-300 rounded-lg p-3 text-sm text-black font-medium outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm mt-3" placeholder="Ketik jenis tugas secara manual...">
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="users" class="w-3 h-3"></i></div> TARGET TUGAS</label>
+                    <div class="relative">
+                        <select id="asg-type" onchange="window.toggleGroupSection(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                            <option value="" disabled selected hidden>Pilih target tugas</option>
+                            <option value="individu">Tugas Individu</option>
+                            <option value="kelompok">Tugas Kelompok</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                    </div>
+
+                    <div id="group-section" class="hidden mt-3 p-4 border border-[#7DA0C4]/30 bg-[#F0F4F8] rounded-lg space-y-3 relative shadow-inner">
+                        <div class="absolute -top-2 left-6 w-4 h-4 bg-[#F0F4F8] border-t border-l border-[#7DA0C4]/30 transform rotate-45"></div>
+                        <div class="relative z-10">
+                            <label class="text-[10px] font-bold text-[#0B1D3A] uppercase tracking-wider mb-1 block">Nama Kelompok</label>
+                            <input type="text" id="asg-group-name" class="w-full bg-white border border-slate-300 rounded p-2.5 text-xs text-black font-bold outline-none focus:border-[#0B1D3A]" placeholder="Ketik nama kelompok..." value="Kelompok 1">
+                        </div>
+                        <div class="relative z-10">
+                            <label class="text-[10px] font-bold text-[#0B1D3A] uppercase tracking-wider mb-1 block">Daftar Anggota (Min. 2 Orang)</label>
+                            <textarea id="asg-group-members" class="w-full bg-white border border-slate-300 rounded p-2.5 text-xs text-black font-medium outline-none focus:border-[#0B1D3A] h-20 resize-none leading-relaxed" placeholder="1. Nama Anggota 1&#10;2. Nama Anggota 2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="clipboard-list" class="w-3 h-3"></i></div> KETERANGAN & LAMPIRAN</label>
+                    <textarea id="asg-desc" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] h-24 resize-none shadow-sm" placeholder="Tuliskan ketentuan tugas, referensi, dan informasi lainnya"></textarea>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="calendar" class="w-3 h-3"></i></div> WAKTU PENGUMPULAN</label>
+                    <input type="datetime-local" id="asg-deadline" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm cursor-pointer uppercase">
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="image" class="w-3 h-3"></i></div> UPLOAD FOTO (OPSIONAL)</label>
+                    <div onclick="document.getElementById('asg-file').click()" id="asg-upload-box" class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
+                        <i data-lucide="upload" id="asg-upload-icon" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2 transition-colors"></i>
+                        <p id="asg-upload-text" class="text-[10px] font-bold text-slate-700 truncate px-2">Klik untuk upload atau drag & drop file di sini</p>
+                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 5 MB)</p>
+                    </div>
+                    <input type="file" id="asg-file" class="hidden" accept="image/jpeg, image/png, application/pdf" onchange="window.handleAsgFileUpload(event)">
+                </div>
+
+            </div>
+
+            <div class="p-5 md:p-6 bg-white border-t border-slate-200 shrink-0 space-y-3">
+                <button onclick="window.submitNewAssignment()" id="btn-submit-asg" class="w-full py-3.5 bg-[#0B1D3A] hover:bg-[#1a3668] text-white rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                    <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN
+                </button>
+                <button onclick="closeGlobalModal()" class="w-full py-3.5 bg-white text-slate-600 border border-slate-300 rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors active:scale-[0.98]">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> TUTUP / KELUAR HALAMAN
+                </button>
+            </div>
+
+        </div>`, true);
+        
+        lucide.createIcons();
+    };
+
+    // 5. FUNGSI KIRIM KE DATABASE
+    window.submitNewAssignment = async function() {
+        let jenis = document.getElementById('asg-jenis').value;
+        const desc = document.getElementById('asg-desc').value.trim();
+        const type = document.getElementById('asg-type').value;
+        const deadlineRaw = document.getElementById('asg-deadline').value;
+        
+        if (jenis === 'Lainnya') {
+            jenis = document.getElementById('asg-jenis-lainnya').value.trim();
+            if (!jenis) return alert('Peringatan: Harap ketikkan jenis tugas manual Anda!');
+        } else if (!jenis) {
+            return alert('Peringatan: Harap pilih Jenis Tugas!');
+        }
+
+        if(!type || !deadlineRaw) return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
+
+        let kelompokData = null;
+        if (type === 'kelompok') {
+            const gName = document.getElementById('asg-group-name').value.trim();
+            const gMembers = document.getElementById('asg-group-members').value.trim();
+            if (!gName || !gMembers) return alert("Peringatan: Data kelompok belum lengkap!");
+            kelompokData = { nama: gName, judul: jenis.toUpperCase(), anggota: gMembers };
+        }
+        
+        const btn = document.getElementById('btn-submit-asg');
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MEMPROSES...';
+        btn.disabled = true;
+
+        try {
+            let fileUrl = null;
+            if (STATE.asgPendingFile) {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MENGUPLOAD FILE...';
+                fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
+            }
+
+            const deadlineDate = new Date(deadlineRaw);
+            
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
+                title: jenis.toUpperCase(),
+                description: desc,
+                type: type,
+                kelompok: kelompokData, 
+                deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
+                courseId: STATE.currentCourse.id,
+                courseName: STATE.currentCourse.name,
+                dosen: STATE.currentUser.displayName,
+                fileUrl: fileUrl, 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            alert('Tugas berhasil dipublikasikan ke kelas!');
+            STATE.asgPendingFile = null; 
+            closeGlobalModal();
+        } catch (e) {
+            alert('Terjadi kesalahan jaringan: ' + e.message);
+            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN';
+            btn.disabled = false;
+        }
+    };
+
 </script>
 </body>
 </html>
