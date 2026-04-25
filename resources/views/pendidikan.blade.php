@@ -158,7 +158,7 @@
 <input type="file" id="global-file-input" class="hidden" onchange="handleGlobalFileUpload(event)">
 
 <script>
-    // ========== FIREBASE CONFIGURATION ==========
+    // ========== FIREBASE CONFIG & STATE ==========
     const firebaseConfig = {
         apiKey: "{{ env('FIREBASE_API_KEY') }}",
         authDomain: "{{ env('FIREBASE_AUTH_DOMAIN') }}",
@@ -167,15 +167,8 @@
         messagingSenderId: "{{ env('FIREBASE_MESSAGING_SENDER_ID') }}",
         appId: "{{ env('FIREBASE_APP_ID') }}"
     };
-
-    function initializeFirebase() {
-        if (firebase.apps.length > 0) return true;
-        try { firebase.initializeApp(firebaseConfig); return true; } catch (error) { console.error('Firebase init failed:', error); throw error; }
-    }
-    initializeFirebase();
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    db.enablePersistence().catch(err => console.warn('Persistence error:', err));
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth(), db = firebase.firestore();
 
     const COURSES = [
         { id: 'mo', name: 'Manajemen Operasional', icon: '⚙️' },
@@ -188,117 +181,429 @@
         { id: 'emm', name: 'Ekonomi Makro dan Mikro', icon: '📈' }
     ];
 
-    // ========== FULL SCHEDULE DATA (SEMESTER 4) ==========
     const FULL_SCHEDULE = [
-        { day: 'Senin', items: [
-            { time: '08.00 - 10.30', code: 'MBS233', name: 'Manajemen Operasional', sks: 3, dosen: 'Slamet Wijiono, S.E., M.Si.', room: '204', id: 'mo' },
-            { time: '11.10 - 13.40', code: 'MBS234', name: 'Perilaku Konsumen', sks: 3, dosen: 'Bastomi Dani Umbara, S.E., M.M.', room: '203', id: 'pk' }
-        ]},
-        { day: 'Selasa', items: [
-            { time: '08.00 - 10.30', code: 'MBS202', name: 'Manajemen Strategi', sks: 3, dosen: 'Farida Umi Choiriyah, S.Pd., M.M.', room: '202', id: 'ms' },
-            { time: '11.10 - 13.40', code: 'MBS231', name: 'Sistem Informasi Manajemen', sks: 3, dosen: 'Bastomi Dani Umbara, S.E., M.M.', room: '202', id: 'sim' }
-        ]},
-        { day: 'Rabu', items: [
-            { time: '11.10 - 13.40', code: 'MBS230', name: 'Fiqh Muamalah Kontemporer', sks: 3, dosen: 'Miftakhul Jannah, S.Pd., M.E.', room: '202', id: 'fmk' }
-        ]},
-        { day: 'Kamis', items: [
-            { time: '11.10 - 13.40', code: 'MBS203', name: 'Manajemen Keuangan Syariah', sks: 3, dosen: 'Istiada, S.E., M.E.', room: '202', id: 'mks' },
-            { time: '14.00 - 16.30', code: 'MBS229', name: 'Akuntansi Keuangan Syariah', sks: 3, dosen: 'Siti Nur Azizatul Lutfiyah, S.E., M.E.', room: '203', id: 'aks' }
-        ]},
-        { day: 'Jumat', items: [
-            { time: '08.00 - 10.30', code: 'MBS232', name: 'Ekonomi Makro dan Mikro', sks: 3, dosen: 'Hamim, S.E., M.E.', room: '202', id: 'emm' }
-        ]}
+        { day: 'Senin', items: [{ time: '08.00 - 10.30', name: 'Manajemen Operasional', room: '204', id: 'mo' }, { time: '11.10 - 13.40', name: 'Perilaku Konsumen', room: '203', id: 'pk' }]},
+        { day: 'Selasa', items: [{ time: '08.00 - 10.30', name: 'Manajemen Strategi', room: '202', id: 'ms' }, { time: '11.10 - 13.40', name: 'Sistem Informasi Manajemen', room: '202', id: 'sim' }]},
+        { day: 'Rabu', items: [{ time: '11.10 - 13.40', name: 'Fiqh Muamalah Kontemporer', room: '202', id: 'fmk' }]},
+        { day: 'Kamis', items: [{ time: '11.10 - 13.40', name: 'Manajemen Keuangan Syariah', room: '202', id: 'mks' }, { time: '14.00 - 16.30', name: 'Akuntansi Keuangan Syariah', room: '203', id: 'aks' }]},
+        { day: 'Jumat', items: [{ time: '08.00 - 10.30', name: 'Ekonomi Makro dan Mikro', room: '202', id: 'emm' }]}
     ];
 
     const STATE = {
-        currentUser: null, isDark: true, currentCourse: null,
-        screen: 'loading', dashboardTab: 'kelas',
-        chats: {}, assignments: {}, unsubscribers: {},
-        isLoading: false, isRecording: false, recordingTimer: null, recordingSeconds: 0, audioChunks: [], mediaRecorder: null,
-        pinnedMessage: null, currentAsgAttachment: null
+        currentUser: null, isDark: true, currentCourse: null, screen: 'loading', dashboardTab: 'home',
+        chats: {}, assignments: {}, unsubscribers: {}, audioChunks: [], pinnedMessage: null, aiChatHistory: []
     };
 
-    function showToast(msg, type = 'success') {
-        const bgColor = type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#22c55e';
+    // ========== CORE FUNCTIONS ==========
+    function showToast(msg, type='success') {
         const toast = document.createElement('div');
-        toast.className = 'animate-fade fixed top-4 right-4 z-[3000] px-5 py-3 rounded-xl text-sm font-medium shadow-lg text-white';
-        toast.style.background = bgColor;
-        toast.textContent = msg;
-        document.body.appendChild(toast);
+        toast.className = 'animate-fade fixed top-4 right-4 z-[3000] px-5 py-3 rounded-xl text-sm font-bold shadow-lg text-white';
+        toast.style.background = type==='error'?'#ef4444':type==='warning'?'#f59e0b':'#22c55e';
+        toast.textContent = msg; document.body.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
     }
-
-    function formatTime(date) { const d = date?.toDate ? date.toDate() : new Date(date); return isNaN(d) ? '' : d.toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' }); }
-    function formatDate(date) { const d = date?.toDate ? date.toDate() : new Date(date); return isNaN(d) ? '' : d.toLocaleDateString('id', { year: 'numeric', month: 'long', day: 'numeric' }); }
-
-    function formatChatDateBadge(ts) {
-        if (!ts) return "Hari Ini";
-        const d = ts.toDate ? ts.toDate() : new Date(ts); const now = new Date();
-        const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const nDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const diffDays = Math.round((nDate - dDate) / (1000 * 60 * 60 * 24));
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        if (diffDays === 0) return "Hari Ini"; if (diffDays === 1) return "Kemarin";
-        if (diffDays > 1 && diffDays < 7) return days[d.getDay()];
-        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-    }
-    function formatRecTime(s) { return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; }
+    function formatDate(ts) { const d = ts?.toDate ? ts.toDate() : new Date(ts); return isNaN(d) ? '' : d.toLocaleDateString('id', { year: 'numeric', month: 'long', day: 'numeric' }); }
+    function formatTime(ts) { const d = ts?.toDate ? ts.toDate() : new Date(ts); return isNaN(d) ? '' : d.toLocaleTimeString('id', { hour: '2-digit', minute: '2-digit' }); }
 
     function toggleTheme() { STATE.isDark = !STATE.isDark; document.documentElement.classList.toggle('light', !STATE.isDark); renderFull(); }
-    function openSidebar() { document.getElementById('sidebar').classList.add('sidebar-open'); document.getElementById('sidebar-overlay').classList.add('overlay-open'); }
-    function closeSidebar() { document.getElementById('sidebar').classList.remove('sidebar-open'); document.getElementById('sidebar-overlay').classList.remove('overlay-open'); }
-    function switchTab(tabName) { STATE.dashboardTab = tabName; closeSidebar(); renderDashboardContent(); }
+    function switchTab(tab) { STATE.dashboardTab = tab; renderFull(); }
 
     function renderFull() {
-        const el = document.getElementById('app');
-        if (!el) return;
-        if (STATE.screen === 'loading') el.innerHTML = `<div class="h-full flex items-center justify-center font-bold text-xl text-[color:var(--text)]">Memuat...</div>`;
+        const el = document.getElementById('app'); if (!el) return;
+        if (STATE.screen === 'loading') el.innerHTML = `<div class="h-full flex items-center justify-center font-bold text-xl text-[color:var(--text)] animate-pulse">FunGrow Pendidikan...</div>`;
         else if (STATE.screen === 'login') renderLogin(el);
         else if (STATE.screen === 'dashboard') renderDashboardLayout(el);
         else if (STATE.screen === 'course') renderCourse(el);
         lucide.createIcons();
     }
 
-    function setupChatListener(courseId) {
-        if (STATE.unsubscribers[`chat_${courseId}`]) STATE.unsubscribers[`chat_${courseId}`]();
-        STATE.unsubscribers[`chat_${courseId}`] = db.collection('courses').doc(courseId).collection('chats').orderBy('timestamp', 'asc').limit(150).onSnapshot(snapshot => {
-            STATE.chats[courseId] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMessagesOnly();
-        });
-    }
-    function setupCourseDocumentListener(courseId) {
-        if (STATE.unsubscribers[`doc_${courseId}`]) STATE.unsubscribers[`doc_${courseId}`]();
-        STATE.unsubscribers[`doc_${courseId}`] = db.collection('courses').doc(courseId).onSnapshot(doc => {
-            STATE.pinnedMessage = doc.exists ? doc.data().pinnedMessage : null; renderPinnedOnly();
-        });
-    }
-
-    // ========== LOGIKA PRIVASI TUGAS ==========
-    function setupAssignmentListener(courseId) {
-        if (STATE.unsubscribers[`assign_${courseId}`]) STATE.unsubscribers[`assign_${courseId}`]();
-        STATE.unsubscribers[`assign_${courseId}`] = db.collection('courses').doc(courseId).collection('assignments').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-            const allAsg = snapshot.docs.map(doc => ({ id: doc.id, courseId: courseId, ...doc.data() }));
-            STATE.assignments[courseId] = allAsg.filter(a => {
-                const myRole = STATE.currentUser?.role || 'mahasiswa';
-                const myUid = STATE.currentUser?.uid;
-                if (myRole === 'admin' || myRole === 'dosen') return true;
-                return (a.createdByRole === 'admin' || a.createdByRole === 'dosen' || a.createdBy === myUid);
-            });
-            if(STATE.dashboardTab === 'kelas') renderDashboardContent();
-            if(STATE.screen === 'course') renderPinnedOnly();
-        });
-    }
-
+    // ========== AUTH & LISTENERS ==========
     auth.onAuthStateChanged(async (user) => {
         if (user) {
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get(); const userData = userDoc.exists ? userDoc.data() : {};
-                STATE.currentUser = { uid: user.uid, email: user.email, nim: userData.nim, displayName: user.displayName || userData.displayName || 'User', photoURL: user.photoURL || userData.photoURL, role: userData.role || 'user', joined: user.metadata?.creationTime };
-                STATE.screen = 'dashboard'; STATE.dashboardTab = 'home';
-                COURSES.forEach(c => setupAssignmentListener(c.id));
-            } catch (e) { STATE.screen = 'login'; }
-        } else { STATE.currentUser = null; STATE.screen = 'login'; }
+            const doc = await db.collection('users').doc(user.uid).get();
+            const data = doc.exists ? doc.data() : {};
+            STATE.currentUser = { uid: user.uid, ...data, displayName: user.displayName || data.displayName || 'User' };
+            STATE.screen = 'dashboard';
+            COURSES.forEach(c => setupAssignmentListener(c.id));
+        } else { STATE.screen = 'login'; }
         renderFull();
     });
+
+    function setupAssignmentListener(courseId) {
+        if (STATE.unsubscribers[`asg_${courseId}`]) STATE.unsubscribers[`asg_${courseId}`]();
+        STATE.unsubscribers[`asg_${courseId}`] = db.collection('courses').doc(courseId).collection('assignments').onSnapshot(snap => {
+            STATE.assignments[courseId] = snap.docs.map(d => ({ id: d.id, courseId, ...d.data() }));
+            if(STATE.screen === 'dashboard') renderDashboardContent();
+        });
+    }
+
+    // ========== UI: DASHBOARD ENTERPRISE (BOTTOM NAV) ==========
+    function renderDashboardLayout(el) {
+        const photo = STATE.currentUser?.photoURL ? 
+            `<img src="${STATE.currentUser.photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-[#2563eb]">` : 
+            `<div class="w-10 h-10 rounded-full flex items-center justify-center font-bold bg-[#2563eb] text-white border-2 border-[#2563eb]">${STATE.currentUser?.displayName?.[0]}</div>`;
+
+        el.innerHTML = `
+        <div class="flex flex-col h-full bg-[color:var(--bg)] text-[color:var(--text)] overflow-hidden">
+            <header class="px-5 py-4 flex justify-between items-center shrink-0 bg-[color:var(--surface)] border-b border-[color:var(--border)] backdrop-blur-xl z-30">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('about')" class="shrink-0 active:scale-95 transition-transform">${photo}</button>
+                    <div><h2 class="text-sm font-black leading-none">${STATE.currentUser.displayName}</h2><span class="text-[9px] font-bold uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block">${STATE.currentUser.role}</span></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)]"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>
+                    <button onclick="handleAISummary()" class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg"><i data-lucide="sparkles" class="w-5 h-5"></i></button>
+                </div>
+            </header>
+
+            <main id="dashboard-content" class="flex-1 overflow-y-auto hide-scrollbar pb-24 pt-2"></main>
+
+            <nav class="fixed bottom-0 left-0 right-0 h-[72px] bg-[color:var(--surface)] border-t border-[color:var(--border)] flex items-center justify-around px-2 z-50 backdrop-blur-xl pb-1">
+                <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='home'?'text-[#2563eb]':'text-[color:var(--text2)]'}">
+                    <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='home'?'bg-blue-500/10':''}"><i data-lucide="home" class="w-6 h-6"></i></div>
+                    <span class="text-[9px] font-bold">Home</span>
+                </button>
+                <button onclick="switchTab('jadwal')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='jadwal'?'text-[#2563eb]':'text-[color:var(--text2)]'}">
+                    <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='jadwal'?'bg-blue-500/10':''}"><i data-lucide="calendar" class="w-6 h-6"></i></div>
+                    <span class="text-[9px] font-bold">Jadwal</span>
+                </button>
+                <button onclick="switchTab('kelas')" class="flex flex-col items-center -mt-8">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2563eb] to-indigo-600 text-white flex items-center justify-center shadow-lg border-4 border-[color:var(--bg)]"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></div>
+                    <span class="text-[9px] font-bold mt-1">Kelas</span>
+                </button>
+                <button onclick="switchTab('tasks')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='tasks'?'text-[#2563eb]':'text-[color:var(--text2)]'}">
+                    <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='tasks'?'bg-blue-500/10':''}"><i data-lucide="check-square" class="w-6 h-6"></i></div>
+                    <span class="text-[9px] font-bold">Tugas</span>
+                </button>
+                <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='settings'?'text-[#2563eb]':'text-[color:var(--text2)]'}">
+                    <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='settings'?'bg-blue-500/10':''}"><i data-lucide="settings" class="w-6 h-6"></i></div>
+                    <span class="text-[9px] font-bold">Setelan</span>
+                </button>
+            </nav>
+        </div>`;
+        renderDashboardContent();
+    }
+
+    function renderDashboardContent() {
+        const container = document.getElementById('dashboard-content'); if (!container) return;
+        if (STATE.dashboardTab === 'home') container.innerHTML = getHomeHTML();
+        else if (STATE.dashboardTab === 'kelas') container.innerHTML = getKelasHTML();
+        else if (STATE.dashboardTab === 'jadwal') container.innerHTML = getJadwalHTML();
+        else if (STATE.dashboardTab === 'about') container.innerHTML = getAboutHTML();
+        else if (STATE.dashboardTab === 'tasks') container.innerHTML = renderAllAssignments();
+        else if (STATE.dashboardTab === 'settings') container.innerHTML = renderSettings();
+        lucide.createIcons();
+    }
+
+    // ========== FITUR: TUGAS & TO-DO LIST ==========
+    window.renderAllAssignments = function() {
+        let allAsg = Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0));
+        const listHTML = allAsg.map(a => `
+            <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 active:scale-95 transition-all cursor-pointer shadow-sm relative overflow-hidden mb-3" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#2563eb]"></div>
+                <div class="w-12 h-12 rounded-xl bg-[color:var(--card)] flex items-center justify-center text-xl shrink-0">${COURSES.find(c=>c.id===a.courseId)?.icon || '📝'}</div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-[13px] truncate uppercase">${a.title}</h4>
+                    <p class="text-[9px] text-orange-500 font-bold uppercase tracking-wider">${formatDate(a.deadline)}</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-5 h-5 opacity-30"></i>
+            </div>
+        `).join('');
+
+        const todos = STATE.currentUser.todos || [];
+        const todoHTML = todos.map(t => `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-[color:var(--surface)] border border-[color:var(--border)] mb-2 shadow-sm ${t.done?'opacity-50':''}">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="toggleTodo('${t.id}')">
+                    <div class="w-5 h-5 rounded border ${t.done?'bg-emerald-500 border-emerald-500 text-white':'border-[color:var(--text2)] text-transparent'} flex items-center justify-center"><i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                    <span class="text-sm font-medium ${t.done?'line-through':''}">${t.text}</span>
+                </div>
+                <button onclick="deleteTodo('${t.id}')" class="text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+        `).join('');
+
+        return `
+            <div class="p-5 animate-fade">
+                <h2 class="text-xl font-black mb-4">Tugas Kuliah</h2>
+                <div class="mb-8">${listHTML || '<p class="text-xs italic opacity-50">Tidak ada tugas.</p>'}</div>
+                <div class="h-px bg-[color:var(--border)] mb-6"></div>
+                <h2 class="text-xl font-black mb-4">Catatan Pribadi</h2>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="todo-input" class="flex-1 bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-xl p-3 text-sm outline-none" placeholder="Target baru...">
+                    <button onclick="saveTodo()" class="bg-[#2563eb] text-white px-4 rounded-xl shadow-lg shadow-blue-500/30"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                </div>
+                <div id="todo-list">${todoHTML || '<p class="text-xs italic opacity-50">Catatan kosong.</p>'}</div>
+            </div>
+        `;
+    };
+
+    window.saveTodo = async function() {
+        const val = document.getElementById('todo-input').value.trim(); if(!val) return;
+        const newTodos = [...(STATE.currentUser.todos || []), { id: Date.now().toString(), text: val, done: false }];
+        STATE.currentUser.todos = newTodos; renderDashboardContent();
+        await db.collection('users').doc(STATE.currentUser.uid).update({ todos: newTodos });
+    };
+    window.toggleTodo = async function(id) {
+        const newTodos = STATE.currentUser.todos.map(t => t.id===id?{...t, done:!t.done}:t);
+        STATE.currentUser.todos = newTodos; renderDashboardContent();
+        await db.collection('users').doc(STATE.currentUser.uid).update({ todos: newTodos });
+    };
+    window.deleteTodo = async function(id) {
+        const newTodos = STATE.currentUser.todos.filter(t => t.id!==id);
+        STATE.currentUser.todos = newTodos; renderDashboardContent();
+        await db.collection('users').doc(STATE.currentUser.uid).update({ todos: newTodos });
+    };
+
+    // ========== SETTINGS & SECURITY ==========
+    window.renderSettings = function() {
+        return `
+            <div class="p-6 animate-fade">
+                <h2 class="text-xl font-black mb-6">Pengaturan</h2>
+                <div class="glass p-5 rounded-3xl border border-[color:var(--border)] mb-4">
+                    <div class="flex items-center gap-4 mb-4 pb-3 border-b border-[color:var(--border)]"><i data-lucide="shield-check" class="w-6 h-6 text-red-500"></i><div><h3 class="font-bold text-sm">Keamanan</h3><p class="text-[9px] opacity-60">Proteksi akun Anda.</p></div></div>
+                    <button onclick="openChangePasswordModal()" class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)]"><span>Ganti Password</span><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+                <button onclick="auth.signOut()" class="w-full py-4 rounded-3xl bg-red-500/10 text-red-500 font-black text-xs border border-red-500/20">KELUAR DARI SISTEM</button>
+            </div>
+        `;
+    };
+
+    // (Pindahkan fungsi getHomeHTML, getKelasHTML, getJadwalHTML, getAboutHTML, dan fungsi bantuan lainnya ke sini secara bertahap agar tidak kepanjangan)
+
+        function getHomeHTML() {
+        return `
+            <div class="space-y-5 animate-fade px-4 py-2">
+                
+                <div class="flex items-center justify-between glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)]">
+                    <div>
+                        <p class="text-sm text-[color:var(--text2)] mb-0.5">Selamat datang kembali,</p>
+                        <h2 class="text-xl font-bold text-[color:var(--text)]">Hai, ${STATE.currentUser?.displayName?.split(' ')[0] || 'Siswa'}! 👋</h2>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg border-2 border-white/20">
+                        ${STATE.currentUser?.displayName?.charAt(0).toUpperCase() || 'S'}
+                    </div>
+                </div>
+
+                <div class="swiper banner-swiper">
+                    <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+                            <div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group">
+                                <img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <div class="swiper-slide">
+                            <div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group">
+                                <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-pagination"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center mb-3">
+                            <i data-lucide="flame" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">0</h3>
+                        <p class="text-xs text-[color:var(--text2)] font-medium">Tugas Mendesak</p>
+                    </div>
+                    
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer">
+                        <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center mb-3">
+                            <i data-lucide="book-open" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">6</h3>
+                        <p class="text-xs text-[color:var(--text2)] font-medium">Total Modul</p>
+                    </div>
+                </div>
+                
+            </div>`;
+    }
+    
+function getJadwalHTML() {
+        const scheduleList = FULL_SCHEDULE.map(dayObj => `
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="h-px bg-[color:var(--border)] flex-1"></div>
+                    <h3 class="text-xs font-bold text-[#2563eb] tracking-wider uppercase">${dayObj.day}</h3>
+                    <div class="h-px bg-[color:var(--border)] flex-1"></div>
+                </div>
+                <div class="space-y-3">
+                    ${dayObj.items.map(c => `
+                        <div class="glass p-4 rounded-2xl border border-[color:var(--border)] shadow-sm relative overflow-hidden group">
+                            <div class="absolute top-0 left-0 w-1.5 h-full bg-[#2563eb] opacity-80"></div>
+                            <div class="flex justify-between items-start mb-2 pl-2">
+                                <div>
+                                    <h4 class="font-bold text-sm text-[color:var(--text)] leading-tight mb-1">${c.name}</h4>
+                                    <p class="text-[10px] font-mono text-[color:var(--text2)] bg-[color:var(--card)] inline-block px-1.5 py-0.5 rounded border border-[color:var(--border)]">${c.code}</p>
+                                </div>
+                                <span class="text-[11px] font-bold text-[#2563eb] bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 shrink-0">${c.time}</span>
+                            </div>
+                            <div class="pl-2 mt-3 flex flex-col gap-1.5">
+                                <div class="flex items-center gap-2"><i data-lucide="user" class="w-3.5 h-3.5 text-[color:var(--text2)]"></i><span class="text-[11px] text-[color:var(--text)]">${c.dosen}</span></div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-2"><i data-lucide="door-open" class="w-3.5 h-3.5 text-emerald-500"></i><span class="text-[11px] text-[color:var(--text)] font-medium">Ruang ${c.room}</span></div>
+                                    <div class="flex items-center gap-2"><i data-lucide="book-copy" class="w-3.5 h-3.5 text-orange-500"></i><span class="text-[11px] text-[color:var(--text)] font-medium">${c.sks} SKS</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+        return `
+        <div class="animate-fade px-4 py-2">
+            <h2 class="text-lg font-bold text-[color:var(--text)] mb-1">Jadwal Perkuliahan</h2>
+            <p class="text-xs text-[color:var(--text2)] mb-6">SEMESTER IV (EMPAT)</p>
+            ${scheduleList}
+        </div>`;
+    }
+    
+window.getAboutHTML = function() {
+        const user = STATE.currentUser || {};
+        
+        // Tentukan gambar profil (pakai foto asli atau inisial jika kosong)
+        const photoContent = user.photoURL ? 
+            `<img src="${user.photoURL}" class="w-full h-full object-cover rounded-full" id="prof-photo-img">` :
+            `<div class="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/20" id="prof-photo-initial">
+                ${user.displayName ? user.displayName.charAt(0).toUpperCase() : 'M'}
+            </div>`;
+
+        return `
+        <div class="animate-fade px-4 py-2 space-y-4 pb-20">
+            <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)] flex items-center gap-4">
+                
+                <div class="relative group cursor-pointer flex-shrink-0" onclick="pilihFotoProfil()">
+                    <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-indigo-500/50 group-hover:border-indigo-500 transition-colors">
+                        ${photoContent}
+                    </div>
+                    <div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="camera" class="w-5 h-5"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-bold text-[color:var(--text)]">Profil Akademik</h2>
+                    <p class="text-xs text-[color:var(--text2)]">Ketuk foto untuk mengubahnya</p>
+                </div>
+            </div>
+
+            <input type="file" id="input-foto-profil" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
+
+            <div class="glass p-6 rounded-3xl border border-[color:var(--border)] relative">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Nama Lengkap</label>
+                        <input type="text" id="prof-nama" value="${user.displayName || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] font-medium" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">NIM / Nomor Induk</label>
+                        <input type="text" id="prof-nim" value="${user.nim || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] opacity-70 cursor-not-allowed" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Akun Email (Gmail)</label>
+                        <input type="text" id="prof-email" value="${user.email || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] opacity-70 cursor-not-allowed" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Tanggal Lahir</label>
+                        <input type="date" id="prof-tglLahir" value="${user.tglLahir || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Fakultas</label>
+                        <input type="text" id="prof-fakultas" value="${user.fakultas || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Program Studi</label>
+                        <input type="text" id="prof-prodi" value="${user.prodi || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
+                    </div>
+                    <div class="md:col-span-2 mt-2">
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Alamat Lengkap</label>
+                        <textarea id="prof-alamat" rows="2" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input resize-none" disabled>${user.alamat || ''}</textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-[color:var(--border)]">
+                    <button id="btn-edit-prof" onclick="toggleEditProfil()" class="px-5 py-2.5 rounded-xl font-bold bg-[color:var(--surface)] text-[color:var(--text)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-500 transition-all flex items-center gap-2">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Profil
+                        <div id="loading-change-password" class="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin hidden"></div>
+                    </button>
+                    <button id="btn-save-prof" onclick="simpanProfil()" class="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hidden hover:bg-indigo-700 hover:scale-105 transition-all flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    };
+
+ function renderDashboardLayout(el) {
+        if(!STATE.dashboardTab) STATE.dashboardTab = 'home';
+
+        // Ambil foto profil atau inisial
+        const photo = STATE.currentUser?.photoURL ? 
+            `<img src="${STATE.currentUser.photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-[#2563eb] shadow-sm">` : 
+            `<div class="w-10 h-10 rounded-full flex items-center justify-center font-bold bg-[#2563eb] text-white border-2 border-[#2563eb] shadow-sm">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
+
+        el.innerHTML = `
+            <div class="flex flex-col h-full bg-[color:var(--bg)] text-[color:var(--text)] overflow-hidden relative">
+                
+                <header class="px-5 py-4 flex justify-between items-center shrink-0 bg-[color:var(--surface)] border-b border-[color:var(--border)] relative z-30 shadow-sm backdrop-blur-xl">
+                    <div class="flex items-center gap-3">
+                        <button onclick="switchTab('about')" class="shrink-0 active:scale-95 transition-transform">
+                            ${photo}
+                        </button>
+                        <div>
+                            <h2 class="text-sm font-black tracking-tight leading-none">${STATE.currentUser.displayName}</h2>
+                            <span class="text-[9px] font-bold uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block border border-blue-500/20">${STATE.currentUser.role}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)] active:scale-95 transition-all"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>
+                        <button onclick="handleAISummary()" class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg active:scale-95 transition-all"><i data-lucide="sparkles" class="w-5 h-5"></i></button>
+                    </div>
+                </header>
+
+                <main id="dashboard-content" class="flex-1 overflow-y-auto hide-scrollbar pb-[85px] relative pt-2">
+                </main>
+
+                <nav class="fixed bottom-0 left-0 right-0 h-[72px] bg-[color:var(--surface)] border-t border-[color:var(--border)] flex items-center justify-around px-2 z-50 backdrop-blur-xl pb-1 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+                    <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='home' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='home' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="home" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Home</span>
+                    </button>
+                    
+                    <button onclick="switchTab('jadwal')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='jadwal' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='jadwal' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="calendar" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Jadwal</span>
+                    </button>
+                    
+                    <button onclick="switchTab('kelas')" class="flex flex-col items-center justify-center -mt-8">
+                        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2563eb] to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-4 border-[color:var(--bg)] active:scale-95 transition-transform"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold text-[color:var(--text)] mt-1">Kelas</span>
+                    </button>
+                    
+                    ${STATE.currentUser?.role === 'admin' ? `
+                    <button onclick="switchTab('mahasiswa')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='mahasiswa' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='mahasiswa' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="users" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Data</span>
+                    </button>
+                    ` : `
+                    <button onclick="switchTab('tasks')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='tasks' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='tasks' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="check-square" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Tugas</span>
+                    </button>
+                    `}
+                    
+                    <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='settings' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='settings' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="settings" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Setelan</span>
+                    </button>
+                </nav>
+            </div>
+        `;
+        renderDashboardContent();
+    }
+
     
         // ========== LOGIKA DAFTAR (SIGNUP) + VERIFIKASI EMAIL ==========
     window.doLogin = async function() {
@@ -715,73 +1020,7 @@
     };
 
     // ========== DASHBOARD LAYOUT & TABS (NEW BOTTOM NAV ENTERPRISE) ==========
-    function renderDashboardLayout(el) {
-        if(!STATE.dashboardTab) STATE.dashboardTab = 'home';
 
-        // Ambil foto profil atau inisial
-        const photo = STATE.currentUser?.photoURL ? 
-            `<img src="${STATE.currentUser.photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-[#2563eb] shadow-sm">` : 
-            `<div class="w-10 h-10 rounded-full flex items-center justify-center font-bold bg-[#2563eb] text-white border-2 border-[#2563eb] shadow-sm">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
-
-        el.innerHTML = `
-            <div class="flex flex-col h-full bg-[color:var(--bg)] text-[color:var(--text)] overflow-hidden relative">
-                
-                <header class="px-5 py-4 flex justify-between items-center shrink-0 bg-[color:var(--surface)] border-b border-[color:var(--border)] relative z-30 shadow-sm backdrop-blur-xl">
-                    <div class="flex items-center gap-3">
-                        <button onclick="switchTab('about')" class="shrink-0 active:scale-95 transition-transform">
-                            ${photo}
-                        </button>
-                        <div>
-                            <h2 class="text-sm font-black tracking-tight leading-none">${STATE.currentUser.displayName}</h2>
-                            <span class="text-[9px] font-bold uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block border border-blue-500/20">${STATE.currentUser.role}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)] active:scale-95 transition-all"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>
-                        <button onclick="handleAISummary()" class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg active:scale-95 transition-all"><i data-lucide="sparkles" class="w-5 h-5"></i></button>
-                    </div>
-                </header>
-
-                <main id="dashboard-content" class="flex-1 overflow-y-auto hide-scrollbar pb-[85px] relative pt-2">
-                </main>
-
-                <nav class="fixed bottom-0 left-0 right-0 h-[72px] bg-[color:var(--surface)] border-t border-[color:var(--border)] flex items-center justify-around px-2 z-50 backdrop-blur-xl pb-1 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-                    <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='home' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='home' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="home" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Home</span>
-                    </button>
-                    
-                    <button onclick="switchTab('jadwal')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='jadwal' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='jadwal' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="calendar" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Jadwal</span>
-                    </button>
-                    
-                    <button onclick="switchTab('kelas')" class="flex flex-col items-center justify-center -mt-8">
-                        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2563eb] to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-4 border-[color:var(--bg)] active:scale-95 transition-transform"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold text-[color:var(--text)] mt-1">Kelas</span>
-                    </button>
-                    
-                    ${STATE.currentUser?.role === 'admin' ? `
-                    <button onclick="switchTab('mahasiswa')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='mahasiswa' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='mahasiswa' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="users" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Data</span>
-                    </button>
-                    ` : `
-                    <button onclick="switchTab('tasks')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='tasks' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='tasks' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="check-square" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Tugas</span>
-                    </button>
-                    `}
-                    
-                    <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='settings' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
-                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='settings' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="settings" class="w-6 h-6"></i></div>
-                        <span class="text-[9px] font-bold">Setelan</span>
-                    </button>
-                </nav>
-            </div>
-        `;
-        renderDashboardContent();
-    }
 
     // Fungsi Utama Pindah Tab
     window.switchTab = function(tabName) {
@@ -825,56 +1064,6 @@
         lucide.createIcons();
     }
 
-        function getHomeHTML() {
-        return `
-            <div class="space-y-5 animate-fade px-4 py-2">
-                
-                <div class="flex items-center justify-between glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)]">
-                    <div>
-                        <p class="text-sm text-[color:var(--text2)] mb-0.5">Selamat datang kembali,</p>
-                        <h2 class="text-xl font-bold text-[color:var(--text)]">Hai, ${STATE.currentUser?.displayName?.split(' ')[0] || 'Siswa'}! 👋</h2>
-                    </div>
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg border-2 border-white/20">
-                        ${STATE.currentUser?.displayName?.charAt(0).toUpperCase() || 'S'}
-                    </div>
-                </div>
-
-                <div class="swiper banner-swiper">
-                    <div class="swiper-wrapper">
-                        <div class="swiper-slide">
-                            <div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group">
-                                <img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover">
-                            </div>
-                        </div>
-                        <div class="swiper-slide">
-                            <div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group">
-                                <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="swiper-pagination"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer">
-                        <div class="w-12 h-12 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center mb-3">
-                            <i data-lucide="flame" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">0</h3>
-                        <p class="text-xs text-[color:var(--text2)] font-medium">Tugas Mendesak</p>
-                    </div>
-                    
-                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center hover:scale-105 transition-transform cursor-pointer">
-                        <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center mb-3">
-                            <i data-lucide="book-open" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">6</h3>
-                        <p class="text-xs text-[color:var(--text2)] font-medium">Total Modul</p>
-                    </div>
-                </div>
-                
-            </div>`;
-    }
     
         window.getKelasHTML = function() {
         const currentDayIndex = new Date().getDay();
@@ -940,104 +1129,6 @@
             </div>`;
     }
 
-    function getJadwalHTML() {
-        const scheduleList = FULL_SCHEDULE.map(dayObj => `
-            <div class="mb-6">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="h-px bg-[color:var(--border)] flex-1"></div>
-                    <h3 class="text-xs font-bold text-[#2563eb] tracking-wider uppercase">${dayObj.day}</h3>
-                    <div class="h-px bg-[color:var(--border)] flex-1"></div>
-                </div>
-                <div class="space-y-3">
-                    ${dayObj.items.map(c => `
-                        <div class="glass p-4 rounded-2xl border border-[color:var(--border)] shadow-sm relative overflow-hidden group">
-                            <div class="absolute top-0 left-0 w-1.5 h-full bg-[#2563eb] opacity-80"></div>
-                            <div class="flex justify-between items-start mb-2 pl-2">
-                                <div>
-                                    <h4 class="font-bold text-sm text-[color:var(--text)] leading-tight mb-1">${c.name}</h4>
-                                    <p class="text-[10px] font-mono text-[color:var(--text2)] bg-[color:var(--card)] inline-block px-1.5 py-0.5 rounded border border-[color:var(--border)]">${c.code}</p>
-                                </div>
-                                <span class="text-[11px] font-bold text-[#2563eb] bg-blue-500/10 px-2 py-1 rounded-lg border border-blue-500/20 shrink-0">${c.time}</span>
-                            </div>
-                            <div class="pl-2 mt-3 flex flex-col gap-1.5">
-                                <div class="flex items-center gap-2"><i data-lucide="user" class="w-3.5 h-3.5 text-[color:var(--text2)]"></i><span class="text-[11px] text-[color:var(--text)]">${c.dosen}</span></div>
-                                <div class="flex items-center gap-4">
-                                    <div class="flex items-center gap-2"><i data-lucide="door-open" class="w-3.5 h-3.5 text-emerald-500"></i><span class="text-[11px] text-[color:var(--text)] font-medium">Ruang ${c.room}</span></div>
-                                    <div class="flex items-center gap-2"><i data-lucide="book-copy" class="w-3.5 h-3.5 text-orange-500"></i><span class="text-[11px] text-[color:var(--text)] font-medium">${c.sks} SKS</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `).join('');
-        return `
-        <div class="animate-fade px-4 py-2">
-            <h2 class="text-lg font-bold text-[color:var(--text)] mb-1">Jadwal Perkuliahan</h2>
-            <p class="text-xs text-[color:var(--text2)] mb-6">SEMESTER IV (EMPAT)</p>
-            ${scheduleList}
-        </div>`;
-    }
-
-  // ==========================================
-    // Menu Settings
-    // ==========================================
-        window.renderSettings = function() {
-        return `
-            <div class="p-6 animate-fade">
-                <h2 class="text-xl font-black mb-6 flex items-center gap-2"><i data-lucide="settings" class="w-6 h-6 text-[#2563eb]"></i> Pengaturan Akun</h2>
-                
-                <div class="space-y-4">
-                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)]">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
-                            <div><h3 class="font-bold text-sm">Keamanan Akun</h3><p class="text-[10px] text-[color:var(--text2)]">Lindungi privasi dan data kuliah Anda.</p></div>
-                        </div>
-                        <div class="space-y-2">
-                            <button class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)]"><span>Ganti Kata Sandi</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-50"></i></button>
-                            <button class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)]"><span>Perangkat Tertaut</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-50"></i></button>
-                        </div>
-                    </div>
-
-                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)]">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6"></i></div>
-                            <div><h3 class="font-bold text-sm">Tampilan & Tema</h3><p class="text-[10px] text-[color:var(--text2)]">Kustomisasi interface aplikasi.</p></div>
-                        </div>
-                        <button onclick="toggleTheme()" class="w-full p-3 rounded-xl bg-[#2563eb] text-white text-[11px] font-bold flex justify-between items-center shadow-lg shadow-blue-500/20"><span>Ganti Mode Gelap/Terang</span><i data-lucide="moon" class="w-4 h-4"></i></button>
-                    </div>
-
-                    <button onclick="auth.signOut()" class="w-full py-4 rounded-3xl bg-red-500/10 text-red-500 font-black text-xs border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">KELUAR DARI SISTEM</button>
-                </div>
-            </div>
-        `;
-    };
-
-    // ==========================================
-    // TAMPILAN HALAMAN DATA MAHASISWA
-    // ==========================================
-    window.getDataMahasiswaHTML = function() {
-        return `
-            <div class="animate-fade px-4 py-2 space-y-4">
-                <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)] flex justify-between items-center">
-                    <div>
-                        <h2 class="text-xl font-bold text-[color:var(--text)] mb-1">Data Mahasiswa</h2>
-                        <p class="text-xs text-[color:var(--text2)]">Daftar pengguna terdaftar di sistem FunGrow</p>
-                    </div>
-                    <div class="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center border border-indigo-500/30">
-                        <i data-lucide="users" class="w-6 h-6"></i>
-                    </div>
-                </div>
-                
-                <div id="wadah-data-mahasiswa" class="space-y-3 pb-10">
-                    <div class="text-center py-10 text-[color:var(--text2)] flex flex-col items-center">
-                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3 text-indigo-500"></i>
-                        <p class="text-sm font-medium">Memuat data dari Firebase...</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    };
     // ==========================================
     // LOGIKA TARIK DATA MAHASISWA DARI FIREBASE
     // ==========================================
@@ -1164,82 +1255,7 @@
     // ==========================================
     // HALAMAN PROFIL AKADEMIK (DENGAN FITUR FOTO)
     // ==========================================
-    window.getAboutHTML = function() {
-        const user = STATE.currentUser || {};
-        
-        // Tentukan gambar profil (pakai foto asli atau inisial jika kosong)
-        const photoContent = user.photoURL ? 
-            `<img src="${user.photoURL}" class="w-full h-full object-cover rounded-full" id="prof-photo-img">` :
-            `<div class="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/20" id="prof-photo-initial">
-                ${user.displayName ? user.displayName.charAt(0).toUpperCase() : 'M'}
-            </div>`;
-
-        return `
-        <div class="animate-fade px-4 py-2 space-y-4 pb-20">
-            <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)] flex items-center gap-4">
-                
-                <div class="relative group cursor-pointer flex-shrink-0" onclick="pilihFotoProfil()">
-                    <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-indigo-500/50 group-hover:border-indigo-500 transition-colors">
-                        ${photoContent}
-                    </div>
-                    <div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i data-lucide="camera" class="w-5 h-5"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <h2 class="text-xl font-bold text-[color:var(--text)]">Profil Akademik</h2>
-                    <p class="text-xs text-[color:var(--text2)]">Ketuk foto untuk mengubahnya</p>
-                </div>
-            </div>
-
-            <input type="file" id="input-foto-profil" accept="image/*" class="hidden" onchange="handleFileSelect(this)">
-
-            <div class="glass p-6 rounded-3xl border border-[color:var(--border)] relative">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Nama Lengkap</label>
-                        <input type="text" id="prof-nama" value="${user.displayName || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] font-medium" disabled>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">NIM / Nomor Induk</label>
-                        <input type="text" id="prof-nim" value="${user.nim || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] opacity-70 cursor-not-allowed" disabled>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Akun Email (Gmail)</label>
-                        <input type="text" id="prof-email" value="${user.email || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] opacity-70 cursor-not-allowed" disabled>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Tanggal Lahir</label>
-                        <input type="date" id="prof-tglLahir" value="${user.tglLahir || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Fakultas</label>
-                        <input type="text" id="prof-fakultas" value="${user.fakultas || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Program Studi</label>
-                        <input type="text" id="prof-prodi" value="${user.prodi || ''}" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input" disabled>
-                    </div>
-                    <div class="md:col-span-2 mt-2">
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider">Alamat Lengkap</label>
-                        <textarea id="prof-alamat" rows="2" class="w-full mt-1 p-3 rounded-xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] prof-input resize-none" disabled>${user.alamat || ''}</textarea>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-[color:var(--border)]">
-                    <button id="btn-edit-prof" onclick="toggleEditProfil()" class="px-5 py-2.5 rounded-xl font-bold bg-[color:var(--surface)] text-[color:var(--text)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-500 transition-all flex items-center gap-2">
-                        <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Profil
-                        <div id="loading-change-password" class="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin hidden"></div>
-                    </button>
-                    <button id="btn-save-prof" onclick="simpanProfil()" class="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 text-white shadow-lg hidden hover:bg-indigo-700 hover:scale-105 transition-all flex items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Pembaruan
-                    </button>
-                </div>
-            </div>
-        </div>
-        `;
-    };
+    
 
     // LOGIKA TOMBOL EDIT PROFIL
     window.toggleEditProfil = function() {
