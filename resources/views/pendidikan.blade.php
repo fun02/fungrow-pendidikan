@@ -1360,6 +1360,129 @@
             btn.disabled = false;
         }
     };
+
+    // =====================================================================
+    // FITUR BERANDA: PEMBUAT KARTU TUGAS MENDESAK
+    // =====================================================================
+    window.generateTugasMendesakHTML = function(assignmentsArray) {
+        if (!assignmentsArray || assignmentsArray.length === 0) {
+            return `<div class="text-center p-6 bg-slate-50 border border-slate-200 rounded-xl">
+                        <i data-lucide="check-circle" class="w-8 h-8 text-emerald-400 mx-auto mb-2"></i>
+                        <p class="text-[11px] font-bold text-slate-500">Mantap! Tidak ada tugas mendesak.</p>
+                    </div>`;
+        }
+
+        const now = Date.now();
+        let htmlContent = '';
+        let activeTaskCount = 0;
+
+        // Urutkan tugas dari yang deadlinenya paling dekat
+        const sortedAssignments = assignmentsArray.sort((a, b) => {
+            const timeA = a.deadline && typeof a.deadline.toDate === 'function' ? a.deadline.toDate().getTime() : 0;
+            const timeB = b.deadline && typeof b.deadline.toDate === 'function' ? b.deadline.toDate().getTime() : 0;
+            return timeA - timeB;
+        });
+
+        sortedAssignments.forEach(asg => {
+            // Ambil waktu milidetik dari Firebase Timestamp
+            const deadlineMs = asg.deadline && typeof asg.deadline.toDate === 'function' ? asg.deadline.toDate().getTime() : 0;
+            
+            // FILTER: Hanya tampilkan tugas yang waktunya MASIH ADA (> Date.now())
+            if (deadlineMs > now) {
+                activeTaskCount++;
+                htmlContent += `
+                <div class="assignment-card bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between mb-3 hover:shadow-md transition-shadow" data-deadline="${deadlineMs}">
+                    
+                    <div class="flex-1 min-w-0 pr-4">
+                        <h3 class="text-[13px] font-black text-[#0B1D3A] uppercase truncate">${asg.title || 'TUGAS'}</h3>
+                        <p class="text-[10px] font-medium text-slate-500 mt-1 truncate flex items-center gap-1.5">
+                            <i data-lucide="book-open" class="w-3 h-3"></i> ${asg.courseName || 'Mata Kuliah'} <span class="text-slate-300">•</span> ${asg.dosen || 'Dosen'}
+                        </p>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 shrink-0">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Berakhir dalam:</p>
+                            <div class="bg-rose-50 text-rose-600 px-2.5 py-1 rounded-md flex items-center gap-1.5 border border-rose-100">
+                                <i data-lucide="clock" class="w-3 h-3"></i>
+                                <span class="countdown-timer text-[11px] font-black tracking-widest">-- : -- : --</span>
+                            </div>
+                        </div>
+                        
+                        <button onclick="window.viewAssignmentDetail('${asg.courseId}', '${asg.id}')" class="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors shrink-0 shadow-sm border border-blue-100">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div class="w-full mt-3 pt-3 border-t border-slate-100 sm:hidden flex justify-between items-center" style="display: none;">
+                         <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Berakhir dalam:</p>
+                         <div class="bg-rose-50 text-rose-600 px-2 py-1 rounded-md flex items-center gap-1 border border-rose-100">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            <span class="countdown-timer text-[10px] font-black tracking-widest">-- : -- : --</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+        });
+
+        // Jika semua tugas ternyata sudah expired
+        if (activeTaskCount === 0) {
+            return `<div class="text-center p-6 bg-slate-50 border border-slate-200 rounded-xl">
+                        <i data-lucide="check-circle" class="w-8 h-8 text-emerald-400 mx-auto mb-2"></i>
+                        <p class="text-[11px] font-bold text-slate-500">Semua tugas sudah selesai atau melewati batas waktu.</p>
+                    </div>`;
+        }
+
+        return htmlContent;
+    };
+    
+    // =====================================================================
+    // FITUR BERANDA: MESIN PENGHITUNG WAKTU MUNDUR
+    // =====================================================================
+    window.startAssignmentCountdown = function() {
+        // Hapus mesin lama jika ada, biar tidak ganda
+        if (window.assignmentTimer) {
+            clearInterval(window.assignmentTimer);
+        }
+
+        // Jalankan mesin setiap 1000 milidetik (1 detik)
+        window.assignmentTimer = setInterval(() => {
+            // Cari semua kartu tugas di layar
+            const cards = document.querySelectorAll('.assignment-card');
+            const now = Date.now();
+
+            cards.forEach(card => {
+                const deadline = parseInt(card.getAttribute('data-deadline'));
+                const timers = card.querySelectorAll('.countdown-timer');
+                
+                const diff = deadline - now; // Hitung selisih waktu
+
+                // LOGIKA AUTO-DELETE: JIKA WAKTU HABIS
+                if (diff <= 0) {
+                    card.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500'); // Efek menghilang
+                    setTimeout(() => card.remove(), 500); // Hapus elemen dari HTML setelah 0.5 detik
+                    return; // Berhenti memproses kartu ini
+                }
+
+                // MATEMATIKA KONVERSI WAKTU
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+                // Tambahkan angka "0" di depan jika cuma 1 digit (misal 5 jadi 05)
+                const hStr = hours.toString().padStart(2, '0');
+                const mStr = mins.toString().padStart(2, '0');
+                const sStr = secs.toString().padStart(2, '0');
+
+                // Tuliskan ke layar (Bentuk: 05 : 30 : 15)
+                timers.forEach(timerEl => {
+                    timerEl.innerText = `${hStr} : ${mStr} : ${sStr}`;
+                });
+            });
+        }, 1000);
+    };
+
 </script>
 </body>
 </html>
