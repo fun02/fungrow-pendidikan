@@ -1102,14 +1102,16 @@
                 </div>
 
                 <div>
+                <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2">
                         <div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="image" class="w-3 h-3"></i></div> UPLOAD FOTO (OPSIONAL)
                     </label>
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
-                        <i data-lucide="upload" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2"></i>
-                        <p class="text-[10px] font-bold text-slate-700">Klik untuk upload atau drag & drop file di sini</p>
-                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG (Maks. 5 MB)</p>
+                    <div onclick="document.getElementById('asg-file').click()" id="asg-upload-box" class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
+                        <i data-lucide="upload" id="asg-upload-icon" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2 transition-colors"></i>
+                        <p id="asg-upload-text" class="text-[10px] font-bold text-slate-700 truncate px-2">Klik untuk upload atau drag & drop file di sini</p>
+                        <p id="asg-upload-sub" class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 5 MB)</p>
                     </div>
+                    <input type="file" id="asg-file" class="hidden" accept="image/jpeg, image/png, application/pdf" onchange="handleAsgFileUpload(event)">
                 </div>
 
                 <div class="bg-[#F0F4F8] border border-[#D0E1F0] p-4 rounded-lg flex items-start gap-3">
@@ -1138,6 +1140,27 @@
         lucide.createIcons();
     };
 
+    window.handleAsgFileUpload = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Cegah file raksasa masuk (Maks 5MB)
+        if (file.size > 5242880) {
+            alert("Gagal: Ukuran file terlalu besar! Maksimal 5 MB.");
+            event.target.value = ""; 
+            return;
+        }
+        
+        // Simpan file ke wadah, lalu ubah tampilan kotak jadi hijau
+        STATE.asgPendingFile = file;
+        document.getElementById('asg-upload-text').innerText = file.name;
+        document.getElementById('asg-upload-text').classList.add('text-emerald-600');
+        document.getElementById('asg-upload-sub').innerText = "File siap dikirim!";
+        document.getElementById('asg-upload-icon').setAttribute('data-lucide', 'check-circle-2');
+        document.getElementById('asg-upload-icon').classList.replace('text-[#0B1D3A]', 'text-emerald-500');
+        lucide.createIcons();
+    };
+    
     // ==========================================
     // 13. UPDATE FUNGSI PENYIMPAN DATA TUGAS
     // ==========================================
