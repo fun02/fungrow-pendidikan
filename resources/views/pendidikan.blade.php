@@ -981,6 +981,135 @@
     window.handleMhsUpload = async function(e, courseId, asgId) { const file = e.target.files[0]; if(!file) return; if(file.size > 5242880) return alert("Maks 5 MB!"); document.getElementById('mhs-upload-status').innerHTML = '<span class="text-xs text-blue-500">Mengunggah...</span>'; try { const url = await fetchCloudinaryUpload(file, false); await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, fileUrl: url, fileName: file.name, timestamp: firebase.firestore.FieldValue.serverTimestamp(), nilai: null }); document.getElementById('mhs-upload-status').innerHTML = '<span class="text-xs text-emerald-500 font-bold">Berhasil!</span>'; setTimeout(() => viewAssignmentDetail(courseId, asgId), 1000); } catch(err){} };
     window.saveNilai = async function(courseId, asgId, subId) { try { await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').doc(subId).update({ nilai: parseInt(document.getElementById(`grade-${subId}`).value) }); showToast("Nilai disimpan!", "success"); } catch(e){} };
 
+    // ==========================================
+    // FUNGSI 1 YANG HILANG: POP-UP UBAH PASSWORD
+    // ==========================================
+    window.openChangePasswordModal = function() {
+        showGlobalModal(`
+        <div class="glass p-5 md:p-6 rounded-3xl animate-slide w-full max-w-md border border-amber-500/30 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden h-max max-h-[90vh] overflow-y-auto hide-scrollbar mx-auto">
+            <div class="flex justify-between items-start mb-5 border-b border-[color:var(--border)] pb-4 relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg shrink-0">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-[color:var(--text)] text-lg leading-tight">Ubah Password</h3>
+                        <p class="text-[9px] text-amber-500 uppercase tracking-wider font-bold">Verifikasi Identitas Anda</p>
+                    </div>
+                </div>
+                <button onclick="closeGlobalModal()" class="p-1.5 text-[color:var(--text2)] hover:bg-red-500/20 hover:text-red-500 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-4 relative z-10">
+                <div class="bg-[color:var(--input-bg)] p-4 rounded-2xl border border-[color:var(--border)]">
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Email Terdaftar</label>
+                    <p class="text-sm font-bold text-[color:var(--text)]">${STATE.currentUser?.email || '-'}</p>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
+                    <div class="relative">
+                        <i data-lucide="unlock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="old-password" placeholder="Ketik password lama" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-[color:var(--border)]">
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="key-round" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="new-password" placeholder="Buat password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Konfirmasi Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="confirm-password" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 relative z-10">
+                <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i> Simpan Password Baru
+                </button>
+            </div>
+        </div>`, true);
+        lucide.createIcons();
+    };
+
+    // ==========================================
+    // FUNGSI 2 YANG HILANG: FORM BUAT TUGAS BARU (DOSEN)
+    // ==========================================
+    window.openAssignForm = function() {
+        closeGlobalModal(); // Tutup menu attachment dulu
+        showGlobalModal(`
+        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-md border border-[color:var(--border)] shadow-2xl relative overflow-hidden">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-[color:var(--border)]">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
+                <div><h3 class="font-bold text-lg leading-tight text-[color:var(--text)]">Buat Tugas Baru</h3><p class="text-[10px] text-[color:var(--text2)]">Kelas: ${STATE.currentCourse?.name}</p></div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Judul Tugas</label>
+                    <input type="text" id="asg-title" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-3 text-sm outline-none focus:border-emerald-500" placeholder="Cth: Makalah Bab 1">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Deskripsi / Instruksi</label>
+                    <textarea id="asg-desc" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-3 text-sm outline-none focus:border-emerald-500 h-24 resize-none" placeholder="Tuliskan instruksi tugas di sini..."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Tipe Tugas</label>
+                        <select id="asg-type" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-3 text-sm outline-none focus:border-emerald-500">
+                            <option value="individu">Individu</option>
+                            <option value="kelompok">Kelompok</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Batas Waktu</label>
+                        <input type="datetime-local" id="asg-deadline" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-2.5 text-sm outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <button onclick="submitNewAssignment()" id="btn-submit-asg" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold mt-4 shadow-lg transition-colors flex items-center justify-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> Publikasikan Tugas</button>
+                <button onclick="closeGlobalModal()" class="w-full py-3 bg-[color:var(--surface)] text-[color:var(--text)] border border-[color:var(--border)] rounded-xl font-bold mt-2 hover:bg-[color:var(--card)]">Batal</button>
+            </div>
+        </div>`, true);
+        lucide.createIcons();
+    };
+
+    window.submitNewAssignment = async function() {
+        const title = document.getElementById('asg-title').value.trim();
+        const desc = document.getElementById('asg-desc').value.trim();
+        const type = document.getElementById('asg-type').value;
+        const deadlineRaw = document.getElementById('asg-deadline').value;
+        
+        if(!title || !deadlineRaw) return showToast('Judul & Batas Waktu wajib diisi!', 'warning');
+        
+        const btn = document.getElementById('btn-submit-asg');
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...';
+        btn.disabled = true;
+
+        try {
+            const deadlineDate = new Date(deadlineRaw);
+            await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
+                title: title,
+                description: desc,
+                type: type,
+                deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
+                courseId: STATE.currentCourse.id,
+                courseName: STATE.currentCourse.name,
+                dosen: STATE.currentUser.displayName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            showToast('Tugas berhasil dipublikasikan!', 'success');
+            closeGlobalModal();
+        } catch (e) {
+            console.error(e);
+            showToast('Gagal membuat tugas', 'error');
+            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publikasikan Tugas';
+            btn.disabled = false;
+        }
+    };
+    
     window.submitNewPassword = async function() {
         const oldPass = document.getElementById('old-password').value;
         const newPass = document.getElementById('new-password').value;
