@@ -141,11 +141,11 @@
     ];
 
     const FULL_SCHEDULE = [
-        { day: 'Senin', items: [{ time: '08.00 - 10.30', name: 'Manajemen Operasional', room: '204', id: 'mo', code: 'MO-401', sks: 3, dosen: 'Dr. Budi' }, { time: '11.10 - 13.40', name: 'Perilaku Konsumen', room: '203', id: 'pk', code: 'PK-402', sks: 3, dosen: 'Siti, M.Sc' }]},
-        { day: 'Selasa', items: [{ time: '08.00 - 10.30', name: 'Manajemen Strategi', room: '202', id: 'ms', code: 'MS-403', sks: 3, dosen: 'Prof. Rudi' }, { time: '11.10 - 13.40', name: 'Sistem Informasi Manajemen', room: '202', id: 'sim', code: 'SIM-404', sks: 3, dosen: 'Joko, M.Kom' }]},
-        { day: 'Rabu', items: [{ time: '11.10 - 13.40', name: 'Fiqh Muamalah Kontemporer', room: '202', id: 'fmk', code: 'FMK-405', sks: 2, dosen: 'Ust. Ahmad' }]},
-        { day: 'Kamis', items: [{ time: '11.10 - 13.40', name: 'Manajemen Keuangan Syariah', room: '202', id: 'mks', code: 'MKS-406', sks: 3, dosen: 'Dr. Rina' }, { time: '14.00 - 16.30', name: 'Akuntansi Keuangan Syariah', room: '203', id: 'aks', code: 'AKS-407', sks: 3, dosen: 'Dwi, M.Ak' }]},
-        { day: 'Jumat', items: [{ time: '08.00 - 10.30', name: 'Ekonomi Makro dan Mikro', room: '202', id: 'emm', code: 'EMM-408', sks: 3, dosen: 'Hadi, S.E' }]}
+        { day: 'Senin', items: [{ time: '08.00 - 10.30', name: 'Manajemen Operasional', room: '204', id: 'mo', code: 'MO-401', sks: 3, dosen: 'Slamet Wijiono, S.E., M.Si.' }, { time: '11.10 - 13.40', name: 'Perilaku Konsumen', room: '203', id: 'pk', code: 'PK-402', sks: 3, dosen: 'Bastomi Dani Umbara, S.E., M.M.' }]},
+        { day: 'Selasa', items: [{ time: '08.00 - 10.30', name: 'Manajemen Strategi', room: '202', id: 'ms', code: 'MS-403', sks: 3, dosen: 'Farida Umi Choiriyah, S.Pd., M.M.' }, { time: '11.10 - 13.40', name: 'Sistem Informasi Manajemen', room: '202', id: 'sim', code: 'SIM-404', sks: 3, dosen: 'Bastomi Dani Umbara. S.E., M.M.' }]},
+        { day: 'Rabu', items: [{ time: '11.10 - 13.40', name: 'Fiqh Muamalah Kontemporer', room: '202', id: 'fmk', code: 'FMK-405', sks: 2, dosen: 'Miftakhul Jannah, S.Pd., Μ.Ε.' }]},
+        { day: 'Kamis', items: [{ time: '11.10 - 13.40', name: 'Manajemen Keuangan Syariah', room: '202', id: 'mks', code: 'MKS-406', sks: 3, dosen: 'Istiadah, S.E., M.E.' }, { time: '14.00 - 16.30', name: 'Akuntansi Keuangan Syariah', room: '203', id: 'aks', code: 'AKS-407', sks: 3, dosen: 'Siti Nur Azizatul Lutfiyah, S.E., M.E.' }]},
+        { day: 'Jumat', items: [{ time: '08.00 - 10.30', name: 'Ekonomi Makro dan Mikro', room: '202', id: 'emm', code: 'EMM-408', sks: 3, dosen: 'Hamim, S.E., M.E.' }]}
     ];
 
     const STATE = {
@@ -946,64 +946,130 @@
     // ==========================================
     // 13. LOGIKA POP-UP GANTI PASSWORD
     // ==========================================
-    window.openChangePasswordModal = function() {
-        showGlobalModal(`
-        <div class="glass p-5 md:p-6 rounded-3xl animate-slide w-full max-w-md border border-amber-500/30 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden h-max max-h-[90vh] overflow-y-auto hide-scrollbar mx-auto">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="flex justify-between items-start mb-5 border-b border-[color:var(--border)] pb-4 relative z-10">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg border border-white/10 shrink-0">
-                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+    window.renderAllAssignments = function() {
+        let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
+        
+        let listHTML = allAsg.length === 0 ? 
+            `<div class="p-6 text-center border border-dashed border-[color:var(--border)] rounded-2xl"><p class="text-xs text-[color:var(--text2)] italic">Belum ada tugas kuliah.</p></div>` : 
+            allAsg.map(a => {
+                const course = typeof COURSES !== 'undefined' ? COURSES.find(c => c.id === a.courseId) : null;
+                return `
+                <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 cursor-pointer shadow-sm relative overflow-hidden mb-3 hover:scale-[1.02] transition-transform z-10" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#2563eb] opacity-80"></div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl shrink-0 border border-blue-500/20">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-[color:var(--text)] text-lg leading-tight">Ubah Password</h3>
-                        <p class="text-[9px] text-amber-500 uppercase tracking-wider font-bold">Verifikasi Identitas Anda</p>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-[13px] text-[color:var(--text)] truncate uppercase">${a.title}</h4>
+                        <p class="text-[10px] text-[color:var(--text2)] truncate font-medium">${course ? course.name : ''}</p>
+                        <div class="flex items-center gap-3 mt-1.5">
+                            <span class="text-[9px] font-bold text-orange-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline) : ''}</span>
+                            <span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">${a.type}</span>
+                        </div>
                     </div>
-                </div>
-                <button onclick="closeGlobalModal()" class="p-1.5 text-[color:var(--text2)] hover:bg-red-500/20 hover:text-red-500 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-30 shrink-0"></i>
+                </div>`;
+            }).join('');
 
-            <div class="space-y-4 relative z-10">
-                <div class="bg-[color:var(--input-bg)] p-4 rounded-2xl border border-[color:var(--border)]">
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">NIM & Email (Sistem)</label>
-                    <p class="text-xs font-bold text-[color:var(--text)]">${STATE.currentUser.nim}</p>
-                    <p class="text-[10px] text-[color:var(--text2)]">${STATE.currentUser.email}</p>
-                </div>
-
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
-                    <div class="relative">
-                        <i data-lucide="unlock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="old-password" placeholder="Ketik password lama" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+        const todos = STATE.currentUser?.todos || [];
+        const todoHTML = todos.length === 0 ? 
+            `<div class="text-center p-6 bg-[color:var(--surface)] rounded-2xl border border-dashed border-[color:var(--border)]"><i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-[#2563eb] opacity-30"></i><p class="text-xs text-[color:var(--text2)] font-medium">Belum ada catatan pribadi.</p></div>` : 
+            todos.map(t => `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-[color:var(--surface)] border border-[color:var(--border)] mb-2 shadow-sm transition-all ${t.done ? 'opacity-50' : ''} hover:bg-[color:var(--card)] z-10 relative">
+                <div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onclick="toggleTodo('${t.id}')">
+                    <div class="w-6 h-6 shrink-0 rounded-md border ${t.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-[color:var(--border)] text-transparent'} flex items-center justify-center transition-colors shadow-inner">
+                        <i data-lucide="check" class="w-4 h-4"></i>
                     </div>
+                    <span class="text-sm font-medium truncate ${t.done ? 'line-through text-[color:var(--text2)]' : 'text-[color:var(--text)]'}">${t.text}</span>
                 </div>
-
-                <div class="pt-2 border-t border-[color:var(--border)]">
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Baru</label>
-                    <div class="relative">
-                        <i data-lucide="key-round" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="new-password" placeholder="Buat password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Konfirmasi Password Baru</label>
-                    <div class="relative">
-                        <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="password" id="confirm-password" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-6 relative z-10">
-                <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i> Simpan Password Baru
+                <button onclick="deleteTodo('${t.id}')" class="text-red-400 hover:text-red-500 p-2 shrink-0 active:scale-90 transition-transform relative z-20">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
+            </div>`).join('');
+
+        return `
+        <div class="p-5 animate-fade space-y-6 pb-24 max-w-4xl mx-auto relative z-10">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-[color:var(--text)]">Tugas Kuliah</h2>
+                        <p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Semua Mata Kuliah</p>
+                    </div>
+                    <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 shadow-sm">
+                        <span class="text-[11px] font-black text-[#2563eb]">${allAsg.length} TUGAS</span>
+                    </div>
+                </div>
+                <div>${listHTML}</div>
             </div>
-        </div>`, true);
-        lucide.createIcons();
+            <div class="h-px w-full bg-[color:var(--border)] opacity-50 my-2"></div>
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shadow-sm"><i data-lucide="list-todo" class="w-5 h-5"></i></div>
+                    <div>
+                        <h2 class="text-xl font-black text-[color:var(--text)]">Catatan Pribadi</h2>
+                        <p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">To-Do List Saya</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 mb-4 relative z-20">
+                    <input type="text" id="todo-input" class="flex-1 bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-xl p-3.5 text-sm outline-none focus:border-[#2563eb] text-[color:var(--text)] shadow-inner transition-colors" placeholder="Ketik target baru..." onkeydown="if(event.key==='Enter') saveTodo()">
+                    <button onclick="saveTodo()" class="bg-[#2563eb] text-white px-5 rounded-xl shadow-lg active:scale-95 transition-transform"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                </div>
+                <div id="todo-list-container" class="space-y-2">${todoHTML}</div>
+            </div>
+        </div>`;
     };
+
+    window.saveTodo = async function() { const input = document.getElementById('todo-input'); const text = input?.value.trim(); if(!text) return; const newTodo = { id: Date.now().toString(), text: text, done: false }; const updatedTodos = [...(STATE.currentUser.todos || []), newTodo]; STATE.currentUser.todos = updatedTodos; if(input) input.value = ''; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
+    window.toggleTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).map(t => t.id === id ? { ...t, done: !t.done } : t); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
+    window.deleteTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).filter(t => t.id !== id); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
+
+    window.viewAssignmentDetail = async (courseId, asgId) => {
+        try {
+            const asg = STATE.assignments?.[courseId]?.find(a => a.id === asgId);
+            if(!asg) return showToast("Data tugas tidak ditemukan", "error");
+
+            const isDosen = STATE.currentUser && (STATE.currentUser.role === 'dosen' || STATE.currentUser.role === 'admin');
+            let submissions = [];
+            try {
+                const subSnap = await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').get();
+                submissions = subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch(e) { console.error("Gagal load submissions"); }
+
+            showGlobalModal(`
+            <div class="glass animate-slide border border-[color:var(--border)] max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-4xl mx-auto relative overflow-hidden z-[2000]">
+                <div class="bg-[#0f172a] text-white p-6 shrink-0 flex items-center justify-between z-20">
+                    <div class="flex items-center gap-4"><div class="p-3 bg-blue-500/20 rounded-2xl border border-blue-500/30 text-blue-400"><i data-lucide="briefcase" class="w-6 h-6"></i></div><div><h2 class="text-xl font-black uppercase tracking-tight">${asg.title}</h2><p class="text-xs text-gray-400 font-bold tracking-widest">${asg.courseName} • ${asg.dosen}</p></div></div>
+                    <button onclick="closeGlobalModal()" class="p-2 rounded-full hover:bg-white/10 text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <div class="flex flex-col md:flex-row flex-1">
+                    <div class="flex-1 overflow-y-auto p-6 space-y-6 border-b md:border-b-0 md:border-r border-[color:var(--border)] bg-[color:var(--surface)]">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20"><p class="text-[9px] uppercase text-orange-500 font-bold mb-1 tracking-widest">Waktu Terakhir</p><p class="text-sm font-black text-orange-500">${formatDate(asg.deadline)}</p></div>
+                            <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20"><p class="text-[9px] uppercase text-blue-500 font-bold mb-1 tracking-widest">Target Tugas</p><p class="text-sm font-black text-blue-500 uppercase">${asg.type}</p></div>
+                        </div>
+                        ${asg.type === 'kelompok' && asg.kelompok ? `<div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3"><div class="flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-indigo-500"></i><h4 class="text-xs font-bold text-indigo-500 uppercase">Informasi Kelompok</h4></div><div class="bg-[color:var(--bg)] p-4 rounded-xl border border-[color:var(--border)]"><p class="text-xs font-black text-[color:var(--text)] mb-1">${asg.kelompok.nama} : ${asg.kelompok.judul}</p><div class="text-[11px] text-[color:var(--text2)] leading-relaxed whitespace-pre-line">${asg.kelompok.anggota}</div></div></div>` : ''}
+                        <div>
+                            <div class="flex items-center justify-between mb-2"><h4 class="text-xs font-black text-[color:var(--text2)] uppercase tracking-widest">Keterangan & Instruksi</h4>${isDosen ? `<button onclick="updateAsgInstruksi('${courseId}', '${asgId}')" class="text-[10px] font-bold text-emerald-500 flex items-center gap-1 hover:underline"><i data-lucide="save" class="w-3 h-3"></i> SIMPAN</button>` : ''}</div>
+                            ${isDosen ? `<textarea id="edit-asg-desc" class="w-full p-5 rounded-2xl bg-[color:var(--bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-40 focus:border-[#2563eb] outline-none">${asg.description || ''}</textarea>` : `<div class="bg-[color:var(--bg)] p-5 rounded-2xl border border-[color:var(--border)] text-sm leading-relaxed whitespace-pre-line">${asg.description || 'Tidak ada instruksi.'}</div>`}
+                        </div>
+                    </div>
+                    <div class="w-full md:w-[320px] bg-[color:var(--bg)] overflow-y-auto p-6 space-y-6">
+                        <h4 class="text-xs font-black text-[color:var(--text2)] uppercase tracking-widest mb-4">Pengumpulan File</h4>
+                        ${!isDosen ? `<div onclick="document.getElementById('mhs-file').click()" class="w-full border-2 border-dashed border-[#2563eb]/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-500/5 transition-all"><i data-lucide="upload-cloud" class="w-8 h-8 text-[#2563eb] mb-2"></i><p class="text-[11px] font-bold text-[color:var(--text)]">Upload Tugas (Maks 5MB)</p></div><input type="file" id="mhs-file" class="hidden" onchange="handleMhsUpload(event, '${courseId}', '${asgId}')"><div id="mhs-upload-status" class="mt-2 text-center"></div>` : ''}
+                        <div class="space-y-4">
+                            ${submissions.length === 0 ? `<p class="text-xs italic text-[color:var(--text2)]">Belum ada yang mengumpulkan.</p>` : submissions.map(sub => `<div class="p-4 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] space-y-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="file-check-2" class="w-4 h-4"></i></div><div class="min-w-0"><p class="text-[11px] font-bold truncate">${sub.userName}</p><p class="text-[9px] text-[color:var(--text2)]">${formatDate(sub.timestamp)}</p></div></div><a href="${sub.fileUrl}" target="_blank" class="w-full py-2 bg-[color:var(--bg)] text-[10px] font-bold rounded-lg border border-[color:var(--border)] flex items-center justify-center gap-2 hover:bg-[#2563eb] hover:text-white transition-all">LIHAT FILE</a><div class="pt-2 border-t border-[color:var(--border)] flex items-center justify-between"><span class="text-[10px] font-bold text-[color:var(--text2)]">NILAI</span>${isDosen ? `<div class="flex gap-1"><input type="number" id="grade-${sub.id}" value="${sub.nilai || ''}" class="w-12 p-1 text-center bg-[color:var(--bg)] border border-[color:var(--border)] rounded text-[11px] font-bold"><button onclick="saveNilai('${courseId}', '${asgId}', '${sub.id}')" class="p-1 bg-emerald-500 text-white rounded"><i data-lucide="check" class="w-3 h-3"></i></button></div>` : `<span class="text-lg font-black ${sub.nilai ? 'text-emerald-500' : 'text-[color:var(--text2)]'}">${sub.nilai || '-'}</span>`}</div></div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `, true);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch(e) { console.error("Error Detail Tugas", e); showToast("Gagal memuat tugas", "error"); }
+    };
+
+    window.updateAsgInstruksi = async function(courseId, asgId) { try { await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).update({ description: document.getElementById('edit-asg-desc').value }); showToast("Tersimpan!", "success"); } catch(e) { showToast("Gagal", "error"); } };
+    window.handleMhsUpload = async function(e, courseId, asgId) { const file = e.target.files[0]; if(!file) return; if(file.size > 5242880) return alert("Maks 5 MB!"); document.getElementById('mhs-upload-status').innerHTML = '<span class="text-xs text-blue-500">Mengunggah...</span>'; try { const url = await fetchCloudinaryUpload(file, false); await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, fileUrl: url, fileName: file.name, timestamp: firebase.firestore.FieldValue.serverTimestamp(), nilai: null }); document.getElementById('mhs-upload-status').innerHTML = '<span class="text-xs text-emerald-500 font-bold">Berhasil!</span>'; setTimeout(() => viewAssignmentDetail(courseId, asgId), 1000); } catch(err){} };
+    window.saveNilai = async function(courseId, asgId, subId) { try { await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').doc(subId).update({ nilai: parseInt(document.getElementById(`grade-${subId}`).value) }); showToast("Nilai disimpan!", "success"); } catch(e){} };
 
     window.submitNewPassword = async function() {
         const oldPass = document.getElementById('old-password').value;
