@@ -982,7 +982,7 @@
     window.saveNilai = async function(courseId, asgId, subId) { try { await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').doc(subId).update({ nilai: parseInt(document.getElementById(`grade-${subId}`).value) }); showToast("Nilai disimpan!", "success"); } catch(e){} };
 
     // ==========================================
-    // FUNGSI 1 YANG HILANG: POP-UP UBAH PASSWORD
+    // 11. POP-UP UBAH PASSWORD
     // ==========================================
     window.openChangePasswordModal = function() {
         showGlobalModal(`
@@ -1036,79 +1036,155 @@
     };
 
     // ==========================================
-    // FUNGSI 2 YANG HILANG: FORM BUAT TUGAS BARU (DOSEN)
+    // 12. DESAIN FORM TUGAS (GAYA AKADEMIK / NAVY BLUE)
     // ==========================================
     window.openAssignForm = function() {
+        // Ambil nama dosen dan mata kuliah dari data yang sedang aktif
+        const dosenName = STATE.currentCourse?.dosen || STATE.currentUser?.displayName || 'Dosen Pengampu';
+        const courseName = STATE.currentCourse?.name?.toUpperCase() || 'MATA KULIAH';
+
         showGlobalModal(`
-        <div class="glass p-6 rounded-3xl animate-slide w-full max-w-md border border-[color:var(--border)] shadow-2xl relative overflow-hidden">
-            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-[color:var(--border)]">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
-                <div><h3 class="font-bold text-lg leading-tight text-[color:var(--text)]">Buat Tugas Baru</h3><p class="text-[10px] text-[color:var(--text2)]">Kelas: ${STATE.currentCourse?.name}</p></div>
+        <div class="bg-white w-full max-w-md mx-auto rounded-none sm:rounded-xl overflow-hidden shadow-2xl relative flex flex-col h-max max-h-[90vh]">
+            
+            <div class="bg-[#0B1D3A] px-6 py-5 text-center shrink-0">
+                <h2 class="text-white text-lg font-black tracking-wide">${courseName}</h2>
+                <p class="text-slate-300 text-[11px] mt-1 tracking-wider">${dosenName}</p>
             </div>
-            <div class="space-y-4">
+
+            <div class="p-5 md:p-6 overflow-y-auto hide-scrollbar space-y-6 bg-slate-50 flex-1">
+                
                 <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Judul Tugas</label>
-                    <input type="text" id="asg-title" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-3 text-sm outline-none focus:border-emerald-500" placeholder="Cth: Makalah Bab 1">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Deskripsi / Instruksi</label>
-                    <textarea id="asg-desc" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-3 text-sm outline-none focus:border-emerald-500 h-24 resize-none" placeholder="Tuliskan instruksi tugas di sini..."></textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Tipe Tugas</label>
-                        <select id="asg-type" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-3 text-sm outline-none focus:border-emerald-500">
-                            <option value="individu">Individu</option>
-                            <option value="kelompok">Kelompok</option>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2">
+                        <div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-3 h-3"></i></div> JENIS TUGAS
+                    </label>
+                    <div class="relative">
+                        <select id="asg-jenis" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                            <option value="" disabled selected hidden>Pilih jenis tugas</option>
+                            <option value="Makalah">Makalah</option>
+                            <option value="Proposal">Proposal</option>
+                            <option value="Karya Ilmiah">Karya Ilmiah</option>
+                            <option value="Tulis Tangan">Tulis Tangan</option>
+                            <option value="Lainnya">Lainnya</option>
                         </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                     </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider block mb-1">Batas Waktu</label>
-                        <input type="datetime-local" id="asg-deadline" class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl p-2.5 text-sm outline-none focus:border-emerald-500">
+                    <p class="text-[9px] text-slate-500 mt-1.5 ml-1">Makalah / Proposal / Karya Ilmiah / Tulis Tangan</p>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2">
+                        <div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="users" class="w-3 h-3"></i></div> TARGET TUGAS
+                    </label>
+                    <div class="relative">
+                        <select id="asg-type" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                            <option value="" disabled selected hidden>Pilih target tugas</option>
+                            <option value="Individu">Tugas Individu</option>
+                            <option value="Kelompok">Tugas Kelompok</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                    </div>
+                    <p class="text-[9px] text-slate-500 mt-1.5 ml-1">Tugas Individu / Tugas Kelompok</p>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2">
+                        <div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="clipboard-list" class="w-3 h-3"></i></div> KETERANGAN & LAMPIRAN
+                    </label>
+                    <textarea id="asg-desc" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] h-24 resize-none shadow-sm" placeholder="Tuliskan ketentuan tugas, referensi, dan informasi lainnya"></textarea>
+                    <p class="text-[9px] text-slate-500 mt-1.5 ml-1">Contoh: ketentuan tugas, format, referensi, deadline, dll.</p>
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2">
+                        <div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="calendar" class="w-3 h-3"></i></div> WAKTU TERAKHIR PENGUMPULAN
+                    </label>
+                    <input type="datetime-local" id="asg-deadline" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm cursor-pointer uppercase">
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2">
+                        <div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="image" class="w-3 h-3"></i></div> UPLOAD FOTO (OPSIONAL)
+                    </label>
+                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
+                        <i data-lucide="upload" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2"></i>
+                        <p class="text-[10px] font-bold text-slate-700">Klik untuk upload atau drag & drop file di sini</p>
+                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG (Maks. 5 MB)</p>
                     </div>
                 </div>
-                <button onclick="submitNewAssignment()" id="btn-submit-asg" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold mt-4 shadow-lg transition-colors flex items-center justify-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> Publikasikan Tugas</button>
-                <button onclick="closeGlobalModal()" class="w-full py-3 bg-[color:var(--surface)] text-[color:var(--text)] border border-[color:var(--border)] rounded-xl font-bold mt-2 hover:bg-[color:var(--card)]">Batal</button>
+
+                <div class="bg-[#F0F4F8] border border-[#D0E1F0] p-4 rounded-lg flex items-start gap-3">
+                    <div class="w-5 h-5 rounded-full bg-[#7DA0C4] text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[11px] font-bold text-[#0B1D3A]">Periksa kembali sebelum mengirim</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Pastikan semua informasi sudah benar dan lengkap.</p>
+                    </div>
+                </div>
+
             </div>
+
+            <div class="p-5 md:p-6 bg-white border-t border-slate-200 shrink-0 space-y-3">
+                <button onclick="submitNewAssignment()" id="btn-submit-asg" class="w-full py-3.5 bg-[#0B1D3A] hover:bg-[#1a3668] text-white rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                    <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN
+                </button>
+                <button onclick="closeGlobalModal()" class="w-full py-3.5 bg-white text-slate-600 border border-slate-300 rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors active:scale-[0.98]">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> TUTUP / KELUAR HALAMAN
+                </button>
+            </div>
+
         </div>`, true);
+        
         lucide.createIcons();
     };
 
+    // ==========================================
+    // 13. UPDATE FUNGSI PENYIMPAN DATA TUGAS
+    // ==========================================
     window.submitNewAssignment = async function() {
-        const title = document.getElementById('asg-title').value.trim();
+        // Mengambil value dari ID yang baru kita buat di atas
+        const jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        if(!title || !deadlineRaw) return showToast('Judul & Batas Waktu wajib diisi!', 'warning');
+        // Peringatan jika belum diisi
+        if(!jenis || !type || !deadlineRaw) {
+            return alert('Harap lengkapi Jenis Tugas, Target Tugas, dan Waktu Pengumpulan!');
+        }
         
         const btn = document.getElementById('btn-submit-asg');
-        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...';
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MEMPROSES...';
         btn.disabled = true;
 
         try {
             const deadlineDate = new Date(deadlineRaw);
+            const dosenName = STATE.currentCourse?.dosen || STATE.currentUser.displayName;
+            
             await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
-                title: title,
+                title: jenis.toUpperCase(), // Menyimpan jenis sebagai Judul Besar
                 description: desc,
                 type: type,
                 deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
                 courseId: STATE.currentCourse.id,
                 courseName: STATE.currentCourse.name,
-                dosen: STATE.currentUser.displayName,
+                dosen: dosenName,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            showToast('Tugas berhasil dipublikasikan!', 'success');
+            alert('Tugas berhasil dipublikasikan ke kelas!');
             closeGlobalModal();
         } catch (e) {
-            console.error(e);
-            showToast('Gagal membuat tugas', 'error');
-            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publikasikan Tugas';
+            console.error("Gagal buat tugas:", e);
+            alert('Terjadi kesalahan jaringan saat mengirim tugas.');
+            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN';
             btn.disabled = false;
         }
     };
-    
+
+    // ==========================================
+    // 14. UPDATE NEW PASWORD
+    // ==========================================
     window.submitNewPassword = async function() {
         const oldPass = document.getElementById('old-password').value;
         const newPass = document.getElementById('new-password').value;
