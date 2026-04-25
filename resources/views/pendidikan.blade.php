@@ -329,12 +329,14 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <button onclick="openNotifications()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)] active:scale-95 transition-all hover:text-orange-500"><i data-lucide="bell" class="w-5 h-5"></i></button>
+                            <span id="notif-badge" class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-[color:var(--bg)] hidden animate-pulse"></span>
+                        </div>
                         <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)] active:scale-95 transition-all"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>
                     </div>
                 </header>
-
                 <main id="dashboard-content" class="flex-1 overflow-y-auto hide-scrollbar pb-[85px] relative pt-2"></main>
-
                 <nav class="fixed bottom-0 left-0 right-0 h-[72px] bg-[color:var(--surface)] border-t border-[color:var(--border)] flex items-center justify-around px-2 z-50 backdrop-blur-xl pb-1 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
                     <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab === 'home' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}"><div class="p-1.5 rounded-xl ${STATE.dashboardTab === 'home' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="home" class="w-6 h-6"></i></div><span class="text-[9px] font-bold">Home</span></button>
                     <button onclick="switchTab('jadwal')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab === 'jadwal' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}"><div class="p-1.5 rounded-xl ${STATE.dashboardTab === 'jadwal' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="calendar" class="w-6 h-6"></i></div><span class="text-[9px] font-bold">Jadwal</span></button>
@@ -345,6 +347,7 @@
             </div>
         `;
         renderDashboardContent();
+        if(typeof checkNotifications === 'function') checkNotifications();
     };
 
     window.renderDashboardContent = function() {
@@ -362,23 +365,42 @@
     // ==========================================
     // 5. TABS CONTENT (BERSIH DARI DUPLIKAT)
     // ==========================================
-    window.getHomeHTML = function() {
+     window.getHomeHTML = function() {
+        const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+        const todayName = new Date().toLocaleDateString('id-ID', { weekday: 'long' });
+        const todaysSchedule = FULL_SCHEDULE.find(s => s.day === todayName)?.items || [];
+        let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
+
+        let tasksHTML = allAsg.slice(0, 3).map(a => `
+            <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex justify-between items-center group cursor-pointer hover:bg-[color:var(--card)]" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                    <div class="min-w-0"><h4 class="text-xs font-bold truncate max-w-[150px] uppercase">${a.title}</h4><p class="text-[9px] text-[color:var(--text2)] truncate">${COURSES.find(c=>c.id===a.courseId)?.name}</p></div>
+                </div>
+                <div class="text-right shrink-0"><p class="text-[9px] font-bold text-orange-500"><i data-lucide="clock" class="w-3 h-3 inline mb-0.5"></i> ${formatDate(a.deadline).split(',')[0]}</p><span class="text-[8px] bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded uppercase font-black border border-orange-500/20 mt-1 inline-block">Pending</span></div>
+            </div>`).join('');
+
+        let scheduleHTML = todaysSchedule.map((c, idx) => `
+            <div class="flex gap-4 relative pb-4 animate-fade" style="animation-delay: ${idx * 0.1}s">
+                ${idx !== todaysSchedule.length - 1 ? `<div class="absolute left-[11px] top-6 bottom-[-10px] w-0.5 bg-gradient-to-b from-[#2563eb] to-[color:var(--border)] opacity-50"></div>` : ''}
+                <div class="w-6 h-6 rounded-full bg-[#2563eb] text-white flex items-center justify-center shrink-0 z-10 text-[10px] shadow-[0_0_10px_rgba(37,99,235,0.4)] border-2 border-[color:var(--bg)]"><i data-lucide="book-open" class="w-3 h-3"></i></div>
+                <div class="flex-1 pb-2"><p class="text-[9px] font-black text-[#2563eb] tracking-wider mb-0.5">${c.time}</p><h4 class="text-xs font-bold leading-tight mb-1">${c.name}</h4><div class="flex items-center gap-2"><span class="text-[8px] bg-[color:var(--input-bg)] border border-[color:var(--border)] px-1.5 py-0.5 rounded opacity-80"><i data-lucide="map-pin" class="w-2.5 h-2.5 inline text-emerald-500"></i> Rg. ${c.room}</span><span class="text-[8px] bg-[color:var(--input-bg)] border border-[color:var(--border)] px-1.5 py-0.5 rounded opacity-80"><i data-lucide="user" class="w-2.5 h-2.5 inline text-amber-500"></i> ${c.dosen || 'Dosen'}</span></div></div>
+            </div>`).join('');
+
         return `
-            <div class="space-y-5 animate-fade px-4 py-2">
-                <div class="flex items-center justify-between glass p-5 rounded-3xl border border-[color:var(--border)] shadow-[0_10px_30px_rgba(37,99,235,0.1)]">
-                    <div><p class="text-sm text-[color:var(--text2)] mb-0.5">Selamat datang kembali,</p><h2 class="text-xl font-bold text-[color:var(--text)]">Hai, ${STATE.currentUser?.displayName?.split(' ')[0] || 'Siswa'}! 👋</h2></div>
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg border-2 border-white/20">${STATE.currentUser?.displayName?.charAt(0).toUpperCase() || 'S'}</div>
+            <div class="px-4 py-6 space-y-6 animate-fade max-w-5xl mx-auto pb-10">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 glass p-6 rounded-3xl border border-[color:var(--border)] shadow-sm">
+                    <div><p class="text-[10px] font-bold text-[color:var(--text2)] uppercase mb-1 tracking-wider">${todayStr}</p><h2 class="text-xl font-black">Hai, ${STATE.currentUser?.displayName?.split(' ')[0]}! 👋</h2></div>
+                    <div class="relative w-full md:w-64"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[color:var(--text2)]"></i><input type="text" placeholder="Cari tugas / modul..." class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-full py-2.5 pl-9 pr-4 text-xs outline-none focus:border-[#2563eb]"></div>
                 </div>
-                <div class="swiper banner-swiper">
-                    <div class="swiper-wrapper">
-                        <div class="swiper-slide"><div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group"><img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover"></div></div>
-                        <div class="swiper-slide"><div class="glass rounded-3xl overflow-hidden shadow-lg border border-[color:var(--border)] relative aspect-[16/9] group"><img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=450" class="absolute inset-0 w-full h-full object-cover"></div></div>
-                    </div>
-                    <div class="swiper-pagination"></div>
+                <div class="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto hide-scrollbar pb-2">
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] transition-transform min-w-[200px] md:min-w-0 cursor-pointer" onclick="switchTab('kelas')"><div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20"><i data-lucide="book-open" class="w-5 h-5"></i></div><div><p class="text-2xl font-black leading-none mb-1">${COURSES.length}</p><p class="text-[9px] uppercase tracking-widest text-[color:var(--text2)] font-bold">Total Modul</p></div></div>
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] transition-transform min-w-[200px] md:min-w-0 cursor-pointer" onclick="switchTab('tasks')"><div class="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 border border-orange-500/20"><i data-lucide="flame" class="w-5 h-5"></i></div><div><p class="text-2xl font-black leading-none mb-1">${allAsg.length}</p><p class="text-[9px] uppercase tracking-widest text-[color:var(--text2)] font-bold">Tugas</p></div></div>
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] transition-transform min-w-[200px] md:min-w-0"><div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20"><i data-lucide="award" class="w-5 h-5"></i></div><div><p class="text-2xl font-black leading-none mb-1">A</p><p class="text-[9px] uppercase tracking-widest text-[color:var(--text2)] font-bold">Estimasi Nilai</p></div></div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center"><div class="w-12 h-12 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center mb-3"><i data-lucide="flame" class="w-6 h-6"></i></div><h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">0</h3><p class="text-xs text-[color:var(--text2)] font-medium">Tugas Mendesak</p></div>
-                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] flex flex-col items-center justify-center text-center"><div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center mb-3"><i data-lucide="book-open" class="w-6 h-6"></i></div><h3 class="font-extrabold text-[color:var(--text)] text-2xl mb-1">6</h3><p class="text-xs text-[color:var(--text2)] font-medium">Total Modul</p></div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-4"><div class="flex items-center justify-between"><h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="clipboard-list" class="w-4 h-4 text-[#2563eb]"></i> Tugas Terkini</h3><button onclick="switchTab('tasks')" class="text-[10px] font-bold px-3 py-1.5 rounded-full bg-[color:var(--surface)] border border-[color:var(--border)]">Lihat Semua</button></div>${tasksHTML || '<p class="text-xs italic opacity-50 p-4 border border-dashed border-[color:var(--border)] rounded-xl text-center">Bebas tugas! 🎉</p>'}</div>
+                    <div class="space-y-4"><h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-orange-500"></i> Jadwal Hari Ini</h3><div class="glass p-5 rounded-3xl border border-[color:var(--border)]">${scheduleHTML || '<p class="text-[10px] text-center opacity-50 py-4">Kosong. Bebas kelas!</p>'}</div></div>
                 </div>
             </div>`;
     };
@@ -469,10 +491,60 @@
     window.toggleEditProfil = function() { const inputs = document.querySelectorAll('.prof-input, #prof-nama'); const isEditing = !inputs[0].disabled; if(!isEditing) { inputs.forEach(i => i.disabled = false); document.getElementById('prof-nama').focus(); document.getElementById('btn-edit-prof').innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Batal Edit'; document.getElementById('btn-save-prof').classList.remove('hidden'); lucide.createIcons(); } else { document.getElementById('dashboard-content').innerHTML = getAboutHTML(); lucide.createIcons(); } };
     window.simpanProfil = async function() { const btnSave = document.getElementById('btn-save-prof'); btnSave.innerHTML = 'Menyimpan...'; btnSave.disabled = true; try { const newData = { displayName: document.getElementById('prof-nama').value, tglLahir: document.getElementById('prof-tglLahir').value, fakultas: document.getElementById('prof-fakultas').value, prodi: document.getElementById('prof-prodi').value, alamat: document.getElementById('prof-alamat').value }; await db.collection('users').doc(STATE.currentUser.uid).update(newData); STATE.currentUser = { ...STATE.currentUser, ...newData }; showToast("Profil diperbarui!", "success"); document.getElementById('dashboard-content').innerHTML = getAboutHTML(); lucide.createIcons(); } catch (e) { showToast("Gagal menyimpan", "error"); btnSave.innerHTML = 'Simpan'; btnSave.disabled = false; } };
 
+    window.getAboutHTML = function() {
+        const u = STATE.currentUser || {};
+        const photo = u.photoURL ? `<img src="${u.photoURL}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-[#2563eb] flex items-center justify-center text-white text-2xl font-bold">${u.displayName?.[0]?.toUpperCase()}</div>`;
+        return `
+            <div class="animate-fade px-4 py-6 space-y-6 max-w-xl mx-auto pb-10">
+                <div class="glass p-6 rounded-[40px] border border-[color:var(--border)] flex items-center gap-5 shadow-sm">
+                    <div class="relative w-20 h-20 rounded-full overflow-hidden border-4 border-[#2563eb] shadow-xl group cursor-pointer" onclick="document.getElementById('mhs-photo-input').click()">
+                        ${photo}
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="camera" class="w-6 h-6"></i></div>
+                    </div>
+                    <div><h2 class="text-xl font-black text-[color:var(--text)]">${u.displayName}</h2><p class="text-xs text-[color:var(--text2)] font-mono">${u.nim}</p></div>
+                </div>
+                <input type="file" id="mhs-photo-input" class="hidden" accept="image/*" onchange="handleProfilePhoto(this)">
+                
+                <div class="glass p-6 rounded-[40px] border border-[color:var(--border)] space-y-4 shadow-sm">
+                    <div><label class="text-[10px] font-black uppercase text-[color:var(--text2)] ml-1 tracking-wider">Nama Lengkap</label><input type="text" id="p-name" value="${u.displayName}" class="w-full mt-1 p-3 rounded-2xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] text-sm outline-none focus:border-[#2563eb]"></div>
+                    <div><label class="text-[10px] font-black uppercase text-[color:var(--text2)] ml-1 tracking-wider">Email (Bawaan)</label><input type="text" value="${u.email}" class="w-full mt-1 p-3 rounded-2xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] text-sm outline-none opacity-50 cursor-not-allowed" disabled></div>
+                    <div><label class="text-[10px] font-black uppercase text-[color:var(--text2)] ml-1 tracking-wider">Program Studi / Fakultas</label><input type="text" id="p-prodi" value="${u.prodi||''}" class="w-full mt-1 p-3 rounded-2xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] text-sm outline-none focus:border-[#2563eb]" placeholder="Contoh: Manajemen Bisnis"></div>
+                    <button onclick="saveProfileData()" id="btn-save-p" class="w-full py-4 mt-2 bg-[#2563eb] text-white font-black text-xs rounded-2xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all"><i data-lucide="save" class="w-4 h-4 inline mr-1 mb-0.5"></i> SIMPAN PERUBAHAN</button>
+                </div>
+            </div>`;
+    };
+
     let cropper = null;
-    window.pilihFotoProfil = function() { document.getElementById('input-foto-profil').click(); };
-    window.handleFileSelect = function(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { showGlobalModal(`<div class="glass p-5 rounded-3xl animate-slide w-full max-w-sm mx-auto"><h3 class="font-bold mb-3 flex items-center gap-2"><i data-lucide="crop" class="w-5 h-5 text-indigo-500"></i> Atur Foto</h3><div class="w-full aspect-square bg-[color:var(--input-bg)] rounded-2xl overflow-hidden border border-[color:var(--border)] mb-4"><img src="${e.target.result}" id="image-to-crop" class="max-w-full"></div><div class="flex gap-3"><button onclick="closeGlobalModal()" class="flex-1 py-2 rounded-xl bg-[color:var(--surface)] font-bold border border-[color:var(--border)]">Batal</button><button onclick="uploadFotoProfil()" id="btn-save-crop" class="flex-1 py-2 rounded-xl bg-indigo-600 text-white font-bold">Simpan</button></div></div>`); setTimeout(() => { const image = document.getElementById('image-to-crop'); if(cropper) cropper.destroy(); cropper = new Cropper(image, { aspectRatio: 1, viewMode: 1, guides: false, center: true, background: false, movable: true, zoomable: true, ready(){ const viewBox = document.querySelector('.cropper-view-box'); if(viewBox) viewBox.style.borderRadius='50%'; } }); }, 100); }; reader.readAsDataURL(input.files[0]); } };
-    window.uploadFotoProfil = async function() { if (!cropper) return; const btnSave = document.getElementById('btn-save-crop'); btnSave.innerHTML = 'Mengunggah...'; btnSave.disabled = true; try { const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 }); if (!canvas) throw new Error("Gagal potong"); canvas.toBlob(async (blob) => { try { const file = new File([blob], `profil_${Date.now()}.jpg`, { type: 'image/jpeg' }); const url = await fetchCloudinaryUpload(file, false); await db.collection('users').doc(STATE.currentUser.uid).update({ photoURL: url }); if (auth.currentUser) await auth.currentUser.updateProfile({ photoURL: url }); STATE.currentUser.photoURL = url; showToast("Foto diperbarui! 🎉", "success"); closeGlobalModal(); document.getElementById('dashboard-content').innerHTML = getAboutHTML(); lucide.createIcons(); } catch (err) { showToast("Gagal: " + err.message, "error"); btnSave.innerHTML = 'Simpan'; btnSave.disabled = false; } }, 'image/jpeg', 0.8); } catch (e) { showToast("Error: " + e.message, "error"); btnSave.innerHTML = 'Simpan'; btnSave.disabled = false; } };
+    window.handleProfilePhoto = function(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showGlobalModal(`<div class="glass p-5 rounded-3xl w-full max-w-sm mx-auto shadow-2xl border border-[color:var(--border)]"><h3 class="font-bold mb-4 flex items-center gap-2 text-[#2563eb]"><i data-lucide="crop" class="w-5 h-5"></i> Pangkas Foto Profil</h3><div class="aspect-square bg-black rounded-2xl overflow-hidden mb-4 border border-[color:var(--border)]"><img src="${e.target.result}" id="crop-target"></div><div class="flex gap-2"><button onclick="closeGlobalModal()" class="flex-1 py-3 rounded-xl bg-[color:var(--surface)] text-[color:var(--text)] text-xs font-bold border border-[color:var(--border)] hover:bg-[color:var(--card)]">Batal</button><button onclick="uploadNewPhoto()" id="btn-crop-go" class="flex-1 py-3 bg-[#2563eb] text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-500/20">Simpan Foto</button></div></div>`);
+                setTimeout(() => { cropper = new Cropper(document.getElementById('crop-target'), { aspectRatio: 1, viewMode: 1, guides: false, ready(){ document.querySelector('.cropper-view-box').style.borderRadius='50%'; } }); }, 100);
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    };
+
+    window.uploadNewPhoto = async function() {
+        const btn = document.getElementById('btn-crop-go'); btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline mr-1"></i> Mengunggah...'; lucide.createIcons();
+        cropper.getCroppedCanvas({ width: 400, height: 400 }).toBlob(async (blob) => {
+            try {
+                const file = new File([blob], "profil.jpg", { type: 'image/jpeg' });
+                const url = await fetchCloudinaryUpload(file, false); // Pastikan parameter isAudio = false
+                await db.collection('users').doc(STATE.currentUser.uid).update({ photoURL: url });
+                if(auth.currentUser) await auth.currentUser.updateProfile({ photoURL: url });
+                STATE.currentUser.photoURL = url;
+                showToast("Foto profil diperbarui! 🎉", "success"); closeGlobalModal(); renderFull();
+            } catch(e) { showToast("Gagal upload", "error"); btn.disabled = false; btn.innerText = 'Coba Lagi'; }
+        }, 'image/jpeg');
+    };
+
+    window.saveProfileData = async function() {
+        const btn = document.getElementById('btn-save-p'); btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline mr-1"></i> MENYIMPAN...'; lucide.createIcons();
+        const d = { displayName: document.getElementById('p-name').value, prodi: document.getElementById('p-prodi').value };
+        try { await db.collection('users').doc(STATE.currentUser.uid).update(d); if(auth.currentUser) await auth.currentUser.updateProfile({displayName: d.displayName}); STATE.currentUser = {...STATE.currentUser, ...d}; showToast("Profil disimpan!", "success"); renderFull(); } catch(e){ showToast("Gagal menyimpan", "error"); btn.disabled = false; btn.innerHTML = 'SIMPAN PERUBAHAN'; }
+    };
 
     // ==========================================
     // 10. CHAT KELAS & VOICE & EMOJI (FULL FEATURES)
@@ -571,7 +643,25 @@
             </div>`, true);
         if(STATE.aiChatHistory.length > 0) renderAIChatHistory(); lucide.createIcons();
     };
+    
+    window.checkNotifications = function() {
+        let urgent = STATE.assignments ? Object.values(STATE.assignments).flat().filter(a => {
+            const diff = (a.deadline?.seconds * 1000) - new Date().getTime();
+            return diff > 0 && diff <= 172800000; // 48 Jam
+        }) : [];
+        const badge = document.getElementById('notif-badge');
+        if(badge) urgent.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden');
+    };
 
+    window.openNotifications = function() {
+        let urgent = STATE.assignments ? Object.values(STATE.assignments).flat().filter(a => {
+            const diff = (a.deadline?.seconds * 1000) - new Date().getTime();
+            return diff > 0 && diff <= 172800000;
+        }) : [];
+        let html = urgent.length === 0 ? '<div class="p-8 text-center opacity-50 text-sm"><i data-lucide="bell-off" class="w-10 h-10 mx-auto mb-2"></i>Tidak ada tugas mendesak.</div>' : urgent.map(a => `<div class="p-3 mb-2 bg-red-500/10 border border-red-500/20 rounded-xl cursor-pointer hover:bg-red-500/20 transition-all flex items-start gap-3" onclick="closeGlobalModal(); viewAssignmentDetail('${a.courseId}', '${a.id}')"><div class="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center shrink-0 mt-0.5"><i data-lucide="alert-triangle" class="w-4 h-4"></i></div><div><h4 class="text-xs font-bold uppercase">${a.title}</h4><p class="text-[10px] text-[color:var(--text2)]">${COURSES.find(c=>c.id===a.courseId)?.name}</p><p class="text-[9px] text-red-500 font-black mt-1">Sisa Waktu: ${formatDate(a.deadline)}</p></div></div>`).join('');
+        showGlobalModal(`<div class="glass p-5 rounded-3xl w-full max-w-sm mx-auto animate-slide shadow-2xl border border-[color:var(--border)]"><h3 class="font-bold mb-4 flex items-center gap-2 text-orange-500 border-b border-[color:var(--border)] pb-3"><i data-lucide="bell-ring" class="w-5 h-5"></i> Notifikasi Mendesak</h3><div class="max-h-60 overflow-y-auto hide-scrollbar">${html}</div><button onclick="closeGlobalModal()" class="w-full mt-4 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] text-xs font-bold rounded-xl">Tutup</button></div>`);
+    };
+    
     window.triggerAIFile = function(type) { const input = document.getElementById('ai-file-upload'); input.accept = type==='file'?'.pdf,.doc,.docx,.txt':'*/*'; input.click(); };
     window.handleAIInput = function(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; const hasCont = el.value.trim().length > 0 || STATE.aiPendingFile; document.getElementById('ai-btn-send').classList.toggle('hidden', !hasCont); document.getElementById('ai-btn-mic').classList.toggle('hidden', hasCont); };
     window.handleAIFileUpload = async function(e) { const file = e.target.files[0]; if(!file) return; e.target.value = ""; showToast('Menyiapkan file...', 'warning'); try { const isImg = file.type.startsWith('image/'); const url = await fetchCloudinaryUpload(file, false); STATE.aiPendingFile = { url, isImage: isImg, name: file.name }; const box = document.getElementById('ai-img-preview-container'); box.innerHTML = `<div class="relative inline-block border border-[color:var(--border)] p-1 rounded-xl bg-[color:var(--surface)]"><span class="text-xs truncate px-2 block w-32">${file.name}</span><button onclick="STATE.aiPendingFile=null; this.parentElement.remove(); handleAIInput(document.getElementById('ai-input-field'));" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full">x</button></div>`; box.classList.remove('hidden'); handleAIInput(document.getElementById('ai-input-field')); showToast('Siap!', 'success'); } catch(err){} };
