@@ -1158,7 +1158,7 @@
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-3 h-3"></i></div> JENIS TUGAS</label>
                     <div class="relative">
-                        <select id="asg-jenis" onchange="toggleJenisLainnya(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                        <select id="asg-jenis" onchange="window.toggleJenisLainnya(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
                             <option value="" disabled selected hidden>Pilih jenis tugas</option>
                             <option value="Makalah">Makalah</option>
                             <option value="Proposal">Proposal</option>
@@ -1168,14 +1168,13 @@
                         </select>
                         <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                     </div>
-                    
                     <input type="text" id="asg-jenis-lainnya" class="hidden w-full bg-white border border-slate-300 rounded-lg p-3 text-sm text-black font-medium outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm mt-3" placeholder="Ketik jenis tugas secara manual...">
                 </div>
 
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="users" class="w-3 h-3"></i></div> TARGET TUGAS</label>
                     <div class="relative">
-                        <select id="asg-type" onchange="toggleGroupSection(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                        <select id="asg-type" onchange="window.toggleGroupSection(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
                             <option value="" disabled selected hidden>Pilih target tugas</option>
                             <option value="individu">Tugas Individu</option>
                             <option value="kelompok">Tugas Kelompok</option>
@@ -1211,15 +1210,25 @@
                     <div onclick="document.getElementById('asg-file').click()" id="asg-upload-box" class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
                         <i data-lucide="upload" id="asg-upload-icon" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2 transition-colors"></i>
                         <p id="asg-upload-text" class="text-[10px] font-bold text-slate-700 truncate px-2">Klik untuk upload atau drag & drop file di sini</p>
-                        <p id="asg-upload-sub" class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 5 MB)</p>
+                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 20 MB)</p>
                     </div>
-                    <input type="file" id="asg-file" class="hidden" accept="image/jpeg, image/png, application/pdf" onchange="handleAsgFileUpload(event)">
+                    <input type="file" id="asg-file" class="hidden" accept="image/jpeg, image/png, application/pdf" onchange="window.handleAsgFileUpload(event)">
+                </div>
+
+                <div class="bg-[#F0F4F8] border border-[#D0E1F0] p-4 rounded-lg flex items-start gap-3">
+                    <div class="w-5 h-5 rounded-full bg-[#7DA0C4] text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[11px] font-bold text-[#0B1D3A]">Periksa kembali sebelum mengirim</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Pastikan semua informasi sudah benar dan lengkap.</p>
+                    </div>
                 </div>
 
             </div>
 
             <div class="p-5 md:p-6 bg-white border-t border-slate-200 shrink-0 space-y-3">
-                <button onclick="submitNewAssignment()" id="btn-submit-asg" class="w-full py-3.5 bg-[#0B1D3A] hover:bg-[#1a3668] text-white rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                <button onclick="window.submitNewAssignment()" id="btn-submit-asg" class="w-full py-3.5 bg-[#0B1D3A] hover:bg-[#1a3668] text-white rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
                     <i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN
                 </button>
                 <button onclick="closeGlobalModal()" class="w-full py-3.5 bg-white text-slate-600 border border-slate-300 rounded-lg font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors active:scale-[0.98]">
