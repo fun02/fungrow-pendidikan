@@ -606,14 +606,7 @@
     };
 
     // ==========================================
-    // 6. RENDER SETTINGS & SECURITY
-    // ==========================================
-    window.renderSettings = function() {
-        return `<div class="p-6 animate-fade space-y-6"><div><h2 class="text-xl font-black text-[color:var(--text)]">Pengaturan</h2><p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Akun & Preferensi</p></div><div class="space-y-4"><div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm"><div class="flex items-center gap-4 mb-5 pb-3 border-b border-[color:var(--border)]"><div class="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shadow-sm"><i data-lucide="shield-check" class="w-5 h-5"></i></div><div><h3 class="font-bold text-sm">Keamanan Akun</h3><p class="text-[9px] text-[color:var(--text2)] font-medium">Lindungi privasi Anda.</p></div></div><button onclick="if(typeof openChangePasswordModal === 'function') openChangePasswordModal();" class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)] active:scale-95 transition-all"><span class="flex items-center gap-3"><i data-lucide="key-round" class="w-4 h-4 text-amber-500"></i> Ubah Kata Sandi</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-30"></i></button></div><div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm"><div class="flex items-center gap-4 mb-4"><div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shadow-sm"><i data-lucide="palette" class="w-5 h-5"></i></div><div><h3 class="font-bold text-sm">Tema Aplikasi</h3><p class="text-[9px] text-[color:var(--text2)] font-medium">Kustomisasi interface.</p></div></div><button onclick="toggleTheme()" class="w-full p-4 rounded-2xl bg-gradient-to-r from-[#2563eb] to-indigo-600 text-white text-xs font-black flex justify-between items-center shadow-lg shadow-blue-500/20 active:scale-95 transition-all"><span>GANTI MODE</span><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button></div><button onclick="if(auth) auth.signOut();" class="w-full py-4 rounded-3xl bg-red-500/5 text-red-500 font-black text-xs border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-sm">KELUAR DARI SISTEM</button></div></div>`;
-    };
-
-    // ==========================================
-    // 7. RENDER DATA MAHASISWA & PROFIL & UPLOAD FOTO
+    // 6. RENDER DATA MAHASISWA & PROFIL & UPLOAD FOTO
     // ==========================================
     window.getDataMahasiswaHTML = function() { return `<div class="p-5 animate-fade"><h2 class="text-xl font-black mb-4 text-[color:var(--text)]">Data Mahasiswa</h2><div id="wadah-data-mahasiswa" class="space-y-3"><div class="text-center p-4"><i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto text-[#2563eb]"></i></div></div></div>`; };
     window.loadDataMahasiswa = async function() { const wadah = document.getElementById('wadah-data-mahasiswa'); if (!wadah) return; try { const snapshot = await db.collection('users').get(); if (snapshot.empty) { wadah.innerHTML = `<div class="glass p-5 text-center rounded-2xl text-[color:var(--text2)]">Belum ada data.</div>`; return; } let html = ''; window.cachedMahasiswa = {}; snapshot.forEach(doc => { const user = doc.data(); window.cachedMahasiswa[doc.id] = user; const nama = user.displayName || user.name || 'Tanpa Nama'; const nim = user.nim || 'NIM Tidak Ada'; html += `<div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] transition-all cursor-pointer" onclick="lihatDetailMahasiswa('${doc.id}')"><div class="w-10 h-10 rounded-full bg-[#2563eb] flex items-center justify-center text-white font-bold shrink-0">${nama.charAt(0)}</div><div class="flex-1 min-w-0"><h3 class="font-bold text-[color:var(--text)] truncate text-sm">${nama}</h3><p class="text-[10px] text-[color:var(--text2)]">${nim}</p></div><span class="text-[9px] font-bold px-2 py-1 rounded bg-blue-500/10 text-blue-500 uppercase">${user.role||'mahasiswa'}</span></div>`; }); wadah.innerHTML = html; } catch (e) { wadah.innerHTML = `<div class="text-red-500">Gagal memuat</div>`; } };
@@ -678,7 +671,7 @@
     };
 
     // ==========================================
-    // 8. CHAT KELAS & VOICE & EMOJI (FULL FEATURES)
+    // 7. CHAT KELAS & VOICE & EMOJI (FULL FEATURES)
     // ==========================================
     window.openCourse = function(id) { STATE.currentCourse = COURSES.find(c => c.id === id); STATE.screen = 'course'; renderFull(); };
     window.renderCourse = function(el) {
@@ -749,7 +742,7 @@
     window.unpinMessage = async function() { try { await db.collection('courses').doc(STATE.currentCourse.id).update({ pinnedMessage: null }); showToast('Sematan dilepas'); } catch(e){} };
 
     // ==========================================
-    // 9. AI CHAT & EXPORT
+    // 8. AI CHAT & EXPORT
     // ==========================================
     window.openAskAIModal = function() {
         showGlobalModal(`
@@ -805,29 +798,7 @@
     window.handleExportNotes = function() { const msgs = STATE.chats[STATE.currentCourse.id] || []; if(msgs.length === 0) return showToast('Belum ada pesan', 'warning'); const content = msgs.map(m => `[${formatTime(m.timestamp)}] ${m.userName}: ${m.text}`).join('\n'); const fullText = `# CATATAN KELAS: ${STATE.currentCourse.name}\nTanggal: ${new Date().toLocaleDateString('id-ID')}\n\n---\n\n${content}`; const blob = new Blob([fullText], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `Catatan_${STATE.currentCourse.id}.md`; a.click(); showToast('Diunduh!'); };
 
     // ==========================================
-    // 10. PERBAIKAN TAB TUGAS & TO-DO LIST
-    // ==========================================
-    window.renderAllAssignments = function() {
-        let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
-        
-        let listHTML = allAsg.length === 0 ? `<div class="p-6 text-center border border-dashed border-[color:var(--border)] rounded-2xl"><p class="text-xs text-[color:var(--text2)] italic">Belum ada tugas kuliah.</p></div>` : allAsg.map(a => {
-            const course = typeof COURSES !== 'undefined' ? COURSES.find(c => c.id === a.courseId) : null;
-            return `<div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 cursor-pointer shadow-sm relative overflow-hidden mb-3 hover:scale-[1.02] transition-transform" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')"><div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#2563eb] opacity-80"></div><div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl shrink-0 border border-blue-500/20"><i data-lucide="file-text" class="w-6 h-6"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-[13px] text-[color:var(--text)] truncate uppercase">${a.title}</h4><p class="text-[10px] text-[color:var(--text2)] truncate font-medium">${course ? course.name : ''}</p><div class="flex items-center gap-3 mt-1.5"><span class="text-[9px] font-bold text-orange-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline) : ''}</span><span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">${a.type}</span></div></div><i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-30 shrink-0"></i></div>`;
-        }).join('');
-
-        const todos = STATE.currentUser?.todos || [];
-        const todoHTML = todos.length === 0 ? `<div class="text-center p-6 bg-[color:var(--surface)] rounded-2xl border border-dashed border-[color:var(--border)]"><i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-[#2563eb] opacity-30"></i><p class="text-xs text-[color:var(--text2)] font-medium">Belum ada catatan pribadi.</p></div>` : todos.map(t => `<div class="flex items-center justify-between p-3 rounded-xl bg-[color:var(--surface)] border border-[color:var(--border)] mb-2 shadow-sm transition-all ${t.done ? 'opacity-50' : ''} hover:bg-[color:var(--card)]"><div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onclick="toggleTodo('${t.id}')"><div class="w-6 h-6 shrink-0 rounded-md border ${t.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-[color:var(--border)] text-transparent'} flex items-center justify-center transition-colors shadow-inner"><i data-lucide="check" class="w-4 h-4"></i></div><span class="text-sm font-medium truncate ${t.done ? 'line-through text-[color:var(--text2)]' : 'text-[color:var(--text)]'}">${t.text}</span></div><button onclick="deleteTodo('${t.id}')" class="text-red-400 hover:text-red-500 p-2 shrink-0 active:scale-90 transition-transform"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`).join('');
-
-        return `<div class="p-5 animate-fade space-y-6 pb-24 max-w-4xl mx-auto"><div><div class="flex items-center justify-between mb-4"><div><h2 class="text-xl font-black text-[color:var(--text)]">Tugas Kuliah</h2><p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Semua Mata Kuliah</p></div><div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 shadow-sm"><span class="text-[11px] font-black text-[#2563eb]">${allAsg.length} TUGAS</span></div></div><div>${listHTML}</div></div><div class="h-px w-full bg-[color:var(--border)] opacity-50 my-2"></div><div><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shadow-sm"><i data-lucide="list-todo" class="w-5 h-5"></i></div><div><h2 class="text-xl font-black text-[color:var(--text)]">Catatan Pribadi</h2><p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">To-Do List Saya</p></div></div><div class="flex gap-2 mb-4"><input type="text" id="todo-input" class="flex-1 bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-xl p-3.5 text-sm outline-none focus:border-[#2563eb] text-[color:var(--text)] shadow-inner transition-colors" placeholder="Ketik target baru..." onkeydown="if(event.key==='Enter') saveTodo()"><button onclick="saveTodo()" class="bg-[#2563eb] text-white px-5 rounded-xl shadow-lg active:scale-95 transition-transform"><i data-lucide="plus" class="w-5 h-5"></i></button></div><div id="todo-list-container" class="space-y-2">${todoHTML}</div></div></div>`;
-    };
-
-    window.saveTodo = async function() { const input = document.getElementById('todo-input'); const text = input?.value.trim(); if(!text) return; const newTodo = { id: Date.now().toString(), text: text, done: false }; const updatedTodos = [...(STATE.currentUser.todos || []), newTodo]; STATE.currentUser.todos = updatedTodos; if(input) input.value = ''; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
-    window.toggleTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).map(t => t.id === id ? { ...t, done: !t.done } : t); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
-    window.deleteTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).filter(t => t.id !== id); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
-
-
-    // ==========================================
-    // 11. PERBAIKAN PENGATURAN (DENGAN REKOMENDASI FITUR)
+    // 9. PERBAIKAN PENGATURAN (DENGAN REKOMENDASI FITUR)
     // ==========================================
     window.renderSettings = function() {
         return `
@@ -883,7 +854,7 @@
     };
 
     // ==========================================
-    // 12. LOGIKA POP-UP GANTI PASSWORD
+    // 10. LOGIKA POP-UP GANTI PASSWORD
     // ==========================================
     window.renderAllAssignments = function() {
         let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
