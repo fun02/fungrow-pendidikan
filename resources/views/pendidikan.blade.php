@@ -150,7 +150,7 @@
 
     const STATE = {
         currentUser: null, isDark: true, currentCourse: null, screen: 'loading', dashboardTab: 'home',
-        chats: {}, assignments: {}, unsubscribers: {}, audioChunks: [], pinnedMessage: null, aiChatHistory: [], aiPendingFile: null
+        chats: {}, assignments: {}, unsubscribers: {}, audioChunks: [], pinnedMessage: null, aiChatHistory: [], aiPendingFile: null, asgPendingFile: null
     };
 
     // Stiker & Emoji
@@ -721,7 +721,11 @@
 
     window.openAttachmentMenu = () => showGlobalModal(`<div class="bg-[color:var(--surface)] backdrop-blur-2xl p-6 pb-8 rounded-t-3xl animate-slide-attachment w-full border-t border-[color:var(--border)] shadow-2xl relative"><div class="grid grid-cols-4 gap-y-6 gap-x-2 justify-items-center"><button onclick="openSpecificFileForm('.pdf,.doc,.docx,.txt,.xls,.xlsx')" class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-[18px] bg-[#5c37eb] flex items-center justify-center shadow-lg"><i data-lucide="file-text" class="w-6 h-6 text-white"></i></div><span class="text-[11px] font-medium tracking-wide">Dokumen</span></button><button onclick="openSpecificFileForm('image/*', true)" class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-[18px] bg-[#eb3765] flex items-center justify-center shadow-lg"><i data-lucide="camera" class="w-6 h-6 text-white"></i></div><span class="text-[11px] font-medium tracking-wide">Kamera</span></button><button onclick="openSpecificFileForm('image/*')" class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-[18px] bg-[#0ea5e9] flex items-center justify-center shadow-lg"><i data-lucide="image" class="w-6 h-6 text-white"></i></div><span class="text-[11px] font-medium tracking-wide">Galeri</span></button><button onclick="openSpecificFileForm('audio/*')" class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-[18px] bg-[#f97316] flex items-center justify-center shadow-lg"><i data-lucide="headphones" class="w-6 h-6 text-white"></i></div><span class="text-[11px] font-medium tracking-wide">Audio</span></button><button onclick="openAssignForm()" class="flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-[18px] bg-[#10b981] flex items-center justify-center shadow-lg"><i data-lucide="clipboard-list" class="w-6 h-6 text-white"></i></div><span class="text-[11px] font-medium tracking-wide">Tugas</span></button></div><div class="w-12 h-1 bg-[color:var(--text2)] opacity-30 rounded-full mx-auto mt-6"></div></div>`, true);
     window.openSpecificFileForm = (acceptType, capture = false) => { closeGlobalModal(); const input = document.getElementById('global-file-input'); input.accept = acceptType; if (capture) input.setAttribute('capture', 'environment'); else input.removeAttribute('capture'); input.click(); };
-    window.handleGlobalFileUpload = async function(event) { const file = event.target.files[0]; if (!file) return; event.target.value = ""; showToast('Mengirim file...', 'warning'); try { const isAudio = file.type.startsWith('audio/'); const isImage = file.type.startsWith('image/'); const type = isImage ? 'image' : (isAudio ? 'voice' : 'file'); const url = await fetchCloudinaryUpload(file, isAudio); await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, text: url, fileName: file.name, fileSize: (file.size/1024).toFixed(1)+' KB', type: type, timestamp: firebase.firestore.FieldValue.serverTimestamp(), readBy: [STATE.currentUser.uid] }); } catch(e) { showToast('Gagal kirim file', 'error'); } };
+    window.handleGlobalFileUpload = async function(event) { const file = event.target.files[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) { // Maks 5MB
+            alert("Gagal: Ukuran file terlalu besar! Maksimal 5 MB.");
+            return;
+        }
+        STATE.asgPendingFile = file; event.target.value = ""; showToast('Mengirim file...', 'warning'); try { const isAudio = file.type.startsWith('audio/'); const isImage = file.type.startsWith('image/'); const type = isImage ? 'image' : (isAudio ? 'voice' : 'file'); const url = await fetchCloudinaryUpload(file, isAudio); await db.collection('courses').doc(STATE.currentCourse.id).collection('chats').add({ userId: STATE.currentUser.uid, userName: STATE.currentUser.displayName, text: url, fileName: file.name, fileSize: (file.size/1024).toFixed(1)+' KB', type: type, timestamp: firebase.firestore.FieldValue.serverTimestamp(), readBy: [STATE.currentUser.uid] }); } catch(e) { showToast('Gagal kirim file', 'error'); } };
 
     window.toggleStickerPanel = function() { let panel = document.getElementById('sticker-panel'); if (!panel) { const chatContainer = document.getElementById('chat-input-container'); if(!chatContainer) return showToast('Buka chat kelas dulu!', 'warning'); panel = document.createElement('div'); panel.id = 'sticker-panel'; panel.className = 'w-full h-64 bg-[color:var(--surface)] border-t border-[color:var(--border)] flex flex-col hidden absolute bottom-full left-0 z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300'; panel.innerHTML = `<div class="flex items-center gap-2 px-3 py-2 border-b border-[color:var(--border)] bg-[color:var(--input-bg)]"><button onclick="loadStickers('emoji')" class="p-2 rounded-xl text-[color:var(--text2)] hover:text-yellow-500 hover:bg-[color:var(--card)]"><i data-lucide="smile" class="w-5 h-5"></i></button><button onclick="loadStickers('default')" class="p-2 rounded-xl text-[color:var(--text2)] hover:text-[#2563eb] hover:bg-[color:var(--card)]"><i data-lucide="sticker" class="w-5 h-5"></i></button><button onclick="loadStickers('favorites')" class="p-2 rounded-xl text-[color:var(--text2)] hover:text-amber-500 hover:bg-[color:var(--card)]"><i data-lucide="star" class="w-5 h-5"></i></button><button onclick="toggleStickerPanel()" class="ml-auto p-2 text-[color:var(--text2)] hover:text-red-500 hover:bg-red-500/10 rounded-xl"><i data-lucide="chevron-down" class="w-5 h-5"></i></button></div><div id="sticker-grid" class="flex-1 overflow-y-auto p-4 hide-scrollbar bg-[color:var(--bg)]"></div>`; chatContainer.appendChild(panel); lucide.createIcons(); } panel.classList.toggle('hidden'); if (!panel.classList.contains('hidden')) loadStickers('emoji'); };
     window.insertEmoji = function(emoji) { const input = document.getElementById('chat-input'); if(input) { input.value += emoji; handleInput(input); input.focus(); } };
@@ -1155,38 +1159,28 @@
     // ==========================================
     // 13. FUNGSI PENYIMPAN TUGAS
     // ==========================================
-    window.submitNewAssignment = async function() {
-        const jenis = document.getElementById('asg-jenis').value;
+        window.submitNewAssignment = async function() {
+        let jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        if(!jenis || !type || !deadlineRaw) {
-            return alert('Harap lengkapi Jenis Tugas, Target Tugas, dan Waktu Pengumpulan!');
+        // Cek jika pilihannya adalah "Lainnya"
+        if (jenis === 'Lainnya') {
+            jenis = document.getElementById('asg-jenis-lainnya').value.trim();
+            if (!jenis) return alert('Peringatan: Harap ketikkan jenis tugas manual Anda!');
+        } else if (!jenis) {
+            return alert('Peringatan: Harap pilih Jenis Tugas!');
         }
 
-        let kelompokData = null;
+        if(!type || !deadlineRaw) return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
 
-        // VALIDASI KHUSUS TUGAS KELOMPOK
+        let kelompokData = null;
         if (type === 'kelompok') {
             const gName = document.getElementById('asg-group-name').value.trim();
             const gMembers = document.getElementById('asg-group-members').value.trim();
-            
-            if (!gName || !gMembers || gMembers === "1. \n2.") {
-                return alert("Peringatan: Harap isi Nama Kelompok dan ketikkan Daftar Anggota dengan benar!");
-            }
-            
-            // Cek minimal 2 anggota (Mencari baris yang ada hurufnya)
-            const lines = gMembers.split('\n').filter(l => l.replace(/[0-9.\s]/g, '').length > 2);
-            if (lines.length < 2) {
-                return alert("Peringatan: Tugas Kelompok wajib memiliki minimal 2 anggota!");
-            }
-            
-            kelompokData = {
-                nama: gName,
-                judul: jenis.toUpperCase(),
-                anggota: gMembers
-            };
+            if (!gName || !gMembers) return alert("Peringatan: Data kelompok belum lengkap!");
+            kelompokData = { nama: gName, judul: jenis.toUpperCase(), anggota: gMembers };
         }
         
         const btn = document.getElementById('btn-submit-asg');
@@ -1195,34 +1189,34 @@
 
         try {
             let fileUrl = null;
+            // PROSES UPLOAD KE SERVER (CLOUDINARY)
             if (STATE.asgPendingFile) {
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MENGUPLOAD FILE...';
+                btn.innerHTML = 'MENGUPLOAD FILE...';
                 fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
             }
 
             const deadlineDate = new Date(deadlineRaw);
-            const dosenName = STATE.currentCourse?.dosen || STATE.currentUser.displayName;
             
             await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
                 title: jenis.toUpperCase(),
                 description: desc,
                 type: type,
-                kelompok: kelompokData, // Data Kelompok Disimpan Disini
+                kelompok: kelompokData, 
                 deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
                 courseId: STATE.currentCourse.id,
                 courseName: STATE.currentCourse.name,
-                dosen: dosenName,
-                fileUrl: fileUrl,
+                dosen: STATE.currentUser.displayName,
+                fileUrl: fileUrl, // Link file masuk sini
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            alert('Tugas berhasil dipublikasikan ke kelas!');
+            alert('Tugas berhasil dipublikasikan!');
             STATE.asgPendingFile = null; 
             closeGlobalModal();
+            renderDashboardContent(); // Refresh tampilan
         } catch (e) {
-            console.error("Gagal buat tugas:", e);
-            alert('Terjadi kesalahan jaringan saat mengirim tugas.');
-            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN';
+            alert('Gagal: ' + e.message);
+            btn.innerHTML = 'KIRIM TUGAS';
             btn.disabled = false;
         }
     };
