@@ -1156,27 +1156,13 @@
     // 13. FUNGSI PENYIMPAN TUGAS
     // ==========================================
     window.submitNewAssignment = async function() {
-        // Ambil nilai dari dropdown
-        let jenis = document.getElementById('asg-jenis').value;
+        const jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        // --- LOGIKA TAMBAHAN: CEK PILIHAN 'LAINNYA' ---
-        if (jenis === 'Lainnya') {
-            // Ambil teks dari input manual yang muncul
-            const jenisManual = document.getElementById('asg-jenis-lainnya').value.trim();
-            if (!jenisManual) {
-                return alert('Peringatan: Anda memilih "Lainnya", harap ketikkan jenis tugas manual Anda!');
-            }
-            jenis = jenisManual; // Ganti isi variabel 'jenis' dengan ketikan manual Bos
-        } else if (!jenis) {
-            return alert('Peringatan: Harap pilih Jenis Tugas!');
-        }
-        // ----------------------------------------------
-
-        if(!type || !deadlineRaw) {
-            return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
+        if(!jenis || !type || !deadlineRaw) {
+            return alert('Harap lengkapi Jenis Tugas, Target Tugas, dan Waktu Pengumpulan!');
         }
 
         let kelompokData = null;
@@ -1190,6 +1176,7 @@
                 return alert("Peringatan: Harap isi Nama Kelompok dan ketikkan Daftar Anggota dengan benar!");
             }
             
+            // Cek minimal 2 anggota (Mencari baris yang ada hurufnya)
             const lines = gMembers.split('\n').filter(l => l.replace(/[0-9.\s]/g, '').length > 2);
             if (lines.length < 2) {
                 return alert("Peringatan: Tugas Kelompok wajib memiliki minimal 2 anggota!");
@@ -1208,7 +1195,6 @@
 
         try {
             let fileUrl = null;
-            // Cek wadah file (Pastikan asgPendingFile sudah ada di STATE)
             if (STATE.asgPendingFile) {
                 btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MENGUPLOAD FILE...';
                 fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
@@ -1218,10 +1204,10 @@
             const dosenName = STATE.currentCourse?.dosen || STATE.currentUser.displayName;
             
             await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
-                title: jenis.toUpperCase(), // Akan menyimpan teks manual jika pilih 'Lainnya'
+                title: jenis.toUpperCase(),
                 description: desc,
                 type: type,
-                kelompok: kelompokData, 
+                kelompok: kelompokData, // Data Kelompok Disimpan Disini
                 deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
                 courseId: STATE.currentCourse.id,
                 courseName: STATE.currentCourse.name,
@@ -1235,7 +1221,7 @@
             closeGlobalModal();
         } catch (e) {
             console.error("Gagal buat tugas:", e);
-            alert('Terjadi kesalahan jaringan atau sistem: ' + e.message);
+            alert('Terjadi kesalahan jaringan saat mengirim tugas.');
             btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN';
             btn.disabled = false;
         }
