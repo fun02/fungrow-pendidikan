@@ -714,62 +714,99 @@
         }
     };
 
-    // ========== DASHBOARD LAYOUT & TABS ==========
+    // ========== DASHBOARD LAYOUT & TABS (NEW BOTTOM NAV ENTERPRISE) ==========
     function renderDashboardLayout(el) {
-        const photo = STATE.currentUser?.photoURL ? `<img src="${STATE.currentUser.photoURL}" class="w-8 h-8 rounded-full object-cover border border-[color:var(--border)]">` : `<div class="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-[#2563eb] text-white">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
+        if(!STATE.dashboardTab) STATE.dashboardTab = 'home';
+
+        // Ambil foto profil atau inisial
+        const photo = STATE.currentUser?.photoURL ? 
+            `<img src="${STATE.currentUser.photoURL}" class="w-10 h-10 rounded-full object-cover border-2 border-[#2563eb] shadow-sm">` : 
+            `<div class="w-10 h-10 rounded-full flex items-center justify-center font-bold bg-[#2563eb] text-white border-2 border-[#2563eb] shadow-sm">${STATE.currentUser?.displayName?.[0]?.toUpperCase()}</div>`;
+
         el.innerHTML = `
-        <div class="h-full flex flex-col relative overflow-hidden">
-            <header class="glass flex items-center justify-between px-4 py-3 mx-3 mt-3 rounded-2xl z-30 shadow-sm backdrop-blur-xl">
-                <div class="flex items-center gap-3">
-                    <button onclick="openSidebar()" class="p-2 rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] text-[color:var(--text)] active:scale-95 transition-transform"><i data-lucide="menu" class="w-5 h-5"></i></button>
-                    <div class="font-bold text-[color:var(--text)] flex items-center gap-2"><span class="text-xl">🎓</span> FunGrow</div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="toggleTheme()" class="p-2 rounded-full bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)]"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-4 h-4"></i></button>
-                    <button onclick="switchTab('about')" class="shrink-0 active:scale-95 transition-transform">${photo}</button>
-                </div>
-            </header>
-            <div id="dashboard-content" class="flex-1 overflow-auto pb-8 relative pt-2"></div>
-        </div>`;
+            <div class="flex flex-col h-full bg-[color:var(--bg)] text-[color:var(--text)] overflow-hidden relative">
+                
+                <header class="px-5 py-4 flex justify-between items-center shrink-0 bg-[color:var(--surface)] border-b border-[color:var(--border)] relative z-30 shadow-sm backdrop-blur-xl">
+                    <div class="flex items-center gap-3">
+                        <button onclick="switchTab('about')" class="shrink-0 active:scale-95 transition-transform">
+                            ${photo}
+                        </button>
+                        <div>
+                            <h2 class="text-sm font-black tracking-tight leading-none">${STATE.currentUser.displayName}</h2>
+                            <span class="text-[9px] font-bold uppercase text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded mt-1 inline-block border border-blue-500/20">${STATE.currentUser.role}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-[color:var(--card)] text-[color:var(--text2)] border border-[color:var(--border)] active:scale-95 transition-all"><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i></button>
+                        <button onclick="handleAISummary()" class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg active:scale-95 transition-all"><i data-lucide="sparkles" class="w-5 h-5"></i></button>
+                    </div>
+                </header>
+
+                <main id="dashboard-content" class="flex-1 overflow-y-auto hide-scrollbar pb-[85px] relative pt-2">
+                </main>
+
+                <nav class="fixed bottom-0 left-0 right-0 h-[72px] bg-[color:var(--surface)] border-t border-[color:var(--border)] flex items-center justify-around px-2 z-50 backdrop-blur-xl pb-1 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+                    <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='home' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='home' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="home" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Home</span>
+                    </button>
+                    
+                    <button onclick="switchTab('jadwal')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='jadwal' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='jadwal' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="calendar" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Jadwal</span>
+                    </button>
+                    
+                    <button onclick="switchTab('kelas')" class="flex flex-col items-center justify-center -mt-8">
+                        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2563eb] to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-4 border-[color:var(--bg)] active:scale-95 transition-transform"><i data-lucide="layout-dashboard" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold text-[color:var(--text)] mt-1">Kelas</span>
+                    </button>
+                    
+                    ${STATE.currentUser?.role === 'admin' ? `
+                    <button onclick="switchTab('mahasiswa')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='mahasiswa' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='mahasiswa' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="users" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Data</span>
+                    </button>
+                    ` : `
+                    <button onclick="switchTab('tasks')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='tasks' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='tasks' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="check-square" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Tugas</span>
+                    </button>
+                    `}
+                    
+                    <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 w-16 ${STATE.dashboardTab==='settings' ? 'text-[#2563eb]' : 'text-[color:var(--text2)]'}">
+                        <div class="p-1.5 rounded-xl ${STATE.dashboardTab==='settings' ? 'bg-blue-500/10' : ''} transition-all"><i data-lucide="settings" class="w-6 h-6"></i></div>
+                        <span class="text-[9px] font-bold">Setelan</span>
+                    </button>
+                </nav>
+            </div>
+        `;
         renderDashboardContent();
     }
+
+    // Fungsi Utama Pindah Tab
+    window.switchTab = function(tabName) {
+        STATE.dashboardTab = tabName; 
+        if(typeof closeSidebar === 'function') closeSidebar(); // Tutup sidebar lama kalau masih ada
+        renderFull(); // Render ulang agar Navbar Bawah berubah warna aktifnya
+    };
+
     function renderDashboardContent() {
         const container = document.getElementById('dashboard-content');
         if (!container) return;
         
         if (STATE.dashboardTab === 'home') {
             container.innerHTML = getHomeHTML();
-            
-            // Pemicu Pop-up Promo (Aman)
-            setTimeout(() => {
-                if (typeof window.showPromoModal === 'function') {
-                    window.showPromoModal();
-                }
-            }, 1000); 
+            setTimeout(() => { if (typeof window.showPromoModal === 'function') window.showPromoModal(); }, 1000);
         } 
         else if (STATE.dashboardTab === 'kelas') {
             container.innerHTML = getKelasHTML();
-            
-            // Pemicu Banner Swiper (Aman)
             setTimeout(() => {
-                if (typeof Swiper !== 'undefined') {
-                    new Swiper('.banner-swiper', {
-                        slidesPerView: 1,
-                        spaceBetween: 0,
-                        loop: true,
-                        autoplay: { delay: 3500, disableOnInteraction: false },
-                        pagination: { el: '.swiper-pagination', clickable: true }
-                    });
-                }
+                if (typeof Swiper !== 'undefined') new Swiper('.banner-swiper', { slidesPerView: 1, spaceBetween: 0, loop: true, autoplay: { delay: 3500, disableOnInteraction: false }, pagination: { el: '.swiper-pagination', clickable: true } });
             }, 100);
         } 
-            // DATA MAHASISWA:
         else if (STATE.dashboardTab === 'mahasiswa') {
             container.innerHTML = getDataMahasiswaHTML();
-            // fungsi penarik data sesaat setelah HTML-nya dimuat
-            setTimeout(() => {
-                loadDataMahasiswa();
-            }, 50);
+            setTimeout(() => { loadDataMahasiswa(); }, 50);
         }
         else if (STATE.dashboardTab === 'jadwal') {
             container.innerHTML = getJadwalHTML();
@@ -777,9 +814,21 @@
         else if (STATE.dashboardTab === 'about') {
             container.innerHTML = getAboutHTML();
         }
+        else if (STATE.dashboardTab === 'tasks') {
+            // Tempat To-Do List Pribadi
+            container.innerHTML = `<div class="p-6 text-center text-[color:var(--text2)] pt-20"><i data-lucide="check-square" class="w-16 h-16 mx-auto mb-4 text-[#2563eb] opacity-50"></i><h2 class="text-lg font-bold text-[color:var(--text)]">To-Do List Pribadi</h2><p class="text-xs mt-2">Ruang Rahasia Produktivitas segera hadir di sini!</p></div>`;
+        }
+        else if (STATE.dashboardTab === 'settings') {
+            if(typeof renderSettings === 'function') {
+                container.innerHTML = renderSettings();
+            } else {
+                container.innerHTML = `<div class="p-6 text-center">Tarik nafas, Settings sedang dimuat...</div>`;
+            }
+        }
         
         lucide.createIcons();
-    } 
+    }
+
         function getHomeHTML() {
         return `
             <div class="space-y-5 animate-fade px-4 py-2">
@@ -933,7 +982,41 @@
             ${scheduleList}
         </div>`;
     }
-    
+
+  // ==========================================
+    // Menu Settings
+    // ==========================================
+        window.renderSettings = function() {
+        return `
+            <div class="p-6 animate-fade">
+                <h2 class="text-xl font-black mb-6 flex items-center gap-2"><i data-lucide="settings" class="w-6 h-6 text-[#2563eb]"></i> Pengaturan Akun</h2>
+                
+                <div class="space-y-4">
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)]">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+                            <div><h3 class="font-bold text-sm">Keamanan Akun</h3><p class="text-[10px] text-[color:var(--text2)]">Lindungi privasi dan data kuliah Anda.</p></div>
+                        </div>
+                        <div class="space-y-2">
+                            <button class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)]"><span>Ganti Kata Sandi</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-50"></i></button>
+                            <button class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)]"><span>Perangkat Tertaut</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-50"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)]">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center"><i data-lucide="palette" class="w-6 h-6"></i></div>
+                            <div><h3 class="font-bold text-sm">Tampilan & Tema</h3><p class="text-[10px] text-[color:var(--text2)]">Kustomisasi interface aplikasi.</p></div>
+                        </div>
+                        <button onclick="toggleTheme()" class="w-full p-3 rounded-xl bg-[#2563eb] text-white text-[11px] font-bold flex justify-between items-center shadow-lg shadow-blue-500/20"><span>Ganti Mode Gelap/Terang</span><i data-lucide="moon" class="w-4 h-4"></i></button>
+                    </div>
+
+                    <button onclick="auth.signOut()" class="w-full py-4 rounded-3xl bg-red-500/10 text-red-500 font-black text-xs border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">KELUAR DARI SISTEM</button>
+                </div>
+            </div>
+        `;
+    };
+
     // ==========================================
     // TAMPILAN HALAMAN DATA MAHASISWA
     // ==========================================
@@ -1782,226 +1865,115 @@ window.showPromoModal = function() {
     };
 
     // ==============================================
-    // REKOMENDASI TAMPILAN DETAIL TUGAS PREMIUM (V2.0 - ROLE BASED)
+    // DETAIL TUGAS DESKTOP-GRADE (TANPA DISKUSI)
     // ==============================================
     window.viewAssignmentDetail = async (courseId, asgId) => {
-        try {
-            const asg = STATE.assignments[courseId]?.find(a => a.id === asgId);
-            if(!asg) return showToast("Data tugas tidak ditemukan", "error");
+        const asg = STATE.assignments[courseId]?.find(a => a.id === asgId);
+        if(!asg) return;
 
-            // Cek apakah user adalah Dosen/Admin
-            const isDosen = STATE.currentUser.role === 'dosen' || STATE.currentUser.role === 'admin';
+        const isDosen = STATE.currentUser.role === 'dosen' || STATE.currentUser.role === 'admin';
+        // Ambil data pengumpulan dari database (Sub-collection)
+        const subSnap = await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').get();
+        const submissions = subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        showGlobalModal(`
+        <div class="glass animate-slide border border-[color:var(--border)] max-h-[95vh] h-full sm:h-auto overflow-hidden shadow-2xl sm:rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-4xl mx-auto relative">
             
-            // Ambil data pengumpulan (Simulasi data jika belum ada)
-            let submissions = asg.submissions || [];
+            <div class="bg-[#0f172a] text-white p-6 shrink-0 flex items-center justify-between z-20">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-blue-500/20 rounded-2xl border border-blue-500/30 text-blue-400"><i data-lucide="briefcase" class="w-6 h-6"></i></div>
+                    <div>
+                        <h2 class="text-xl font-black uppercase tracking-tight">${asg.title}</h2>
+                        <p class="text-xs text-gray-400 font-bold tracking-widest">${asg.courseName} • ${asg.dosen}</p>
+                    </div>
+                </div>
+                <button onclick="closeGlobalModal()" class="p-2 rounded-full hover:bg-white/10 text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
 
-            showGlobalModal(`
-            <div class="glass animate-slide border border-[color:var(--border)] max-h-[95vh] h-full sm:h-auto overflow-hidden shadow-2xl sm:rounded-3xl flex flex-col bg-[color:var(--bg)] w-full max-w-2xl mx-auto relative">
+            <div class="flex flex-col md:flex-row flex-1 overflow-hidden">
                 
-                <div class="bg-[#0f172a] text-white p-5 sm:p-6 text-center sm:rounded-t-3xl relative shrink-0 z-20 shadow-md">
-                    <div class="absolute top-4 right-4"><button onclick="closeGlobalModal()" class="p-2 rounded-full hover:bg-red-500/20 text-white transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-                    <div class="inline-block px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-widest border border-blue-500/30 mb-3">${asg.type}</div>
-                    <h2 class="text-xl sm:text-2xl font-extrabold tracking-wide uppercase mb-1 line-clamp-2">${asg.title}</h2>
-                    <p class="text-sm text-gray-300 font-medium"><i data-lucide="user" class="w-3.5 h-3.5 inline mb-0.5 text-blue-400"></i> ${asg.dosen}</p>
-                </div>
-
-                <div class="flex border-b border-[color:var(--border)] bg-[color:var(--surface)] shrink-0 z-10">
-                    <button onclick="switchAsgTab('instruksi')" id="tab-btn-instruksi" class="flex-1 py-4 text-[13px] font-bold border-b-2 border-[#2563eb] text-[#2563eb] transition-all">INSTRUKSI</button>
-                    <button onclick="switchAsgTab('pengumpulan')" id="tab-btn-pengumpulan" class="flex-1 py-4 text-[13px] font-bold border-b-2 border-transparent text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all">PENGUMPULAN</button>
-                </div>
-
-                <div class="flex-1 overflow-y-auto hide-scrollbar p-5 sm:p-6 bg-[color:var(--bg)] relative">
+                <div class="flex-1 overflow-y-auto p-6 space-y-6 border-r border-[color:var(--border)]">
                     
-                    <div id="tab-instruksi" class="space-y-6 animate-fade">
-                        
-                        <div class="flex flex-wrap gap-3">
-                            <div class="flex-1 min-w-[140px] p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-5 h-5"></i></div>
-                                <div><p class="text-[10px] uppercase text-orange-600 dark:text-orange-400 font-bold tracking-wider">Batas Waktu</p><p class="text-sm font-bold text-orange-600 dark:text-orange-400">${formatDate(asg.deadline)}</p></div>
-                            </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20">
+                            <p class="text-[9px] uppercase text-orange-500 font-bold mb-1 tracking-widest">Waktu Terakhir</p>
+                            <p class="text-sm font-black text-orange-500">${formatDate(asg.deadline)}</p>
                         </div>
-
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="flex items-center gap-2 text-xs font-bold text-[color:var(--text)] uppercase tracking-wider"><i data-lucide="align-left" class="w-4 h-4 text-[#2563eb]"></i> Keterangan & Instruksi</label>
-                                ${isDosen ? `<span class="text-[9px] bg-blue-500/10 text-blue-500 px-2 py-1 rounded font-bold">MODE EDIT DOSEN</span>` : ''}
-                            </div>
-                            
-                            ${isDosen ? `
-                                <textarea id="edit-asg-desc" class="w-full p-4 rounded-2xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] leading-relaxed min-h-[120px] focus:border-[#2563eb] outline-none transition-colors">${asg.description || ''}</textarea>
-                                <button onclick="updateAsgInstruksi('${courseId}', '${asgId}')" class="mt-3 w-full py-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all"><i data-lucide="save" class="w-4 h-4 inline mb-0.5 mr-1"></i> SIMPAN PERUBAHAN INSTRUKSI</button>
-                            ` : `
-                                <div class="bg-[color:var(--input-bg)] p-5 rounded-2xl border border-[color:var(--border)] text-sm text-[color:var(--text)] leading-relaxed min-h-[100px] whitespace-pre-line">${asg.description || 'Tidak ada instruksi khusus.'}</div>
-                            `}
+                        <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                            <p class="text-[9px] uppercase text-blue-500 font-bold mb-1 tracking-widest">Jenis Tugas</p>
+                            <p class="text-sm font-black text-blue-500 uppercase">${asg.title}</p>
                         </div>
                     </div>
 
+                    ${asg.type === 'kelompok' && asg.kelompok ? `
+                    <div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
+                        <div class="flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-indigo-500"></i><h4 class="text-xs font-bold text-indigo-500 uppercase">Informasi Kelompok (Maks 10)</h4></div>
+                        <div class="bg-[color:var(--surface)] p-4 rounded-xl border border-[color:var(--border)]">
+                            <p class="text-xs font-black text-[color:var(--text)] mb-1">${asg.kelompok.nama} : ${asg.kelompok.judul}</p>
+                            <div class="text-[11px] text-[color:var(--text2)] leading-relaxed whitespace-pre-line">${asg.kelompok.anggota}</div>
+                        </div>
+                    </div>
+                    ` : ''}
 
-                    <div id="tab-pengumpulan" class="hidden space-y-6 animate-fade">
-                        
-                        ${asg.type === 'kelompok' && asg.kelompok ? `
-                        <div class="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 relative overflow-hidden">
-                            <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                            <div class="relative z-10 flex flex-col sm:flex-row gap-4">
-                                <div class="flex-1">
-                                    <span class="px-2 py-1 bg-indigo-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">${asg.kelompok.nama}</span>
-                                    <h3 class="text-lg font-bold text-[color:var(--text)] mt-2">${asg.kelompok.judul}</h3>
-                                </div>
-                                <div class="sm:w-[200px] bg-[color:var(--bg)] p-3 rounded-xl border border-[color:var(--border)]">
-                                    <p class="text-[9px] uppercase text-[color:var(--text2)] font-bold mb-1 border-b border-[color:var(--border)] pb-1">Anggota Tim (Maks 10)</p>
-                                    <p class="text-[11px] text-[color:var(--text)] whitespace-pre-line leading-relaxed">${asg.kelompok.anggota}</p>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-xs font-black text-[color:var(--text2)] uppercase tracking-widest">Keterangan & Instruksi</h4>
+                            ${isDosen ? `<button onclick="updateAsgInstruksi('${courseId}', '${asgId}')" class="text-[10px] font-bold text-emerald-500 flex items-center gap-1 hover:underline"><i data-lucide="save" class="w-3 h-3"></i> SIMPAN</button>` : ''}
+                        </div>
+                        ${isDosen ? `
+                            <textarea id="edit-asg-desc" class="w-full p-5 rounded-2xl bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-[color:var(--text)] h-40 focus:border-[#2563eb] outline-none">${asg.description || ''}</textarea>
+                        ` : `
+                            <div class="bg-[color:var(--input-bg)] p-5 rounded-2xl border border-[color:var(--border)] text-sm leading-relaxed">${asg.description || 'Tidak ada instruksi.'}</div>
+                        `}
+                    </div>
+                </div>
+
+                <div class="w-full md:w-[320px] bg-[color:var(--surface)] overflow-y-auto p-6 space-y-6">
+                    <h4 class="text-xs font-black text-[color:var(--text2)] uppercase tracking-widest mb-4">Pengumpulan File</h4>
+                    
+                    ${!isDosen ? `
+                    <div onclick="document.getElementById('mhs-file').click()" class="w-full border-2 border-dashed border-[#2563eb]/30 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-500/5 transition-all">
+                        <i data-lucide="upload-cloud" class="w-8 h-8 text-[#2563eb] mb-2"></i>
+                        <p class="text-[11px] font-bold text-[color:var(--text)]">Upload Tugas (Maks 5MB)</p>
+                    </div>
+                    <input type="file" id="mhs-file" class="hidden" onchange="handleMhsUpload(event, '${courseId}', '${asgId}')">
+                    <div id="mhs-upload-status" class="mt-2 text-center"></div>
+                    ` : ''}
+
+                    <div class="space-y-4">
+                        ${submissions.map(sub => `
+                        <div class="p-4 rounded-2xl bg-[color:var(--bg)] border border-[color:var(--border)] space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><i data-lucide="file-check-2" class="w-4 h-4"></i></div>
+                                <div class="min-w-0">
+                                    <p class="text-[11px] font-bold truncate">${sub.userName}</p>
+                                    <p class="text-[9px] text-[color:var(--text2)]">${formatDate(sub.timestamp)}</p>
                                 </div>
                             </div>
-                        </div>
-                        ` : ''}
-
-                        ${!isDosen ? `
-                        <div class="border-t border-[color:var(--border)] pt-5">
-                            <h4 class="text-sm font-bold text-[color:var(--text)] mb-3">Upload Pekerjaan Anda</h4>
-                            <div onclick="document.getElementById('mhs-upload').click()" class="w-full border-2 border-dashed border-[#2563eb]/50 bg-[#2563eb]/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-[#2563eb]/10 transition-colors">
-                                <i data-lucide="cloud-upload" class="w-10 h-10 text-[#2563eb] mb-2"></i>
-                                <p class="text-sm font-bold text-[color:var(--text)]">Klik untuk upload file / foto</p>
-                                <p class="text-[10px] text-[color:var(--text2)] mt-1">Maksimal 5 MB (PDF, JPG, PNG)</p>
-                            </div>
-                            <input type="file" id="mhs-upload" class="hidden" onchange="handleMhsUpload(event, '${courseId}', '${asgId}')">
-                            <div id="mhs-upload-status" class="mt-3"></div>
-                        </div>
-                        ` : ''}
-
-                        <div>
-                            <h4 class="text-sm font-bold text-[color:var(--text)] mb-3 border-b border-[color:var(--border)] pb-2">Status Pengumpulan</h4>
-                            ${submissions.length === 0 ? `<p class="text-xs text-[color:var(--text2)] italic text-center py-4">Belum ada file yang dikumpulkan.</p>` : ''}
+                            <a href="${sub.fileUrl}" target="_blank" class="w-full py-2 bg-[color:var(--surface)] text-[10px] font-bold rounded-lg border border-[color:var(--border)] flex items-center justify-center gap-2 hover:bg-[#2563eb] hover:text-white transition-all">LIHAT FILE</a>
                             
-                            <div class="space-y-3">
-                                ${submissions.map(sub => `
-                                <div class="p-4 rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                                    <div class="flex-1 flex items-center gap-3 w-full">
-                                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20"><i data-lucide="file-check-2" class="w-6 h-6"></i></div>
-                                        <div class="min-w-0 flex-1">
-                                            <p class="text-xs font-bold text-[color:var(--text)] truncate">${sub.userName}</p>
-                                            <a href="${sub.fileUrl}" target="_blank" class="text-[11px] text-[#2563eb] hover:underline truncate block">Lihat Dokumen</a>
-                                            <p class="text-[9px] text-[color:var(--text2)] mt-0.5"><i data-lucide="calendar" class="w-3 h-3 inline"></i> ${formatDate(sub.timestamp)}</p>
-                                        </div>
+                            <div class="pt-2 border-t border-[color:var(--border)] flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-[color:var(--text2)]">NILAI</span>
+                                ${isDosen ? `
+                                    <div class="flex gap-1">
+                                        <input type="number" id="grade-${sub.id}" value="${sub.nilai || ''}" class="w-12 p-1 text-center bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded text-[11px] font-bold">
+                                        <button onclick="saveNilai('${courseId}', '${asgId}', '${sub.id}')" class="p-1 bg-emerald-500 text-white rounded"><i data-lucide="check" class="w-3 h-3"></i></button>
                                     </div>
-                                    
-                                    <div class="w-full sm:w-auto flex items-center gap-2 sm:justify-end border-t sm:border-t-0 sm:border-l border-[color:var(--border)] pt-3 sm:pt-0 sm:pl-4">
-                                        ${isDosen ? `
-                                            <input type="number" id="nilai-${sub.id}" value="${sub.nilai || ''}" placeholder="0-100" class="w-20 p-2 rounded-lg bg-[color:var(--input-bg)] border border-[color:var(--border)] text-sm text-center focus:border-[#2563eb] outline-none">
-                                            <button onclick="saveNilai('${courseId}', '${asgId}', '${sub.id}')" class="px-3 py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold active:scale-95 shadow-md">NILAI</button>
-                                        ` : `
-                                            <div class="text-center px-4">
-                                                <p class="text-[10px] uppercase text-[color:var(--text2)] font-bold">NILAI</p>
-                                                <p class="text-xl font-black ${sub.nilai ? 'text-emerald-500' : 'text-[color:var(--text2)]'}">${sub.nilai || '-'}</p>
-                                            </div>
-                                        `}
-                                    </div>
-                                </div>
-                                `).join('')}
+                                ` : `<span class="text-lg font-black ${sub.nilai ? 'text-emerald-500' : 'text-[color:var(--text2)]'}">${sub.nilai || '-'}</span>`}
                             </div>
                         </div>
-
+                        `).join('')}
                     </div>
                 </div>
             </div>
-            `, true);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        } catch(e) {
-            console.error("Error Detail Tugas:", e);
-        }
-    };
 
-    // Fungsi Tukar Tab Detail Tugas
-    window.switchAsgTab = function(tabName) {
-        document.getElementById('tab-instruksi').style.display = tabName === 'instruksi' ? 'block' : 'none';
-        document.getElementById('tab-pengumpulan').style.display = tabName === 'pengumpulan' ? 'block' : 'none';
-        
-        const btnInst = document.getElementById('tab-btn-instruksi');
-        const btnPeng = document.getElementById('tab-btn-pengumpulan');
-        
-        if(tabName === 'instruksi') {
-            btnInst.className = "flex-1 py-4 text-[13px] font-bold border-b-2 border-[#2563eb] text-[#2563eb] transition-all";
-            btnPeng.className = "flex-1 py-4 text-[13px] font-bold border-b-2 border-transparent text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all";
-        } else {
-            btnPeng.className = "flex-1 py-4 text-[13px] font-bold border-b-2 border-[#2563eb] text-[#2563eb] transition-all";
-            btnInst.className = "flex-1 py-4 text-[13px] font-bold border-b-2 border-transparent text-[color:var(--text2)] hover:text-[color:var(--text)] transition-all";
-        }
-    };
-
-    // FUNGSI DOSEN SIMPAN INSTRUKSI BARU
-    window.updateAsgInstruksi = async function(courseId, asgId) {
-        const newDesc = document.getElementById('edit-asg-desc').value;
-        try {
-            showToast("Menyimpan instruksi...", "warning");
-            await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).update({ description: newDesc });
-            showToast("Instruksi berhasil diperbarui!", "success");
-        } catch(e) { showToast("Gagal menyimpan instruksi", "error"); }
-    };
-
-    // FUNGSI MAHASISWA UPLOAD TUGAS (LIMIT 5MB)
-    window.handleMhsUpload = async function(e, courseId, asgId) {
-        const file = e.target.files[0];
-        if(!file) return;
-
-        // VALIDASI MAKS 5 MB
-        if(file.size > 5 * 1024 * 1024) {
-            return alert("Gagal: Ukuran file melebihi batas 5 MB!");
-        }
-
-        const statusEl = document.getElementById('mhs-upload-status');
-        statusEl.innerHTML = `<div class="p-3 bg-blue-500/10 text-blue-500 text-xs font-bold rounded-xl animate-pulse text-center"><i data-lucide="loader" class="w-4 h-4 inline animate-spin mr-2"></i>Sedang mengunggah ${file.name}... Jangan tutup layar!</div>`;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        try {
-            // Asumsi fetchCloudinaryUpload sudah ada di sistem Bos
-            const url = await fetchCloudinaryUpload(file, false); 
-            
-            // Simpan ke database submissions
-            const subData = {
-                userId: STATE.currentUser.uid,
-                userName: STATE.currentUser.displayName,
-                fileUrl: url,
-                fileName: file.name,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                nilai: null // Dosen yang akan isi nanti
-            };
-
-            await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').add(subData);
-            
-            statusEl.innerHTML = `<div class="p-3 bg-emerald-500/10 text-emerald-500 text-xs font-bold rounded-xl text-center"><i data-lucide="check-circle" class="w-4 h-4 inline mr-2"></i>Berhasil dikumpulkan!</div>`;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            setTimeout(() => viewAssignmentDetail(courseId, asgId), 1000); // Refresh view
-            
-        } catch(err) {
-            statusEl.innerHTML = `<div class="p-3 bg-red-500/10 text-red-500 text-xs font-bold rounded-xl text-center">Gagal upload. Coba lagi.</div>`;
-        }
-    };
-
-    // FUNGSI DOSEN SIMPAN NILAI
-    window.saveNilai = async function(courseId, asgId, subId) {
-        const nilaiInput = document.getElementById(`nilai-${subId}`).value;
-        if(!nilaiInput) return showToast("Masukkan nilai dulu!", "warning");
-        
-        try {
-            await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').doc(subId).update({
-                nilai: parseInt(nilaiInput)
-            });
-            showToast("Nilai berhasil disimpan!", "success");
-        } catch(e) { showToast("Gagal menyimpan nilai", "error"); }
-    };
-
-    // --- PERBAIKAN AI SUMMARY (SYNTAX ERROR FIX) ---
-    window.handleAISummary = async function() {
-        const msgs = STATE.chats[STATE.currentCourse.id] || [];
-        if(msgs.length < 3) return showToast('Butuh minimal 3 chat untuk dirangkum', 'warning');
-        const chatHistory = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n');
-        const contextPrompt = `[INSTRUKSI SISTEM: Buatlah rangkuman dari diskusi kelas mata kuliah "${STATE.currentCourse.name}".]\n\nDiskusi:\n${chatHistory}`;
-        showToast('AI sedang menyusun ringkasan...', 'warning');
-        try {
-            // FIX: Menambahkan titik dua (:) setelah headers
-            const response = await fetch('/ai/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt }) });
-            const data = await response.json();
-            showGlobalModal(`<div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm animate-slide shadow-2xl relative overflow-hidden"><div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div><div class="flex items-center gap-3 mb-4 border-b border-[color:var(--border)] pb-3 relative z-10"><div class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg"><i data-lucide="file-text" class="w-5 h-5"></i></div><div><h3 class="font-bold text-[color:var(--text)]">Ringkasan Diskusi</h3><p class="text-[10px] text-indigo-400 font-medium tracking-wider uppercase">Kelas ${STATE.currentCourse.name}</p></div></div><div class="text-[13px] text-[color:var(--text)] leading-relaxed bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto relative z-10" style="white-space: pre-line;">${data.result.replace(/\n/g, '<br>')}</div><button onclick="closeGlobalModal()" class="w-full mt-4 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] hover:bg-indigo-500/10 hover:text-indigo-400 rounded-xl font-bold text-[color:var(--text)] active:scale-95 transition-all relative z-10">Tutup Ringkasan</button></div>`);
-        } catch(e) { showToast('Gagal memanggil AI', 'error'); }
+            <div class="p-4 bg-blue-500/10 border-t border-blue-500/20 flex items-center gap-3">
+                <i data-lucide="info" class="w-5 h-5 text-blue-500 shrink-0"></i>
+                <p class="text-[10px] font-bold text-[color:var(--text)]">Periksa kembali sebelum mengirim. Pastikan file sudah benar dan semua anggota kelompok tercantum.</p>
+            </div>
+        </div>
+        `, true);
+        lucide.createIcons();
     };
 
          // ==========================================================
