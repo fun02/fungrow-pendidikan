@@ -864,6 +864,182 @@
     window.startAIVoice = function() { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition) return showToast('Tidak didukung', 'error'); const recognition = new SpeechRecognition(); recognition.lang = 'id-ID'; recognition.start(); const micBtn = document.getElementById('ai-btn-mic'); micBtn.innerHTML = '<div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>'; showToast('Bicara...', 'warning'); recognition.onresult = function(e) { const input = document.getElementById('ai-input-field'); input.value += (input.value ? ' ' : '') + e.results[0][0].transcript; handleAIInput(input); }; recognition.onend = function() { micBtn.innerHTML = '<i data-lucide="mic" class="w-5 h-5"></i>'; lucide.createIcons(); }; };
     window.handleAISummary = async function() { const msgs = STATE.chats[STATE.currentCourse?.id] || []; if(msgs.length < 3) return showToast('Butuh min 3 chat', 'warning'); const chatHistory = msgs.slice(-50).map(m => `${m.userName}: ${m.text}`).join('\n'); const contextPrompt = `[Rangkuman kelas "${STATE.currentCourse.name}".]\n${chatHistory}`; showToast('AI menyusun...', 'warning'); try { const res = await fetch('/ai/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ history: contextPrompt }) }); const data = await res.json(); showGlobalModal(`<div class="glass p-6 rounded-3xl border border-indigo-500/20 w-full max-w-sm"><div class="flex items-center gap-3 mb-4 border-b border-[color:var(--border)] pb-3"><div class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg"><i data-lucide="file-text" class="w-5 h-5"></i></div><div><h3 class="font-bold">Ringkasan Diskusi</h3></div></div><div class="text-[13px] leading-relaxed bg-[color:var(--input-bg)] p-4 rounded-xl border border-[color:var(--border)] max-h-[300px] overflow-y-auto" style="white-space: pre-line;">${data.result.replace(/\n/g, '<br>')}</div><button onclick="closeGlobalModal()" class="w-full mt-4 py-3 bg-[color:var(--surface)] border border-[color:var(--border)] rounded-xl font-bold">Tutup</button></div>`); } catch(e) { showToast('Gagal memanggil AI', 'error'); } };
     window.handleExportNotes = function() { const msgs = STATE.chats[STATE.currentCourse.id] || []; if(msgs.length === 0) return showToast('Belum ada pesan', 'warning'); const content = msgs.map(m => `[${formatTime(m.timestamp)}] ${m.userName}: ${m.text}`).join('\n'); const fullText = `# CATATAN KELAS: ${STATE.currentCourse.name}\nTanggal: ${new Date().toLocaleDateString('id-ID')}\n\n---\n\n${content}`; const blob = new Blob([fullText], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `Catatan_${STATE.currentCourse.id}.md`; a.click(); showToast('Diunduh!'); };
+
+    // ==========================================
+    // 12. PERBAIKAN TAB TUGAS & TO-DO LIST
+    // ==========================================
+    window.renderAllAssignments = function() {
+        let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
+        
+        let listHTML = allAsg.length === 0 ? `<div class="p-6 text-center border border-dashed border-[color:var(--border)] rounded-2xl"><p class="text-xs text-[color:var(--text2)] italic">Belum ada tugas kuliah.</p></div>` : allAsg.map(a => {
+            const course = typeof COURSES !== 'undefined' ? COURSES.find(c => c.id === a.courseId) : null;
+            return `<div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 cursor-pointer shadow-sm relative overflow-hidden mb-3 hover:scale-[1.02] transition-transform" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')"><div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#2563eb] opacity-80"></div><div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl shrink-0 border border-blue-500/20"><i data-lucide="file-text" class="w-6 h-6"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-[13px] text-[color:var(--text)] truncate uppercase">${a.title}</h4><p class="text-[10px] text-[color:var(--text2)] truncate font-medium">${course ? course.name : ''}</p><div class="flex items-center gap-3 mt-1.5"><span class="text-[9px] font-bold text-orange-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline) : ''}</span><span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">${a.type}</span></div></div><i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-30 shrink-0"></i></div>`;
+        }).join('');
+
+        const todos = STATE.currentUser?.todos || [];
+        const todoHTML = todos.length === 0 ? `<div class="text-center p-6 bg-[color:var(--surface)] rounded-2xl border border-dashed border-[color:var(--border)]"><i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-[#2563eb] opacity-30"></i><p class="text-xs text-[color:var(--text2)] font-medium">Belum ada catatan pribadi.</p></div>` : todos.map(t => `<div class="flex items-center justify-between p-3 rounded-xl bg-[color:var(--surface)] border border-[color:var(--border)] mb-2 shadow-sm transition-all ${t.done ? 'opacity-50' : ''} hover:bg-[color:var(--card)]"><div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onclick="toggleTodo('${t.id}')"><div class="w-6 h-6 shrink-0 rounded-md border ${t.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-[color:var(--border)] text-transparent'} flex items-center justify-center transition-colors shadow-inner"><i data-lucide="check" class="w-4 h-4"></i></div><span class="text-sm font-medium truncate ${t.done ? 'line-through text-[color:var(--text2)]' : 'text-[color:var(--text)]'}">${t.text}</span></div><button onclick="deleteTodo('${t.id}')" class="text-red-400 hover:text-red-500 p-2 shrink-0 active:scale-90 transition-transform"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`).join('');
+
+        return `<div class="p-5 animate-fade space-y-6 pb-24 max-w-4xl mx-auto"><div><div class="flex items-center justify-between mb-4"><div><h2 class="text-xl font-black text-[color:var(--text)]">Tugas Kuliah</h2><p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Semua Mata Kuliah</p></div><div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 shadow-sm"><span class="text-[11px] font-black text-[#2563eb]">${allAsg.length} TUGAS</span></div></div><div>${listHTML}</div></div><div class="h-px w-full bg-[color:var(--border)] opacity-50 my-2"></div><div><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shadow-sm"><i data-lucide="list-todo" class="w-5 h-5"></i></div><div><h2 class="text-xl font-black text-[color:var(--text)]">Catatan Pribadi</h2><p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">To-Do List Saya</p></div></div><div class="flex gap-2 mb-4"><input type="text" id="todo-input" class="flex-1 bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-xl p-3.5 text-sm outline-none focus:border-[#2563eb] text-[color:var(--text)] shadow-inner transition-colors" placeholder="Ketik target baru..." onkeydown="if(event.key==='Enter') saveTodo()"><button onclick="saveTodo()" class="bg-[#2563eb] text-white px-5 rounded-xl shadow-lg active:scale-95 transition-transform"><i data-lucide="plus" class="w-5 h-5"></i></button></div><div id="todo-list-container" class="space-y-2">${todoHTML}</div></div></div>`;
+    };
+
+    window.saveTodo = async function() { const input = document.getElementById('todo-input'); const text = input?.value.trim(); if(!text) return; const newTodo = { id: Date.now().toString(), text: text, done: false }; const updatedTodos = [...(STATE.currentUser.todos || []), newTodo]; STATE.currentUser.todos = updatedTodos; if(input) input.value = ''; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
+    window.toggleTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).map(t => t.id === id ? { ...t, done: !t.done } : t); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
+    window.deleteTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).filter(t => t.id !== id); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
+
+
+    // ==========================================
+    // 2. PERBAIKAN PENGATURAN (DENGAN REKOMENDASI FITUR)
+    // ==========================================
+    window.renderSettings = function() {
+        return `
+            <div class="p-6 animate-fade space-y-6 pb-24 max-w-4xl mx-auto">
+                <div>
+                    <h2 class="text-xl font-black text-[color:var(--text)]">Pengaturan</h2>
+                    <p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Akun & Preferensi Aplikasi</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">
+                        <div class="flex items-center gap-4 mb-4 pb-3 border-b border-[color:var(--border)]">
+                            <div class="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+                            <div><h3 class="font-bold text-sm">Keamanan Akun</h3><p class="text-[9px] text-[color:var(--text2)] font-medium">Lindungi privasi Anda.</p></div>
+                        </div>
+                        <button onclick="openChangePasswordModal()" class="w-full p-3.5 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)] active:scale-95 transition-all hover:bg-[color:var(--card)]">
+                            <span class="flex items-center gap-3"><i data-lucide="key-round" class="w-4 h-4 text-amber-500"></i> Ubah Kata Sandi</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-30"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20"><i data-lucide="palette" class="w-5 h-5"></i></div>
+                            <div><h3 class="font-bold text-sm">Tema Aplikasi</h3><p class="text-[9px] text-[color:var(--text2)] font-medium">Kustomisasi antarmuka.</p></div>
+                        </div>
+                        <button onclick="toggleTheme()" class="w-full p-4 rounded-2xl bg-gradient-to-r from-[#2563eb] to-indigo-600 text-white text-xs font-black flex justify-between items-center shadow-lg active:scale-95 transition-all">
+                            <span>GANTI MODE ${STATE.isDark ? 'TERANG' : 'GELAP'}</span><i data-lucide="${STATE.isDark ? 'sun' : 'moon'}" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">
+                        <div class="flex items-center gap-4 mb-4 pb-3 border-b border-[color:var(--border)]">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20"><i data-lucide="help-circle" class="w-5 h-5"></i></div>
+                            <div><h3 class="font-bold text-sm">Info & Bantuan</h3><p class="text-[9px] text-[color:var(--text2)] font-medium">Pusat bantuan mahasiswa.</p></div>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="showToast('Pusat Bantuan sedang dikembangkan!', 'warning')" class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)] active:scale-95 transition-all hover:bg-[color:var(--card)]">
+                                <span class="flex items-center gap-3"><i data-lucide="message-square" class="w-4 h-4 text-blue-500"></i> Hubungi Admin Pusat</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-30"></i>
+                            </button>
+                            <button onclick="showToast('Kebijakan Privasi Aman & Terenkripsi!', 'success')" class="w-full p-3 rounded-xl bg-[color:var(--surface)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)] active:scale-95 transition-all hover:bg-[color:var(--card)]">
+                                <span class="flex items-center gap-3"><i data-lucide="file-check-2" class="w-4 h-4 text-emerald-500"></i> Kebijakan Privasi</span><i data-lucide="chevron-right" class="w-4 h-4 opacity-30"></i>
+                            </button>
+                            <div class="w-full p-3 rounded-xl bg-[color:var(--input-bg)] text-[11px] font-bold flex justify-between items-center border border-[color:var(--border)] opacity-70">
+                                <span class="flex items-center gap-3"><i data-lucide="info" class="w-4 h-4 text-gray-400"></i> Versi Aplikasi</span><span class="text-[9px] bg-black/20 px-2 py-1 rounded">v3.0 Enterprise</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="auth.signOut()" class="w-full py-4 mt-2 rounded-3xl bg-red-500/10 text-red-500 font-black text-xs border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-sm">KELUAR DARI SISTEM</button>
+                </div>
+            </div>
+        `;
+    };
+
+    // ==========================================
+    // 13. LOGIKA POP-UP GANTI PASSWORD
+    // ==========================================
+    window.openChangePasswordModal = function() {
+        showGlobalModal(`
+        <div class="glass p-5 md:p-6 rounded-3xl animate-slide w-full max-w-md border border-amber-500/30 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden h-max max-h-[90vh] overflow-y-auto hide-scrollbar mx-auto">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex justify-between items-start mb-5 border-b border-[color:var(--border)] pb-4 relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg border border-white/10 shrink-0">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-[color:var(--text)] text-lg leading-tight">Ubah Password</h3>
+                        <p class="text-[9px] text-amber-500 uppercase tracking-wider font-bold">Verifikasi Identitas Anda</p>
+                    </div>
+                </div>
+                <button onclick="closeGlobalModal()" class="p-1.5 text-[color:var(--text2)] hover:bg-red-500/20 hover:text-red-500 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-4 relative z-10">
+                <div class="bg-[color:var(--input-bg)] p-4 rounded-2xl border border-[color:var(--border)]">
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">NIM & Email (Sistem)</label>
+                    <p class="text-xs font-bold text-[color:var(--text)]">${STATE.currentUser.nim}</p>
+                    <p class="text-[10px] text-[color:var(--text2)]">${STATE.currentUser.email}</p>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Saat Ini</label>
+                    <div class="relative">
+                        <i data-lucide="unlock" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="old-password" placeholder="Ketik password lama" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-[color:var(--border)]">
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="key-round" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="new-password" placeholder="Buat password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-[color:var(--text2)] uppercase tracking-wider mb-1.5 block">Konfirmasi Password Baru</label>
+                    <div class="relative">
+                        <i data-lucide="check-circle-2" class="absolute left-3.5 top-3.5 w-4 h-4 text-[color:var(--text2)]"></i>
+                        <input type="password" id="confirm-password" placeholder="Ketik ulang password baru" class="w-full text-sm p-3.5 pl-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] border border-[color:var(--border)] focus:border-amber-500 outline-none transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 relative z-10">
+                <button onclick="submitNewPassword()" id="btn-save-pass" class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-amber-500 to-orange-500 active:scale-95 transition-transform shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i> Simpan Password Baru
+                </button>
+            </div>
+        </div>`, true);
+        lucide.createIcons();
+    };
+
+    window.submitNewPassword = async function() {
+        const oldPass = document.getElementById('old-password').value;
+        const newPass = document.getElementById('new-password').value;
+        const confPass = document.getElementById('confirm-password').value;
+        const btn = document.getElementById('btn-save-pass');
+        const user = auth.currentUser;
+
+        if (!oldPass || !newPass || !confPass) return showToast('Isi semua kolom!', 'warning');
+        if (newPass.length < 6) return showToast('Password baru minimal 6 karakter!', 'error');
+        if (newPass !== confPass) return showToast('Konfirmasi password tidak cocok!', 'error');
+
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...';
+        btn.disabled = true;
+
+        try {
+            await auth.signInWithEmailAndPassword(user.email, oldPass); // Verifikasi sandi lama
+            await user.updatePassword(newPass); // Ganti ke sandi baru
+            
+            showGlobalModal(`
+                <div class="glass p-8 rounded-3xl w-full max-w-sm mx-auto text-center border border-emerald-500/30">
+                    <div class="w-20 h-20 mx-auto bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="shield-check" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-[color:var(--text)] mb-2">Password Berhasil Diubah!</h2>
+                    <p class="text-sm text-[color:var(--text2)] leading-relaxed">Gunakan password baru Anda untuk login selanjutnya.</p>
+                    <button onclick="closeGlobalModal()" class="w-full mt-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">Selesai</button>
+                </div>
+            `, true);
+        } catch(e) {
+            showToast('Gagal: Password lama salah!', 'error');
+            btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Simpan Password Baru';
+            btn.disabled = false;
+        }
+    };
+
 </script>
 </body>
 </html>
