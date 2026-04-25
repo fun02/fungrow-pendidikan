@@ -363,7 +363,7 @@
     };
 
     // =====================================
-    // FITUR PENCARIAN JURNAL ONLINE (API OPEN ACCESS)
+    // FITUR PENCARIAN JURNAL ONLINE (API CROSSREF - INDONESIA FRIENDLY)
     // =====================================
     window.searchJurnal = async function() {
         const query = document.getElementById('jurnal-search-input').value;
@@ -372,51 +372,88 @@
         if(!query) return showToast('Ketik judul jurnal/materi dulu!', 'warning');
         
         // Animasi Loading
-        container.innerHTML = `<div class="w-full text-center py-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-purple-500 mb-2"></i><p class="text-xs text-[color:var(--text2)] font-bold animate-pulse">Sedang mencari database jurnal global...</p></div>`;
-        lucide.createIcons();
+        container.innerHTML = `<div class="w-full text-center py-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-[#2563eb] mb-2"></i><p class="text-xs text-[color:var(--text2)] font-bold animate-pulse">Sedang mencari jurnal "${query}"...</p></div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         try {
-            // Menggunakan OpenAlex API (Gratis, tanpa API Key, pencari Jurnal Internasional/Lokal Open Access)
-            const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=has_oa_hosted_url:true&per-page=10`;
+            // Menggunakan CrossRef API (Database terbesar untuk jurnal kampus & OJS Indonesia)
+            const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&select=title,author,URL,link,issued&rows=15`;
             const res = await fetch(url);
             const data = await res.json();
+            const items = data.message.items;
 
-            if(!data.results || data.results.length === 0) {
-                container.innerHTML = `<div class="w-full text-center py-6 border border-dashed border-red-500/30 rounded-2xl bg-red-500/5"><i data-lucide="file-x" class="w-8 h-8 mx-auto mb-2 text-red-400 opacity-50"></i><p class="text-[11px] text-red-400 font-bold">Tidak ditemukan jurnal PDF untuk "${query}".</p><p class="text-[9px] mt-1 text-[color:var(--text2)]">Coba gunakan kata kunci yang lebih spesifik.</p></div>`;
-                lucide.createIcons();
-                return;
+            if(!items || items.length === 0) {
+                throw new Error("Kosong");
             }
 
             let html = '';
-            data.results.forEach(work => {
-                const title = work.title || 'Tanpa Judul';
-                const author = work.authorships?.[0]?.author?.display_name || 'Penulis Anonim';
-                const pdfUrl = work.open_access?.oa_url || work.id; // URL Asli PDF
-                const year = work.publication_year || '-';
+            let count = 0;
+
+            items.forEach(work => {
+                if (count >= 10) return; // Batasi 10 hasil terbaik
+                
+                // Skip jika tidak ada judul
+                if (!work.title || work.title.length === 0) return;
+                
+                const title = work.title[0];
+                
+                // Ambil nama penulis pertama
+                let author = 'Penulis Anonim';
+                if (work.author && work.author.length > 0) {
+                    const firstAuthor = work.author[0];
+                    author = firstAuthor.family ? `${firstAuthor.given || ''} ${firstAuthor.family}`.trim() : (firstAuthor.name || 'Tim Peneliti');
+                }
+
+                // Cari link PDF langsung jika ada, jika tidak pakai URL DOI (halaman website jurnal)
+                let pdfUrl = work.URL;
+                let isDirectPdf = false;
+                if (work.link) {
+                    const pdfLink = work.link.find(l => l['content-type'] === 'application/pdf');
+                    if (pdfLink) {
+                        pdfUrl = pdfLink.URL;
+                        isDirectPdf = true;
+                    }
+                }
+
+                // Ambil Tahun Terbit
+                let year = '-';
+                if (work.issued && work.issued['date-parts'] && work.issued['date-parts'][0][0]) {
+                    year = work.issued['date-parts'][0][0];
+                }
 
                 html += `
                 <div class="glass p-3 rounded-2xl border border-[color:var(--border)] min-w-[160px] max-w-[200px] snap-start shrink-0 flex flex-col gap-2 group hover:bg-[color:var(--card)] transition-all shadow-sm relative">
                     <div class="absolute -top-1 -right-1 flex gap-1 z-10">
-                        <span class="text-[8px] font-black text-white bg-emerald-500 px-1.5 py-0.5 rounded shadow-sm">PDF OA</span>
+                        <span class="text-[8px] font-black text-white ${isDirectPdf ? 'bg-emerald-500' : 'bg-[#2563eb]'} px-1.5 py-0.5 rounded shadow-sm">${isDirectPdf ? 'PDF' : 'WEB'}</span>
                     </div>
-                    <div class="h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner p-2 text-center">
-                        <i data-lucide="book-open" class="absolute w-12 h-12 text-white opacity-20"></i>
+                    <div class="h-20 bg-gradient-to-br from-[#2563eb] to-purple-600 rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner p-2 text-center">
+                        <i data-lucide="book-open" class="absolute w-12 h-12 text-white opacity-20 group-hover:scale-110 transition-transform"></i>
                         <span class="relative z-10 text-[9px] font-bold text-white line-clamp-3 leading-tight">${title}</span>
                     </div>
                     <div class="flex-1">
                         <h4 class="text-[11px] font-bold text-[color:var(--text)] leading-tight line-clamp-2 mb-0.5" title="${title}">${title}</h4>
                         <p class="text-[8px] text-[color:var(--text2)] line-clamp-1"><i data-lucide="user" class="w-2 h-2 inline"></i> ${author} • ${year}</p>
                     </div>
-                    <a href="${pdfUrl}" target="_blank" class="w-full py-2 bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[#2563eb] text-[10px] font-bold rounded-lg group-hover:bg-[#2563eb] group-hover:text-white transition-all flex justify-center items-center gap-1 shadow-sm">
-                        <i data-lucide="download" class="w-3 h-3"></i> Buka PDF
+                    <a href="${pdfUrl}" target="_blank" class="w-full py-2 bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[#2563eb] text-[10px] font-bold rounded-lg group-hover:bg-[#2563eb] group-hover:text-white transition-all flex justify-center items-center gap-1 shadow-sm active:scale-95">
+                        <i data-lucide="${isDirectPdf ? 'download' : 'external-link'}" class="w-3 h-3"></i> ${isDirectPdf ? 'Unduh PDF' : 'Buka Jurnal'}
                     </a>
                 </div>`;
+                count++;
             });
+
+            if(count === 0) throw new Error("Kosong");
+
             container.innerHTML = html;
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
         } catch(err) {
-            container.innerHTML = `<div class="w-full text-center py-6"><p class="text-[10px] text-red-500 font-bold"><i data-lucide="wifi-off" class="w-5 h-5 mx-auto mb-1"></i> Gagal terhubung ke server jurnal.</p></div>`;
-            lucide.createIcons();
+            container.innerHTML = `
+                <div class="w-full text-center py-6 border border-dashed border-red-500/30 rounded-2xl bg-red-500/5">
+                    <i data-lucide="file-x" class="w-8 h-8 mx-auto mb-2 text-red-400 opacity-50"></i>
+                    <p class="text-[11px] text-red-400 font-bold">Maaf, jurnal tidak ditemukan.</p>
+                    <p class="text-[9px] mt-1 text-[color:var(--text2)]">Pastikan ejaan benar atau gunakan kata kunci lain.</p>
+                </div>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     };
 
