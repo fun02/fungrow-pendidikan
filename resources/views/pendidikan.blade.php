@@ -1155,47 +1155,31 @@
     // ==========================================
     // 13. FUNGSI PENYIMPAN TUGAS
     // ==========================================
-    window.submitNewAssignment = async function() {
+        window.submitNewAssignment = async function() {
         let jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        // Cek jika pilihannya adalah "Lainnya", maka ambil dari kolom input manual
         if (jenis === 'Lainnya') {
             jenis = document.getElementById('asg-jenis-lainnya').value.trim();
-            if (!jenis) {
-                return alert('Peringatan: Harap ketikkan jenis tugas manual Anda!');
-            }
+            if (!jenis) return alert('Peringatan: Harap ketikkan jenis tugas manual Anda!');
         } else if (!jenis) {
             return alert('Peringatan: Harap pilih Jenis Tugas!');
         }
 
-        if(!type || !deadlineRaw) {
-            return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
-        }
+        if(!type || !deadlineRaw) return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
 
         let kelompokData = null;
-
-        // VALIDASI KHUSUS TUGAS KELOMPOK
         if (type === 'kelompok') {
             const gName = document.getElementById('asg-group-name').value.trim();
             const gMembers = document.getElementById('asg-group-members').value.trim();
             
-            if (!gName || !gMembers || gMembers === "1. \n2.") {
-                return alert("Peringatan: Harap isi Nama Kelompok dan ketikkan Daftar Anggota dengan benar!");
-            }
-            
+            if (!gName || !gMembers || gMembers === "1. \n2.") return alert("Peringatan: Harap isi Nama Kelompok dan ketikkan Daftar Anggota dengan benar!");
             const lines = gMembers.split('\n').filter(l => l.replace(/[0-9.\s]/g, '').length > 2);
-            if (lines.length < 2) {
-                return alert("Peringatan: Tugas Kelompok wajib memiliki minimal 2 anggota!");
-            }
+            if (lines.length < 2) return alert("Peringatan: Tugas Kelompok wajib memiliki minimal 2 anggota!");
             
-            kelompokData = {
-                nama: gName,
-                judul: jenis.toUpperCase(),
-                anggota: gMembers
-            };
+            kelompokData = { nama: gName, judul: jenis.toUpperCase(), anggota: gMembers };
         }
         
         const btn = document.getElementById('btn-submit-asg');
@@ -1204,33 +1188,55 @@
 
         try {
             let fileUrl = null;
+            
+            // [RADAR 1] Mengecek apakah sistem mendeteksi ada file yang mau diupload
             if (STATE.asgPendingFile) {
+                // Jika alert ini muncul, berarti wadah file-nya aman!
+                // alert("RADAR 1: File terdeteksi! Memulai proses upload ke Cloudinary...");
+                
                 btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MENGUPLOAD FILE...';
-                fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
+                
+                try {
+                    fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
+                } catch(uploadError) {
+                    // [RADAR 2] Jika meledak saat upload ke server gambar
+                    alert("CRASH CLOUDINARY: Gagal mengupload file! Pesan sistem: " + uploadError.message);
+                    throw uploadError; // Hentikan proses
+                }
             }
+
+            // [RADAR 3] Jika file lolos diupload (atau tidak ada file), lanjut simpan ke Firebase
+            // alert("RADAR 3: Persiapan menyimpan data ke Firebase...");
 
             const deadlineDate = new Date(deadlineRaw);
             const dosenName = STATE.currentCourse?.dosen || STATE.currentUser.displayName;
             
-            await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
-                title: jenis.toUpperCase(),
-                description: desc,
-                type: type,
-                kelompok: kelompokData, 
-                deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
-                courseId: STATE.currentCourse.id,
-                courseName: STATE.currentCourse.name,
-                dosen: dosenName,
-                fileUrl: fileUrl,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            try {
+                await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
+                    title: jenis.toUpperCase(),
+                    description: desc,
+                    type: type,
+                    kelompok: kelompokData, 
+                    deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
+                    courseId: STATE.currentCourse.id,
+                    courseName: STATE.currentCourse.name,
+                    dosen: dosenName,
+                    fileUrl: fileUrl, // Ini link file yang sukses diupload tadi
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(dbError) {
+                // [RADAR 4] Jika Firebase menolak data kita
+                alert("CRASH FIREBASE: Gagal menyimpan ke database! Pesan sistem: " + dbError.message);
+                throw dbError; // Hentikan proses
+            }
             
             alert('Tugas berhasil dipublikasikan ke kelas!');
             STATE.asgPendingFile = null; 
             closeGlobalModal();
+            
         } catch (e) {
             console.error("Gagal buat tugas:", e);
-            alert('Terjadi kesalahan jaringan saat mengirim tugas.');
+            // Kembalikan tombol seperti semula jika terjadi error
             btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN';
             btn.disabled = false;
         }
