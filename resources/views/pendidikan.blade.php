@@ -1036,19 +1036,28 @@
     };
 
     // ==========================================
-    // 12. DESAIN FORM TUGAS (GAYA AKADEMIK / NAVY BLUE)
+    // 12. DESAIN FORM TUGAS NEGARA
     // ==========================================
     window.toggleGroupSection = function(val) {
         const sec = document.getElementById('group-section');
         const memberInput = document.getElementById('asg-group-members');
         if(val === 'kelompok') {
             sec.classList.remove('hidden');
-            // Auto-fill template angka 1 & 2 jika masih kosong
             if(!memberInput.value.trim()) {
                 memberInput.value = "1. \n2. ";
             }
         } else {
             sec.classList.add('hidden');
+        }
+    };
+
+    window.toggleJenisLainnya = function(val) {
+        const inputLainnya = document.getElementById('asg-jenis-lainnya');
+        if (val === 'Lainnya') {
+            inputLainnya.classList.remove('hidden');
+            inputLainnya.focus(); // Langsung otomatis klik ke kolom ketik
+        } else {
+            inputLainnya.classList.add('hidden');
         }
     };
 
@@ -1069,7 +1078,7 @@
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-3 h-3"></i></div> JENIS TUGAS</label>
                     <div class="relative">
-                        <select id="asg-jenis" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                        <select id="asg-jenis" onchange="toggleJenisLainnya(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
                             <option value="" disabled selected hidden>Pilih jenis tugas</option>
                             <option value="Makalah">Makalah</option>
                             <option value="Proposal">Proposal</option>
@@ -1079,6 +1088,8 @@
                         </select>
                         <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
                     </div>
+                    
+                    <input type="text" id="asg-jenis-lainnya" class="hidden w-full bg-white border border-slate-300 rounded-lg p-3 text-sm text-black font-medium outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm mt-3" placeholder="Ketik jenis tugas secara manual...">
                 </div>
 
                 <div>
@@ -1145,13 +1156,23 @@
     // 13. FUNGSI PENYIMPAN TUGAS
     // ==========================================
     window.submitNewAssignment = async function() {
-        const jenis = document.getElementById('asg-jenis').value;
+        let jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        if(!jenis || !type || !deadlineRaw) {
-            return alert('Harap lengkapi Jenis Tugas, Target Tugas, dan Waktu Pengumpulan!');
+        // Cek jika pilihannya adalah "Lainnya", maka ambil dari kolom input manual
+        if (jenis === 'Lainnya') {
+            jenis = document.getElementById('asg-jenis-lainnya').value.trim();
+            if (!jenis) {
+                return alert('Peringatan: Harap ketikkan jenis tugas manual Anda!');
+            }
+        } else if (!jenis) {
+            return alert('Peringatan: Harap pilih Jenis Tugas!');
+        }
+
+        if(!type || !deadlineRaw) {
+            return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
         }
 
         let kelompokData = null;
@@ -1165,7 +1186,6 @@
                 return alert("Peringatan: Harap isi Nama Kelompok dan ketikkan Daftar Anggota dengan benar!");
             }
             
-            // Cek minimal 2 anggota (Mencari baris yang ada hurufnya)
             const lines = gMembers.split('\n').filter(l => l.replace(/[0-9.\s]/g, '').length > 2);
             if (lines.length < 2) {
                 return alert("Peringatan: Tugas Kelompok wajib memiliki minimal 2 anggota!");
@@ -1196,7 +1216,7 @@
                 title: jenis.toUpperCase(),
                 description: desc,
                 type: type,
-                kelompok: kelompokData, // Data Kelompok Disimpan Disini
+                kelompok: kelompokData, 
                 deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
                 courseId: STATE.currentCourse.id,
                 courseName: STATE.currentCourse.name,
