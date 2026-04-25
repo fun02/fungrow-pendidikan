@@ -1039,7 +1039,6 @@
     // FUNGSI 2 YANG HILANG: FORM BUAT TUGAS BARU (DOSEN)
     // ==========================================
     window.openAssignForm = function() {
-        closeGlobalModal(); // Tutup menu attachment dulu
         showGlobalModal(`
         <div class="glass p-6 rounded-3xl animate-slide w-full max-w-md border border-[color:var(--border)] shadow-2xl relative overflow-hidden">
             <div class="flex items-center gap-3 mb-5 pb-4 border-b border-[color:var(--border)]">
