@@ -815,15 +815,11 @@
             container.innerHTML = getAboutHTML();
         }
         else if (STATE.dashboardTab === 'tasks') {
-            // Tempat To-Do List Pribadi
-            container.innerHTML = `<div class="p-6 text-center text-[color:var(--text2)] pt-20"><i data-lucide="check-square" class="w-16 h-16 mx-auto mb-4 text-[#2563eb] opacity-50"></i><h2 class="text-lg font-bold text-[color:var(--text)]">To-Do List Pribadi</h2><p class="text-xs mt-2">Ruang Rahasia Produktivitas segera hadir di sini!</p></div>`;
+            container.innerHTML = renderAllAssignments(); // <--- Panggil isinya!
         }
         else if (STATE.dashboardTab === 'settings') {
-            if(typeof renderSettings === 'function') {
-                container.innerHTML = renderSettings();
-            } else {
-                container.innerHTML = `<div class="p-6 text-center">Tarik nafas, Settings sedang dimuat...</div>`;
-            }
+            container.innerHTML = renderSettings(); // <--- Panggil isinya!
+          }
         }
         
         lucide.createIcons();
@@ -1974,6 +1970,72 @@ window.showPromoModal = function() {
         </div>
         `, true);
         lucide.createIcons();
+    };
+    
+    // ==============================================
+    // RENDER SEMUA TUGAS (ISI TAB TUGAS)
+    // ==============================================
+    window.renderAllAssignments = function() {
+        // Ambil semua tugas dari semua mata kuliah dan gabungkan
+        let allAsg = Object.values(STATE.assignments).flat().sort((a,b) => {
+            let da = a.deadline && a.deadline.seconds ? a.deadline.seconds : 0;
+            let db = b.deadline && b.deadline.seconds ? b.deadline.seconds : 0;
+            return da - db;
+        });
+
+        if (allAsg.length === 0) {
+            return `
+                <div class="p-10 text-center animate-fade">
+                    <div class="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                        <i data-lucide="clipboard-check" class="w-10 h-10 text-[#2563eb]"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-[color:var(--text)]">Belum ada tugas</h3>
+                    <p class="text-xs text-[color:var(--text2)] mt-2">Semua kelas terpantau aman dan bersih!</p>
+                </div>
+            `;
+        }
+
+        const listHTML = allAsg.map(a => {
+            const course = COURSES.find(c => c.id === a.courseId);
+            return `
+                <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 hover:scale-[1.02] transition-all cursor-pointer shadow-sm relative overflow-hidden group" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#2563eb] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="w-12 h-12 rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] flex items-center justify-center text-xl shrink-0">
+                        ${course ? course.icon : '📝'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-[13px] text-[color:var(--text)] truncate uppercase">${a.title}</h4>
+                        <p class="text-[10px] text-[color:var(--text2)] truncate font-medium">${course ? course.name : ''}</p>
+                        <div class="flex items-center gap-3 mt-1.5">
+                            <span class="text-[9px] font-bold text-orange-500 flex items-center gap-1">
+                                <i data-lucide="clock" class="w-3 h-3"></i> ${formatDate(a.deadline)}
+                            </span>
+                            <span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">
+                                ${a.type}
+                            </span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-30 shrink-0"></i>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="p-5 animate-fade space-y-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h2 class="text-xl font-black text-[color:var(--text)]">Daftar Tugas</h2>
+                        <p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Semua Mata Kuliah</p>
+                    </div>
+                    <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                        <span class="text-[11px] font-black text-[#2563eb]">${allAsg.length} TUGAS</span>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    ${listHTML}
+                </div>
+            </div>
+        `;
     };
 
          // ==========================================================
