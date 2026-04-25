@@ -1164,14 +1164,12 @@
     // ==========================================
     // 13. UPDATE FUNGSI PENYIMPAN DATA TUGAS
     // ==========================================
-    window.submitNewAssignment = async function() {
-        // Mengambil value dari ID yang baru kita buat di atas
+        window.submitNewAssignment = async function() {
         const jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        // Peringatan jika belum diisi
         if(!jenis || !type || !deadlineRaw) {
             return alert('Harap lengkapi Jenis Tugas, Target Tugas, dan Waktu Pengumpulan!');
         }
@@ -1181,21 +1179,31 @@
         btn.disabled = true;
 
         try {
+            let fileUrl = null;
+            
+            // [TAMBAHAN BARU] Jika ada file, upload dulu ke server
+            if (STATE.asgPendingFile) {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MENGUPLOAD FILE...';
+                fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
+            }
+
             const deadlineDate = new Date(deadlineRaw);
             const dosenName = STATE.currentCourse?.dosen || STATE.currentUser.displayName;
             
             await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
-                title: jenis.toUpperCase(), // Menyimpan jenis sebagai Judul Besar
+                title: jenis.toUpperCase(),
                 description: desc,
                 type: type,
                 deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
                 courseId: STATE.currentCourse.id,
                 courseName: STATE.currentCourse.name,
                 dosen: dosenName,
+                fileUrl: fileUrl, // Menyimpan link file jika ada
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             
             alert('Tugas berhasil dipublikasikan ke kelas!');
+            STATE.asgPendingFile = null; // Kosongkan wadah file
             closeGlobalModal();
         } catch (e) {
             console.error("Gagal buat tugas:", e);
