@@ -1069,7 +1069,7 @@
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-3 h-3"></i></div> JENIS TUGAS</label>
                     <div class="relative">
-                        <select id="asg-jenis" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                        <select id="asg-jenis" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
                             <option value="" disabled selected hidden>Pilih jenis tugas</option>
                             <option value="Makalah">Makalah</option>
                             <option value="Proposal">Proposal</option>
@@ -1084,7 +1084,7 @@
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="users" class="w-3 h-3"></i></div> TARGET TUGAS</label>
                     <div class="relative">
-                        <select id="asg-type" onchange="toggleGroupSection(this.value)" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                        <select id="asg-type" onchange="toggleGroupSection(this.value)" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
                             <option value="" disabled selected hidden>Pilih target tugas</option>
                             <option value="individu">Tugas Individu</option>
                             <option value="kelompok">Tugas Kelompok</option>
@@ -1096,23 +1096,23 @@
                         <div class="absolute -top-2 left-6 w-4 h-4 bg-[#F0F4F8] border-t border-l border-[#7DA0C4]/30 transform rotate-45"></div>
                         <div class="relative z-10">
                             <label class="text-[10px] font-bold text-[#0B1D3A] uppercase tracking-wider mb-1 block">Nama Kelompok</label>
-                            <input type="text" id="asg-group-name" class="w-full bg-white border border-slate-300 rounded p-2.5 text-xs outline-none focus:border-[#0B1D3A]" value="Kelompok 1">
+                            <input type="text" id="asg-group-name" class="w-full bg-white border border-slate-300 rounded p-2.5 text-xs text-black font-bold outline-none focus:border-[#0B1D3A]" placeholder="Ketik nama kelompok..." value="Kelompok 1">
                         </div>
                         <div class="relative z-10">
                             <label class="text-[10px] font-bold text-[#0B1D3A] uppercase tracking-wider mb-1 block">Daftar Anggota (Min. 2 Orang)</label>
-                            <textarea id="asg-group-members" class="w-full bg-white border border-slate-300 rounded p-2.5 text-xs outline-none focus:border-[#0B1D3A] h-20 resize-none leading-relaxed" placeholder="1. Nama Anggota 1&#10;2. Nama Anggota 2"></textarea>
+                            <textarea id="asg-group-members" class="w-full bg-white border border-slate-300 rounded p-2.5 text-xs text-black font-medium outline-none focus:border-[#0B1D3A] h-20 resize-none leading-relaxed" placeholder="1. Nama Anggota 1&#10;2. Nama Anggota 2"></textarea>
                         </div>
                     </div>
                 </div>
 
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="clipboard-list" class="w-3 h-3"></i></div> KETERANGAN & LAMPIRAN</label>
-                    <textarea id="asg-desc" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] h-24 resize-none shadow-sm" placeholder="Tuliskan ketentuan tugas, referensi, dan informasi lainnya"></textarea>
+                    <textarea id="asg-desc" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] h-24 resize-none shadow-sm" placeholder="Tuliskan ketentuan tugas, referensi, dan informasi lainnya"></textarea>
                 </div>
 
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="calendar" class="w-3 h-3"></i></div> WAKTU PENGUMPULAN</label>
-                    <input type="datetime-local" id="asg-deadline" class="w-full bg-white border border-slate-300 text-slate-800 rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm cursor-pointer uppercase">
+                    <input type="datetime-local" id="asg-deadline" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] shadow-sm cursor-pointer uppercase">
                 </div>
 
                 <div>
