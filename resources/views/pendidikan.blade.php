@@ -1210,7 +1210,7 @@
                     <div onclick="document.getElementById('asg-file').click()" id="asg-upload-box" class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
                         <i data-lucide="upload" id="asg-upload-icon" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2 transition-colors"></i>
                         <p id="asg-upload-text" class="text-[10px] font-bold text-slate-700 truncate px-2">Klik untuk upload atau drag & drop file di sini</p>
-                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 20 MB)</p>
+                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 5 MB)</p>
                     </div>
                     <input type="file" id="asg-file" class="hidden" accept="image/jpeg, image/png, application/pdf" onchange="window.handleAsgFileUpload(event)">
                 </div>
