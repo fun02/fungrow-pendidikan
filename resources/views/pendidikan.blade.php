@@ -362,13 +362,68 @@
         if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
-    // ==========================================
-    // 5. TABS CONTENT (BERSIH DARI DUPLIKAT)
-    // ==========================================
-        window.getHomeHTML = function() {
-        // =====================================
-        // 1. WAKTU PUSAT INDONESIA (WIB)
-        // =====================================
+    // =====================================
+    // FITUR PENCARIAN JURNAL ONLINE (API OPEN ACCESS)
+    // =====================================
+    window.searchJurnal = async function() {
+        const query = document.getElementById('jurnal-search-input').value;
+        const container = document.getElementById('jurnal-results-container');
+        
+        if(!query) return showToast('Ketik judul jurnal/materi dulu!', 'warning');
+        
+        // Animasi Loading
+        container.innerHTML = `<div class="w-full text-center py-8"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-purple-500 mb-2"></i><p class="text-xs text-[color:var(--text2)] font-bold animate-pulse">Sedang mencari database jurnal global...</p></div>`;
+        lucide.createIcons();
+
+        try {
+            // Menggunakan OpenAlex API (Gratis, tanpa API Key, pencari Jurnal Internasional/Lokal Open Access)
+            const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=has_oa_hosted_url:true&per-page=10`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if(!data.results || data.results.length === 0) {
+                container.innerHTML = `<div class="w-full text-center py-6 border border-dashed border-red-500/30 rounded-2xl bg-red-500/5"><i data-lucide="file-x" class="w-8 h-8 mx-auto mb-2 text-red-400 opacity-50"></i><p class="text-[11px] text-red-400 font-bold">Tidak ditemukan jurnal PDF untuk "${query}".</p><p class="text-[9px] mt-1 text-[color:var(--text2)]">Coba gunakan kata kunci yang lebih spesifik.</p></div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            let html = '';
+            data.results.forEach(work => {
+                const title = work.title || 'Tanpa Judul';
+                const author = work.authorships?.[0]?.author?.display_name || 'Penulis Anonim';
+                const pdfUrl = work.open_access?.oa_url || work.id; // URL Asli PDF
+                const year = work.publication_year || '-';
+
+                html += `
+                <div class="glass p-3 rounded-2xl border border-[color:var(--border)] min-w-[160px] max-w-[200px] snap-start shrink-0 flex flex-col gap-2 group hover:bg-[color:var(--card)] transition-all shadow-sm relative">
+                    <div class="absolute -top-1 -right-1 flex gap-1 z-10">
+                        <span class="text-[8px] font-black text-white bg-emerald-500 px-1.5 py-0.5 rounded shadow-sm">PDF OA</span>
+                    </div>
+                    <div class="h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner p-2 text-center">
+                        <i data-lucide="book-open" class="absolute w-12 h-12 text-white opacity-20"></i>
+                        <span class="relative z-10 text-[9px] font-bold text-white line-clamp-3 leading-tight">${title}</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-[11px] font-bold text-[color:var(--text)] leading-tight line-clamp-2 mb-0.5" title="${title}">${title}</h4>
+                        <p class="text-[8px] text-[color:var(--text2)] line-clamp-1"><i data-lucide="user" class="w-2 h-2 inline"></i> ${author} • ${year}</p>
+                    </div>
+                    <a href="${pdfUrl}" target="_blank" class="w-full py-2 bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[#2563eb] text-[10px] font-bold rounded-lg group-hover:bg-[#2563eb] group-hover:text-white transition-all flex justify-center items-center gap-1 shadow-sm">
+                        <i data-lucide="download" class="w-3 h-3"></i> Buka PDF
+                    </a>
+                </div>`;
+            });
+            container.innerHTML = html;
+            lucide.createIcons();
+        } catch(err) {
+            container.innerHTML = `<div class="w-full text-center py-6"><p class="text-[10px] text-red-500 font-bold"><i data-lucide="wifi-off" class="w-5 h-5 mx-auto mb-1"></i> Gagal terhubung ke server jurnal.</p></div>`;
+            lucide.createIcons();
+        }
+    };
+
+    // =====================================
+    //  5. DASHBOARD HOME UTAMA
+    // =====================================
+    window.getHomeHTML = function() {
         const nowWIB = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
         const dateOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
         const todayStr = nowWIB.toLocaleDateString('id-ID', dateOptions);
@@ -379,9 +434,7 @@
         let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
         let urgentCount = allAsg.length;
 
-        // =====================================
-        // 2. KARTU TUGAS TERKINI
-        // =====================================
+        // KARTU TUGAS TERKINI
         let tasksHTML = allAsg.slice(0, 3).map(a => `
             <div class="glass p-3.5 rounded-2xl border border-[color:var(--border)] flex justify-between items-center group cursor-pointer hover:bg-[color:var(--card)]" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
                 <div class="flex items-center gap-3">
@@ -391,9 +444,7 @@
                 <div class="text-right shrink-0"><p class="text-[9px] font-bold text-orange-500"><i data-lucide="clock" class="w-3 h-3 inline mb-0.5"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline).split(',')[0] : ''}</p><span class="text-[8px] bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded uppercase font-black border border-orange-500/20 mt-1 inline-block">Pending</span></div>
             </div>`).join('');
 
-        // =====================================
-        // 3. JADWAL HARI INI
-        // =====================================
+        // JADWAL HARI INI
         let scheduleHTML = todaysSchedule.map((c, idx) => `
             <div class="flex gap-3 relative pb-4 animate-fade" style="animation-delay: ${idx * 0.1}s">
                 ${idx !== todaysSchedule.length - 1 ? `<div class="absolute left-[11px] top-6 bottom-[-10px] w-0.5 bg-gradient-to-b from-[#2563eb] to-[color:var(--border)] opacity-50"></div>` : ''}
@@ -401,9 +452,7 @@
                 <div class="flex-1 pb-2"><p class="text-[9px] font-black text-[#2563eb] tracking-wider mb-0.5">${c.time}</p><h4 class="text-xs font-bold leading-tight mb-1">${c.name}</h4><div class="flex items-center gap-2"><span class="text-[8px] bg-[color:var(--input-bg)] border border-[color:var(--border)] px-1.5 py-0.5 rounded opacity-80"><i data-lucide="map-pin" class="w-2.5 h-2.5 inline text-emerald-500"></i> Rg. ${c.room}</span><span class="text-[8px] bg-[color:var(--input-bg)] border border-[color:var(--border)] px-1.5 py-0.5 rounded opacity-80"><i data-lucide="user" class="w-2.5 h-2.5 inline text-amber-500"></i> ${c.dosen || 'Dosen'}</span></div></div>
             </div>`).join('');
 
-        // =====================================
-        // 4. KALENDER PINTAR (WIB)
-        // =====================================
+        // KALENDER PINTAR (WIB)
         const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         const m = nowWIB.getMonth(); const y = nowWIB.getFullYear(); const d = nowWIB.getDate();
         const firstDay = new Date(y, m, 1).getDay(); const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -426,58 +475,33 @@
                 <div class="grid grid-cols-7 gap-y-2 text-center text-xs font-medium">${calDays}</div>
             </div>`;
 
-        // =====================================
-        // 5. BUKU PDF ONLINE (MANAJEMEN BISNIS SYARIAH)
-        // =====================================
-        const books = [
-            { title: "Fiqh Muamalah Kontemporer", author: "Ust. Ahmad", size: "2.1 MB", cover: "bg-gradient-to-br from-emerald-500 to-teal-600" },
-            { title: "Manajemen Keuangan Syariah", author: "Dr. Rina", size: "4.5 MB", cover: "bg-gradient-to-br from-indigo-500 to-purple-600" },
-            { title: "Manajemen Operasional", author: "Dr. Budi", size: "3.2 MB", cover: "bg-gradient-to-br from-blue-500 to-cyan-600" },
-            { title: "Akuntansi Keuangan Syariah", author: "Dwi, M.Ak", size: "5.0 MB", cover: "bg-gradient-to-br from-orange-500 to-amber-600" }
-        ];
-        let booksHTML = books.map(b => `
-            <div class="glass p-3 rounded-2xl border border-[color:var(--border)] min-w-[140px] snap-start shrink-0 flex flex-col gap-2 group cursor-pointer hover:bg-[color:var(--card)]">
-                <div class="h-20 ${b.cover} rounded-xl flex items-center justify-center relative overflow-hidden shadow-inner">
-                    <i data-lucide="book" class="w-8 h-8 text-white opacity-40"></i>
-                    <span class="absolute bottom-1.5 right-1.5 text-[8px] font-black text-white bg-black/40 px-1.5 py-0.5 rounded">PDF</span>
-                </div>
-                <div class="flex-1">
-                    <h4 class="text-[11px] font-bold text-[color:var(--text)] leading-tight line-clamp-2 mb-0.5">${b.title}</h4>
-                    <p class="text-[8px] text-[color:var(--text2)]">${b.author} • ${b.size}</p>
-                </div>
-                <button class="w-full py-1.5 bg-[color:var(--input-bg)] border border-[color:var(--border)] text-[color:var(--text)] text-[9px] font-bold rounded-lg group-hover:bg-[#2563eb] group-hover:text-white group-hover:border-[#2563eb] transition-all flex justify-center items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> Unduh</button>
-            </div>
-        `).join('');
-
-        // =====================================
-        // GABUNGKAN SEMUA KE DASHBOARD
-        // =====================================
+        // GABUNGKAN SEMUA HTML
         return `
             <div class="space-y-6 animate-fade px-4 py-4 max-w-6xl mx-auto pb-10">
                 
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 glass p-6 rounded-3xl border border-[color:var(--border)] shadow-sm">
                     <div>
-                        <p class="text-[10px] font-bold text-[color:var(--text2)] uppercase mb-1 tracking-wider">${todayStr}</p>
-                        <h2 class="text-xl font-black">Hai, Syaiful! 👋</h2>
+                        <p class="text-[10px] font-bold text-[#2563eb] uppercase mb-1 tracking-wider bg-blue-500/10 px-2 py-1 rounded inline-block border border-blue-500/20">${todayStr}</p>
+                        <h2 class="text-xl font-black text-[color:var(--text)] mt-2">Dashboard Perkuliahan</h2>
                     </div>
                     <div class="relative w-full md:w-64">
                         <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[color:var(--text2)]"></i>
-                        <input type="text" placeholder="Cari modul, tugas, pdf..." class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-full py-2.5 pl-9 pr-4 text-xs outline-none focus:border-[#2563eb] shadow-inner">
+                        <input type="text" placeholder="Cari modul / menu..." class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-full py-2.5 pl-9 pr-4 text-xs outline-none focus:border-[#2563eb] shadow-inner transition-colors">
                     </div>
                 </div>
 
                 <div class="flex overflow-x-auto hide-scrollbar gap-4 pb-2 snap-x">
-                    <div class="glass p-4 rounded-3xl border border-[color:var(--border)] flex items-center gap-3 shrink-0 min-w-[160px] snap-start">
+                    <div class="glass p-4 rounded-3xl border border-[color:var(--border)] flex items-center gap-3 shrink-0 min-w-[160px] snap-start hover:scale-105 transition-transform cursor-pointer" onclick="switchTab('tasks')">
                         <div class="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0"><i data-lucide="flame" class="w-6 h-6"></i></div>
                         <div><p class="text-xl font-black leading-none mb-1">${urgentCount}</p><p class="text-[9px] uppercase tracking-widest text-[color:var(--text2)] font-bold">Mendesak</p></div>
                     </div>
-                    <div class="glass p-4 rounded-3xl border border-[color:var(--border)] flex items-center gap-3 shrink-0 min-w-[160px] snap-start">
+                    <div class="glass p-4 rounded-3xl border border-[color:var(--border)] flex items-center gap-3 shrink-0 min-w-[160px] snap-start hover:scale-105 transition-transform cursor-pointer" onclick="switchTab('kelas')">
                         <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0"><i data-lucide="book-open" class="w-6 h-6"></i></div>
                         <div><p class="text-xl font-black leading-none mb-1">${typeof COURSES!=='undefined'?COURSES.length:8}</p><p class="text-[9px] uppercase tracking-widest text-[color:var(--text2)] font-bold">Modul Aktif</p></div>
                     </div>
                     <div class="glass p-4 rounded-3xl border border-[color:var(--border)] flex items-center gap-3 shrink-0 min-w-[180px] snap-start bg-emerald-500/5">
                         <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0"><i data-lucide="wallet" class="w-6 h-6"></i></div>
-                        <div><p class="text-lg font-black text-emerald-500 leading-none mb-1">Rp 450K</p><p class="text-[9px] uppercase tracking-widest text-emerald-600 font-bold">Saldo Kelas</p></div>
+                        <div><p class="text-lg font-black text-emerald-500 leading-none mb-1">Rp 450K</p><p class="text-[9px] uppercase tracking-widest text-emerald-600 font-bold">Uang Kas Kelas</p></div>
                     </div>
                 </div>
 
@@ -486,28 +510,39 @@
                     <div class="lg:col-span-2 space-y-6">
                         
                         <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="library" class="w-4 h-4 text-purple-500"></i> E-Library (Manajemen Bisnis Syariah)</h3>
-                                <div class="relative w-32 hidden sm:block"><i data-lucide="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[color:var(--text2)]"></i><input type="text" placeholder="Cari buku..." class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-full py-1.5 pl-7 pr-3 text-[9px] outline-none"></div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
+                                <h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="library" class="w-4 h-4 text-purple-500"></i> Pencarian Jurnal (Global)</h3>
+                                <div class="flex gap-1 w-full sm:w-64">
+                                    <div class="relative flex-1">
+                                        <i data-lucide="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[color:var(--text2)]"></i>
+                                        <input type="text" id="jurnal-search-input" placeholder="Cari jurnal PDF..." class="w-full bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-full py-2 pl-8 pr-3 text-[11px] outline-none focus:border-purple-500 transition-colors shadow-sm" onkeydown="if(event.key==='Enter') searchJurnal()">
+                                    </div>
+                                    <button onclick="searchJurnal()" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full shrink-0 transition-colors shadow-md active:scale-95"><i data-lucide="search" class="w-4 h-4"></i></button>
+                                </div>
                             </div>
-                            <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-3 snap-x">
-                                ${booksHTML}
+                            
+                            <div id="jurnal-results-container" class="flex gap-3 overflow-x-auto hide-scrollbar pb-3 snap-x">
+                                <div class="w-full p-6 text-center border border-dashed border-[color:var(--border)] rounded-2xl text-[color:var(--text2)] glass">
+                                    <i data-lucide="globe" class="w-8 h-8 mx-auto mb-2 opacity-50 text-purple-500"></i>
+                                    <p class="text-xs font-bold text-[color:var(--text)]">Ketik judul jurnal/materi di atas</p>
+                                    <p class="text-[10px] mt-1 opacity-70 leading-relaxed max-w-sm mx-auto">Sistem akan mencari file PDF <i>Open Access</i> dari database akademik global tanpa batas. Coba ketik "Manajemen Syariah" lalu tekan Enter.</p>
+                                </div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="space-y-3">
-                                <h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> Aktivitas Terbaru</h3>
+                                <h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> Aktivitas Kelas</h3>
                                 <div class="glass p-4 rounded-3xl border border-[color:var(--border)] space-y-4 shadow-sm">
-                                    <div class="flex gap-3 items-start"><div class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 mt-0.5"><i data-lucide="upload-cloud" class="w-3 h-3"></i></div><div><p class="text-[10px] text-[color:var(--text)] leading-tight"><span class="font-bold">Syaiful</span> mengumpulkan tugas <span class="font-bold text-[#2563eb]">Manajemen Operasional</span></p><p class="text-[8px] text-[color:var(--text2)] mt-0.5">10 menit yang lalu</p></div></div>
-                                    <div class="flex gap-3 items-start"><div class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center shrink-0 mt-0.5"><i data-lucide="file-plus" class="w-3 h-3"></i></div><div><p class="text-[10px] text-[color:var(--text)] leading-tight"><span class="font-bold">Ust. Ahmad</span> memposting modul <span class="font-bold text-orange-500">Fiqh Muamalah</span></p><p class="text-[8px] text-[color:var(--text2)] mt-0.5">2 jam yang lalu</p></div></div>
+                                    <div class="flex gap-3 items-start"><div class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 mt-0.5"><i data-lucide="upload-cloud" class="w-3 h-3"></i></div><div><p class="text-[10px] text-[color:var(--text)] leading-tight"><span class="font-bold">Ahmad</span> mengumpulkan tugas <span class="font-bold text-[#2563eb]">Manajemen Operasional</span></p><p class="text-[8px] text-[color:var(--text2)] mt-0.5">10 menit yang lalu</p></div></div>
+                                    <div class="flex gap-3 items-start"><div class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center shrink-0 mt-0.5"><i data-lucide="file-plus" class="w-3 h-3"></i></div><div><p class="text-[10px] text-[color:var(--text)] leading-tight"><span class="font-bold">Dosen</span> memposting modul <span class="font-bold text-orange-500">Fiqh Muamalah</span></p><p class="text-[8px] text-[color:var(--text2)] mt-0.5">2 jam yang lalu</p></div></div>
                                     <div class="flex gap-3 items-start"><div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5"><i data-lucide="check-circle-2" class="w-3 h-3"></i></div><div><p class="text-[10px] text-[color:var(--text)] leading-tight">Nilai <span class="font-bold text-emerald-500">Perilaku Konsumen</span> telah keluar</p><p class="text-[8px] text-[color:var(--text2)] mt-0.5">Kemarin</p></div></div>
                                 </div>
                             </div>
 
                             <div class="space-y-3">
-                                <div class="flex items-center justify-between"><h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="clipboard-list" class="w-4 h-4 text-[#2563eb]"></i> Tugas Terkini</h3><button onclick="switchTab('tasks')" class="text-[9px] font-bold px-2 py-1 rounded bg-[color:var(--surface)] border border-[color:var(--border)]">Lihat Semua</button></div>
-                                <div class="space-y-2">${tasksHTML || '<p class="text-xs italic opacity-50 p-4 border border-dashed border-[color:var(--border)] rounded-xl text-center">Bebas tugas! 🎉</p>'}</div>
+                                <div class="flex items-center justify-between"><h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="clipboard-list" class="w-4 h-4 text-[#2563eb]"></i> Tugas Terkini</h3><button onclick="switchTab('tasks')" class="text-[9px] font-bold px-2 py-1 rounded bg-[color:var(--surface)] border border-[color:var(--border)] hover:bg-[#2563eb] hover:text-white transition-colors">Lihat Semua</button></div>
+                                <div class="space-y-2">${tasksHTML || '<p class="text-xs italic opacity-50 p-4 border border-dashed border-[color:var(--border)] rounded-xl text-center glass">Bebas tugas! 🎉</p>'}</div>
                             </div>
                         </div>
                     </div>
@@ -516,23 +551,8 @@
                         ${miniCalendarHTML}
                         
                         <div class="space-y-3">
-                            <div class="flex items-center justify-between"><h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-orange-500"></i> Jadwal Hari Ini</h3><span class="text-[8px] font-bold px-2 py-1 bg-orange-500/10 text-orange-500 rounded uppercase">${todayName}</span></div>
-                            <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">${scheduleHTML || '<p class="text-[10px] text-center opacity-50 py-4">Bebas kelas hari ini!</p>'}</div>
-                        </div>
-
-                        <div class="space-y-3">
-                            <h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="message-circle" class="w-4 h-4 text-pink-500"></i> Sosial Mahasiswa</h3>
-                            <div class="glass p-4 rounded-3xl border border-[color:var(--border)] shadow-sm space-y-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 to-rose-500 flex items-center justify-center text-white text-xs font-bold shadow-md">N</div>
-                                    <div class="flex-1"><h4 class="text-[11px] font-bold">Nia F.</h4><p class="text-[8px] text-[color:var(--text2)]">Baru saja</p></div>
-                                </div>
-                                <p class="text-[10px] text-[color:var(--text)] leading-relaxed">Ada yang udah ngerjain tugas Manajemen Keuangan Syariah kelompok 2? Besok kumpul di kantin ya jam 10! ✨</p>
-                                <div class="flex gap-4 border-t border-[color:var(--border)] pt-2 mt-2">
-                                    <button class="text-[9px] text-[color:var(--text2)] hover:text-pink-500 font-bold flex gap-1"><i data-lucide="heart" class="w-3 h-3"></i> 12</button>
-                                    <button class="text-[9px] text-[color:var(--text2)] hover:text-blue-500 font-bold flex gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> 3</button>
-                                </div>
-                            </div>
+                            <div class="flex items-center justify-between"><h3 class="text-sm font-black flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-orange-500"></i> Jadwal Hari Ini</h3><span class="text-[8px] font-bold px-2 py-1 bg-orange-500/10 text-orange-500 rounded uppercase border border-orange-500/20">${todayName}</span></div>
+                            <div class="glass p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">${scheduleHTML || '<p class="text-[10px] text-center opacity-50 py-4 font-medium">Tidak ada kelas hari ini. Waktunya istirahat!</p>'}</div>
                         </div>
                     </div>
 
