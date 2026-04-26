@@ -921,78 +921,181 @@
     };
 
     // ==========================================
-    // 10. LOGIKA POP-UP GANTI PASSWORD
+    // 10. DESAIN TUGAS
     // ==========================================
-    window.renderAllAssignments = function() {
+        window.renderAllAssignments = function() {
+        // Ambil dan urutkan semua tugas berdasarkan deadline
         let allAsg = STATE.assignments ? Object.values(STATE.assignments).flat().sort((a,b) => (a.deadline?.seconds || 0) - (b.deadline?.seconds || 0)) : [];
-        
-        let listHTML = allAsg.length === 0 ? 
-            `<div class="p-6 text-center border border-dashed border-[color:var(--border)] rounded-2xl"><p class="text-xs text-[color:var(--text2)] italic">Belum ada tugas kuliah.</p></div>` : 
-            allAsg.map(a => {
+        const now = new Date().getTime();
+
+        // 1. Kalkulasi Statistik
+        const totalTugas = allAsg.length;
+        let mendesakCount = 0;
+        let selesaiCount = 0; // Nilai dummy (bisa dikembangkan dengan cek submission db)
+        let belumCount = totalTugas; 
+
+        let urgentHTML = '';
+        let listHTML = '';
+
+        if (allAsg.length === 0) {
+            listHTML = `<div class="p-6 text-center border border-dashed border-[color:var(--border)] rounded-2xl"><p class="text-xs text-[color:var(--text2)] italic">Wah, belum ada tugas kuliah nih. Bebas tugas!</p></div>`;
+        } else {
+            allAsg.forEach(a => {
                 const course = typeof COURSES !== 'undefined' ? COURSES.find(c => c.id === a.courseId) : null;
-                return `
-                <div class="glass p-4 rounded-2xl border border-[color:var(--border)] flex items-center gap-4 cursor-pointer shadow-sm relative overflow-hidden mb-3 hover:scale-[1.02] transition-transform z-10" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
-                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#2563eb] opacity-80"></div>
-                    <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl shrink-0 border border-blue-500/20">
-                        <i data-lucide="file-text" class="w-6 h-6"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-[13px] text-[color:var(--text)] truncate uppercase">${a.title}</h4>
-                        <p class="text-[10px] text-[color:var(--text2)] truncate font-medium">${course ? course.name : ''}</p>
-                        <div class="flex items-center gap-3 mt-1.5">
-                            <span class="text-[9px] font-bold text-orange-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline) : ''}</span>
-                            <span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase">${a.type}</span>
+                const courseName = course ? course.name : 'Mata Kuliah';
+                const deadlineMs = a.deadline && typeof a.deadline.toDate === 'function' ? a.deadline.toDate().getTime() : 0;
+                const diffMs = deadlineMs - now;
+                const isUrgent = diffMs > 0 && diffMs <= 86400000; // Mendesak jika < 24 Jam
+                
+                // Badge Sisa Waktu
+                let sisaWaktuBadge = '';
+                if (diffMs > 0 && diffMs <= 3600000) sisaWaktuBadge = 'KURANG 1 JAM';
+                else if (diffMs > 0 && diffMs <= 86400000) sisaWaktuBadge = `${Math.ceil(diffMs / 3600000)} JAM LAGI`;
+                else if (diffMs <= 0) sisaWaktuBadge = 'TERLAMBAT';
+                else sisaWaktuBadge = 'HARI INI';
+
+                const typeIcon = a.type === 'kelompok' ? 'users' : 'user';
+                
+                // Status Placeholder (Bisa disambungkan ke Firebase nanti)
+                const isSelesai = false; 
+                const statusBadge = isSelesai
+                    ? `<span class="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20 flex items-center gap-1 shrink-0"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Selesai</span>`
+                    : `<span class="text-[9px] font-bold text-amber-600 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 flex items-center gap-1 shrink-0"><i data-lucide="hourglass" class="w-3 h-3"></i> Belum Dikerjakan</span>`;
+
+                // Render Kartu Tugas Mendesak
+                if (isUrgent) {
+                    mendesakCount++;
+                    urgentHTML += `
+                    <div class="glass p-4 rounded-2xl border border-[color:var(--border)] shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 group cursor-pointer hover:border-red-400 transition-all mb-4" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-red-500 to-orange-500"></div>
+                        <div class="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
+                            <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 border border-red-500/20">
+                                <i data-lucide="file-text" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="mb-1">
+                                    <span class="text-[8px] sm:text-[9px] font-black text-white bg-gradient-to-r from-red-500 to-orange-500 px-2 py-0.5 rounded-md tracking-wider uppercase shadow-sm">${sisaWaktuBadge}</span>
+                                </div>
+                                <h4 class="font-black text-[12px] sm:text-sm text-[color:var(--text)] uppercase line-clamp-1">${a.title}</h4>
+                                <p class="text-[10px] sm:text-[11px] font-medium text-[color:var(--text2)] truncate">${courseName}</p>
+                                <div class="flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2">
+                                    <span class="text-[9px] sm:text-[10px] font-bold text-red-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline) : ''}</span>
+                                    <span class="text-[8px] sm:text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-red-500/20 uppercase"><i data-lucide="${typeIcon}" class="w-3 h-3"></i> ${a.type}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-[color:var(--border)] sm:border-t-0 flex justify-end">
+                            <button class="w-full sm:w-auto py-2.5 px-5 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold text-[11px] rounded-xl shadow-lg shadow-red-500/20 active:scale-95 transition-all whitespace-nowrap">Kerjakan Sekarang</button>
+                        </div>
+                    </div>`;
+                }
+
+                // Render Kartu Semua Tugas
+                listHTML += `
+                <div class="glass p-3.5 sm:p-4 rounded-2xl border border-[color:var(--border)] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-[color:var(--card)] transition-all mb-3 group" onclick="viewAssignmentDetail('${a.courseId}', '${a.id}')">
+                    <div class="flex items-center gap-3 sm:gap-4 w-full sm:w-auto flex-1 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-[color:var(--input-bg)] text-[color:var(--text)] flex items-center justify-center shrink-0 border border-[color:var(--border)] group-hover:scale-105 transition-transform">
+                            <i data-lucide="file-text" class="w-5 h-5 opacity-70"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h4 class="font-black text-[11px] sm:text-[12px] text-[color:var(--text)] uppercase truncate">${a.title}</h4>
+                            <p class="text-[9px] sm:text-[10px] font-medium text-[color:var(--text2)] truncate">${courseName}</p>
+                            <p class="text-[9px] font-bold text-[color:var(--text2)] mt-1 flex items-center gap-1.5 opacity-80"><i data-lucide="clock" class="w-3 h-3"></i> ${typeof formatDate === 'function' ? formatDate(a.deadline) : ''}</p>
                         </div>
                     </div>
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-[color:var(--text2)] opacity-30 shrink-0"></i>
-                </div>`;
-            }).join('');
-
-        const todos = STATE.currentUser?.todos || [];
-        const todoHTML = todos.length === 0 ? 
-            `<div class="text-center p-6 bg-[color:var(--surface)] rounded-2xl border border-dashed border-[color:var(--border)]"><i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-[#2563eb] opacity-30"></i><p class="text-xs text-[color:var(--text2)] font-medium">Belum ada catatan pribadi.</p></div>` : 
-            todos.map(t => `
-            <div class="flex items-center justify-between p-3 rounded-xl bg-[color:var(--surface)] border border-[color:var(--border)] mb-2 shadow-sm transition-all ${t.done ? 'opacity-50' : ''} hover:bg-[color:var(--card)] z-10 relative">
-                <div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onclick="toggleTodo('${t.id}')">
-                    <div class="w-6 h-6 shrink-0 rounded-md border ${t.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-[color:var(--border)] text-transparent'} flex items-center justify-center transition-colors shadow-inner">
-                        <i data-lucide="check" class="w-4 h-4"></i>
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0 border-t sm:border-t-0 border-[color:var(--border)] pt-2 sm:pt-0">
+                        <span class="text-[9px] font-bold text-[#2563eb] bg-blue-500/10 px-2 py-1 rounded-md flex items-center gap-1 border border-blue-500/20 uppercase shrink-0"><i data-lucide="${typeIcon}" class="w-3 h-3"></i> ${a.type}</span>
+                        ${statusBadge}
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-[color:var(--text2)] opacity-40 hidden sm:block shrink-0 group-hover:translate-x-1 transition-transform"></i>
                     </div>
-                    <span class="text-sm font-medium truncate ${t.done ? 'line-through text-[color:var(--text2)]' : 'text-[color:var(--text)]'}">${t.text}</span>
+                </div>`;
+            });
+        }
+
+        const mendesakSectionHTML = mendesakCount > 0 ? `
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-red-500/10 flex items-center justify-center">
+                            <i data-lucide="flame" class="w-4 h-4 text-red-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-black text-[color:var(--text)]">Tugas Mendesak</h3>
+                            <p class="text-[9px] text-[color:var(--text2)] font-bold uppercase tracking-wider">Deadline dalam 24 jam</p>
+                        </div>
+                    </div>
+                    <button class="text-[10px] font-bold text-[#2563eb] hover:underline">Lihat Semua ></button>
                 </div>
-                <button onclick="deleteTodo('${t.id}')" class="text-red-400 hover:text-red-500 p-2 shrink-0 active:scale-90 transition-transform relative z-20">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-            </div>`).join('');
+                <div>${urgentHTML}</div>
+            </div>
+        ` : '';
 
         return `
-        <div class="p-5 animate-fade space-y-6 pb-24 max-w-4xl mx-auto relative z-10">
-            <div>
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 class="text-xl font-black text-[color:var(--text)]">Tugas Kuliah</h2>
-                        <p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">Semua Mata Kuliah</p>
-                    </div>
-                    <div class="bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 shadow-sm">
-                        <span class="text-[11px] font-black text-[#2563eb]">${allAsg.length} TUGAS</span>
-                    </div>
+        <div class="p-4 sm:p-5 animate-fade max-w-4xl mx-auto pb-24">
+            
+            <div class="flex items-center justify-between mb-6 bg-[color:var(--surface)] p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-black text-[color:var(--text)]">Tugas Kuliah</h2>
+                    <p class="text-[11px] font-medium text-[color:var(--text2)] mt-1">Kelola semua tugas mata kuliah Anda</p>
                 </div>
-                <div>${listHTML}</div>
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-inner">
+                    <i data-lucide="clipboard-list" class="w-7 h-7 sm:w-8 sm:h-8 text-[#2563eb]"></i>
+                </div>
             </div>
-            <div class="h-px w-full bg-[color:var(--border)] opacity-50 my-2"></div>
+
+            <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
+                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-[color:var(--border)] shadow-sm hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-1 sm:gap-2 text-[#2563eb] mb-1 sm:mb-2">
+                        <i data-lucide="file-text" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                        <span class="text-lg sm:text-2xl font-black">${totalTugas}</span>
+                    </div>
+                    <span class="text-[8px] sm:text-[10px] font-bold text-[color:var(--text2)] text-center leading-tight">Total<br class="sm:hidden"> Tugas</span>
+                </div>
+                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-amber-500/30 bg-amber-500/5 shadow-sm hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-1 sm:gap-2 text-amber-500 mb-1 sm:mb-2">
+                        <i data-lucide="clock" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                        <span class="text-lg sm:text-2xl font-black">${mendesakCount}</span>
+                    </div>
+                    <span class="text-[8px] sm:text-[10px] font-bold text-amber-600 text-center leading-tight">Mendesak</span>
+                </div>
+                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-[color:var(--border)] shadow-sm hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-1 sm:gap-2 text-emerald-500 mb-1 sm:mb-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                        <span class="text-lg sm:text-2xl font-black">${selesaiCount}</span>
+                    </div>
+                    <span class="text-[8px] sm:text-[10px] font-bold text-[color:var(--text2)] text-center leading-tight">Selesai</span>
+                </div>
+                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-[color:var(--border)] shadow-sm hover:scale-105 transition-transform">
+                    <div class="flex items-center gap-1 sm:gap-2 text-purple-500 mb-1 sm:mb-2">
+                        <i data-lucide="hourglass" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                        <span class="text-lg sm:text-2xl font-black">${belumCount}</span>
+                    </div>
+                    <span class="text-[8px] sm:text-[10px] font-bold text-[color:var(--text2)] text-center leading-tight">Belum<br class="sm:hidden"> Dikerjakan</span>
+                </div>
+            </div>
+
+            ${mendesakSectionHTML}
+
             <div>
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shadow-sm"><i data-lucide="list-todo" class="w-5 h-5"></i></div>
-                    <div>
-                        <h2 class="text-xl font-black text-[color:var(--text)]">Catatan Pribadi</h2>
-                        <p class="text-[10px] text-[color:var(--text2)] uppercase font-bold tracking-widest">To-Do List Saya</p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                    <h3 class="text-sm font-black text-[color:var(--text)]">Semua Tugas</h3>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <select class="flex-1 sm:flex-none text-[10px] font-bold bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl px-3 py-2 outline-none focus:border-[#2563eb] cursor-pointer">
+                            <option>Semua Status</option>
+                            <option>Selesai</option>
+                            <option>Belum Dikerjakan</option>
+                        </select>
+                        <select class="flex-1 sm:flex-none text-[10px] font-bold bg-[color:var(--surface)] border border-[color:var(--border)] text-[color:var(--text)] rounded-xl px-3 py-2 outline-none focus:border-[#2563eb] cursor-pointer">
+                            <option># Terbaru</option>
+                            <option>Deadline Terdekat</option>
+                        </select>
                     </div>
                 </div>
-                <div class="flex gap-2 mb-4 relative z-20">
-                    <input type="text" id="todo-input" class="flex-1 bg-[color:var(--input-bg)] border border-[color:var(--border)] rounded-xl p-3.5 text-sm outline-none focus:border-[#2563eb] text-[color:var(--text)] shadow-inner transition-colors" placeholder="Ketik target baru..." onkeydown="if(event.key==='Enter') saveTodo()">
-                    <button onclick="saveTodo()" class="bg-[#2563eb] text-white px-5 rounded-xl shadow-lg active:scale-95 transition-transform"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                <div class="space-y-1">
+                    ${listHTML}
                 </div>
-                <div id="todo-list-container" class="space-y-2">${todoHTML}</div>
             </div>
+
         </div>`;
     };
 
