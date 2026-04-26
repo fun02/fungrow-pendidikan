@@ -1125,8 +1125,9 @@
         });
     };
 
+             
     // =================================================================
-    // MODAL UTAMA DETAIL TUGAS
+    // MODAL UTAMA DETAIL TUGAS (DIKEMBALIKAN KE MODE POPUP CENTER)
     // =================================================================
     window.viewAssignmentDetail = async (courseId, asgId) => {
         try {
@@ -1144,7 +1145,6 @@
             const hasSubmitted = mySubmissions.length > 0;
             const latestSubmission = hasSubmitted ? mySubmissions[0] : null;
 
-            // Simpan state untuk modal Riwayat & Upload
             window.currentMySubmissions = mySubmissions;
             window.currentAssignmentInfo = asg;
             window.currentCourseId = courseId;
@@ -1166,7 +1166,7 @@
                 sisaWaktuTeks = 'Waktu Habis';
             }
 
-            // --- HTML TAB DETAIL ---
+            // HTML TAB DETAIL
             const tabDetailHTML = `
                 <div class="space-y-6 animate-fade">
                     <div class="space-y-3">
@@ -1217,7 +1217,7 @@
                 </div>
             `;
 
-            // --- HTML TAB PENILAIAN ---
+            // HTML TAB PENILAIAN
             const tabPenilaianHTML = `
                 <div class="space-y-4 animate-fade">
                     <div class="flex items-center justify-between mb-2">
@@ -1243,7 +1243,7 @@
                 </div>
             `;
 
-            // --- HTML TAB PENGUMPULAN ---
+            // HTML TAB PENGUMPULAN
             let riwayatSingkatHTML = mySubmissions.slice(0, 2).map((sub, index) => {
                 const isLatest = index === 0;
                 return `
@@ -1265,8 +1265,7 @@
             }).join('');
 
             const tabPengumpulanHTML = `
-                <div class="space-y-6 animate-fade pb-10">
-                    
+                <div class="space-y-6 animate-fade pb-6">
                     <div class="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                         <h3 class="font-bold text-slate-800 text-sm">${hasSubmitted ? 'Upload / Ganti File Baru' : 'Upload Tugas Anda'}</h3>
                         
@@ -1295,7 +1294,7 @@
                             
                             <div>
                                 <label class="text-[10px] font-bold text-slate-600 mb-1.5 block">Catatan untuk Dosen (Opsional)</label>
-                                <textarea id="mhs-note" class="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-blue-500 bg-slate-50" placeholder="Tulis catatan revisi atau pesan..." rows="2"></textarea>
+                                <textarea id="mhs-note" class="w-full border border-slate-300 rounded-xl p-3 text-xs text-black font-medium outline-none focus:border-blue-500 bg-white placeholder-slate-400 shadow-sm" placeholder="Tulis catatan revisi atau pesan..." rows="2"></textarea>
                             </div>
                             
                             <button onclick="handleMhsUpload('${courseId}', '${asgId}')" id="btn-submit-mhs" class="w-full py-3 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all flex justify-center items-center gap-2">
@@ -1313,18 +1312,16 @@
                         </div>
                         ${hasSubmitted ? `<div class="pl-1">${riwayatSingkatHTML}</div>` : `<div class="text-center p-6 border border-dashed border-slate-200 bg-slate-50 rounded-xl text-slate-500 text-xs font-medium"><i data-lucide="file-clock" class="w-8 h-8 mx-auto mb-2 opacity-30 text-[#2563eb]"></i> Belum ada yang mengumpulkan.</div>`}
                     </div>
-
                 </div>
             `;
 
-            // --- STRUKTUR MODAL UTAMA ---
-            // Menggunakan absolute inset-0 untuk memaksa full screen di HP (menimpa padding)
+            // STRUKTUR MODAL DIKEMBALIKAN KE MODE MELAYANG (CENTERED POPUP)
             showGlobalModal(`
-            <div class="absolute inset-0 md:relative md:inset-auto bg-slate-50 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-2xl mx-auto md:rounded-[1.5rem] flex flex-col z-[2000] shadow-2xl overflow-hidden animate-slide">
+            <div class="bg-slate-50 w-full max-w-2xl mx-auto rounded-2xl sm:rounded-[2rem] flex flex-col z-[2000] shadow-2xl overflow-hidden animate-slide max-h-[90vh]">
                 
                 <header class="bg-white px-4 py-3 flex items-center justify-between border-b border-slate-200 shrink-0">
                     <div class="flex items-center gap-3">
-                        <button onclick="closeGlobalModal()" class="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors active:scale-95"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                        <button onclick="closeGlobalModal()" class="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors active:scale-95"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <div class="flex items-center gap-2 text-slate-800 font-bold"><i data-lucide="graduation-cap" class="w-5 h-5 text-blue-600"></i> FunGrow</div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -1403,95 +1400,7 @@
 
 
     // =================================================================
-    // FUNGSI UPLOAD MAHASISWA & PENANGANAN ERROR
-    // =================================================================
-    window.previewMhsFile = function(e) {
-        const file = e.target.files[0];
-        if(!file) return;
-
-        if(file.size > 5242880) {
-            showToast("Gagal: Ukuran file melebihi batas 5 MB!", "error");
-            e.target.value = '';
-            return;
-        }
-
-        STATE.mhsPendingFile = file;
-        document.getElementById('mhs-dropzone').classList.add('hidden');
-        document.getElementById('mhs-preview-container').classList.remove('hidden');
-        document.getElementById('mhs-preview-name').innerText = file.name;
-        document.getElementById('mhs-preview-size').innerText = (file.size / (1024*1024)).toFixed(2) + " MB";
-        document.getElementById('mhs-upload-error').classList.add('hidden');
-    };
-
-    window.cancelMhsFile = function() {
-        STATE.mhsPendingFile = null;
-        document.getElementById('mhs-file').value = '';
-        document.getElementById('mhs-dropzone').classList.remove('hidden');
-        document.getElementById('mhs-preview-container').classList.add('hidden');
-    };
-
-    window.handleMhsUpload = async function(courseId, asgId) {
-        const file = STATE.mhsPendingFile;
-        if(!file) return;
-
-        const btn = document.getElementById('btn-submit-mhs');
-        const errorBox = document.getElementById('mhs-upload-error');
-        const note = document.getElementById('mhs-note').value;
-
-        btn.disabled = true;
-        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Sedang Mengunggah...';
-        errorBox.classList.add('hidden');
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        try {
-            // 1. Upload ke Server File (Cloudinary)
-            let url = "";
-            try {
-                url = await fetchCloudinaryUpload(file, false);
-            } catch(cloudErr) {
-                console.warn("Cloudinary normal error, mencoba fallback raw...", cloudErr);
-                const fd = new FormData();
-                fd.append('file', file);
-                fd.append('upload_preset', 'fungrow_preset');
-                const res = await fetch('https://api.cloudinary.com/v1_1/dt51ndddv/raw/upload', { method: 'POST', body: fd });
-                const data = await res.json();
-                if(data.error) throw new Error(data.error.message);
-                url = data.secure_url;
-            }
-
-            // 2. Simpan Database ke Firebase Firestore
-            await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').add({
-                userId: STATE.currentUser.uid,
-                userName: STATE.currentUser.displayName,
-                fileUrl: url,
-                fileName: file.name,
-                catatan: note || "", 
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                nilai: null
-            });
-
-            showToast("Tugas berhasil dikumpulkan!", "success");
-            STATE.mhsPendingFile = null;
-
-            // Refresh & Langsung buka tab pengumpulan
-            viewAssignmentDetail(courseId, asgId);
-            setTimeout(() => switchTabAsg('pengumpulan'), 100);
-
-        } catch (err) {
-            console.error("Upload Error:", err);
-            btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="upload" class="w-4 h-4"></i> Coba Lagi';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
-            // MENANGKAP ERROR FIREBASE PERMISSION
-            errorBox.innerHTML = `Gagal mengunggah file ke database.<br><span class="text-[9px] font-normal opacity-80">Alasan: ${err.message}</span><br><br><span class="text-[9px] font-bold mt-1 block">TIPS: Cek tab "Rules" di Firebase Firestore Anda, sepertinya akses write/add sedang diblokir.</span>`;
-            errorBox.classList.remove('hidden');
-        }
-    };
-
-
-    // =================================================================
-    // MODAL HALAMAN PENUH: RIWAYAT PENGUMPULAN
+    // MODAL HALAMAN PENUH: RIWAYAT PENGUMPULAN (KEMBALI KE MODE POPUP)
     // =================================================================
     window.viewRiwayatPengumpulan = function() {
         const mySubmissions = window.currentMySubmissions || [];
@@ -1546,7 +1455,7 @@
         }).join('');
 
         showGlobalModal(`
-        <div class="absolute inset-0 md:relative md:inset-auto bg-slate-50 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-xl mx-auto md:rounded-[1.5rem] flex flex-col z-[2000] shadow-2xl overflow-hidden animate-slide">
+        <div class="bg-slate-50 w-full max-w-xl mx-auto rounded-2xl sm:rounded-[1.5rem] flex flex-col z-[2000] shadow-2xl overflow-hidden animate-slide max-h-[90vh]">
             <header class="bg-white px-4 py-3 flex items-center justify-between border-b border-slate-200 shrink-0">
                 <div class="flex items-center gap-3">
                     <button onclick="viewAssignmentDetail('${window.currentCourseId}', '${asg.id}'); setTimeout(()=>switchTabAsg('pengumpulan'), 50);" class="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
@@ -1586,8 +1495,8 @@
         </div>
         `, true);
         if (typeof lucide !== 'undefined') lucide.createIcons();
-    };             
-    
+    };
+
     // ==========================================
     // 11. POP-UP UBAH PASSWORD
     // ==========================================
