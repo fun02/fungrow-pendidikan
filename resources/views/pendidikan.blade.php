@@ -1103,10 +1103,9 @@
     window.toggleTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).map(t => t.id === id ? { ...t, done: !t.done } : t); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
     window.deleteTodo = async function(id) { const updatedTodos = (STATE.currentUser.todos || []).filter(t => t.id !== id); STATE.currentUser.todos = updatedTodos; renderDashboardContent(); try { await db.collection('users').doc(STATE.currentUser.uid).update({ todos: updatedTodos }); } catch(e){} };
   
-    // ==========================================
-    // 10. DESAIN VIEW TUGAS
-    // ==========================================
-    // Fungsi Global untuk Pindah Tab di Detail Tugas
+    // =================================================================
+    // FUNGSI NAVIGASI TAB
+    // =================================================================
     window.switchTabAsg = function(tabName) {
         const tabs = ['detail', 'penilaian', 'pengumpulan'];
         tabs.forEach(t => {
@@ -1126,6 +1125,9 @@
         });
     };
 
+    // =================================================================
+    // MODAL UTAMA DETAIL TUGAS
+    // =================================================================
     window.viewAssignmentDetail = async (courseId, asgId) => {
         try {
             const asg = STATE.assignments?.[courseId]?.find(a => a.id === asgId);
@@ -1134,16 +1136,19 @@
             const isDosen = STATE.currentUser && (STATE.currentUser.role === 'dosen' || STATE.currentUser.role === 'admin');
             let submissions = [];
             
-            // Mengambil data submissions dari Firebase
             try {
                 const subSnap = await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').orderBy('timestamp', 'desc').get();
                 submissions = subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } catch(e) { console.error("Gagal load submissions"); }
 
-            // Filter submission khusus user ini (Jika mahasiswa)
             const mySubmissions = submissions.filter(s => s.userId === STATE.currentUser?.uid);
             const hasSubmitted = mySubmissions.length > 0;
             const latestSubmission = hasSubmitted ? mySubmissions[0] : null;
+
+            // Simpan sementara untuk dipakai di modal Riwayat
+            window.currentMySubmissions = mySubmissions;
+            window.currentAssignmentInfo = asg;
+            window.currentCourseId = courseId;
 
             // Perhitungan Waktu
             const now = new Date().getTime();
@@ -1161,14 +1166,14 @@
                 sisaWaktuTeks = 'Waktu Habis';
             }
 
-            // HTML TAB DETAIL
+            // --- HTML TAB DETAIL ---
             const tabDetailHTML = `
                 <div class="space-y-6 animate-fade">
                     <div class="space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm">Ringkasan Tugas</h3>
                         <div class="grid grid-cols-[130px_1fr] gap-y-3 text-[11px]">
                             <div class="text-slate-500">Jenis Tugas</div>
-                            <div class="font-medium text-slate-800">${asg.title || 'Tugas'}</div>
+                            <div class="font-medium text-slate-800 uppercase">${asg.title || 'Tugas'}</div>
                             <div class="text-slate-500">Judul Tugas</div>
                             <div class="font-medium text-slate-800 leading-relaxed">${asg.description || 'Sesuai instruksi dosen'}</div>
                             <div class="text-slate-500">Bentuk Pengumpulan</div>
@@ -1185,7 +1190,7 @@
                     ${asg.type === 'kelompok' && asg.kelompok ? `
                     <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl space-y-2">
                         <div class="flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-600"></i><h4 class="text-xs font-bold text-blue-800">Info Kelompok: ${asg.kelompok.nama}</h4></div>
-                        <p class="text-[11px] text-blue-700 whitespace-pre-line">${asg.kelompok.anggota}</p>
+                        <p class="text-[11px] text-blue-700 whitespace-pre-line leading-relaxed">${asg.kelompok.anggota}</p>
                     </div>` : ''}
 
                     <div class="bg-blue-50 border border-blue-100 p-3.5 rounded-xl flex items-start gap-3">
@@ -1197,22 +1202,22 @@
                     <div class="space-y-2">
                         <h3 class="font-bold text-slate-800 text-sm">File Tugas (Lampiran Dosen)</h3>
                         <div class="border border-slate-200 p-3 rounded-xl flex items-center justify-between bg-slate-50">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-red-100 text-red-500 rounded-lg flex items-center justify-center"><i data-lucide="file-text" class="w-4 h-4"></i></div>
-                                <div>
-                                    <p class="text-[11px] font-bold text-slate-800 truncate max-w-[150px]">Materi_Tugas.pdf</p>
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 bg-red-100 text-red-500 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-4 h-4"></i></div>
+                                <div class="min-w-0">
+                                    <p class="text-[11px] font-bold text-slate-800 truncate">Lampiran_Tugas</p>
                                     <p class="text-[9px] text-slate-500">Lampiran</p>
                                 </div>
                             </div>
-                            <button onclick="window.open('${asg.fileUrl}', '_blank')" class="text-[10px] font-bold text-blue-600 border border-blue-200 bg-white px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-50">
-                                <i data-lucide="eye" class="w-3 h-3"></i> Lihat / Buka
+                            <button onclick="window.open('${asg.fileUrl}', '_blank')" class="text-[10px] font-bold text-blue-600 border border-blue-200 bg-white px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-50 shrink-0">
+                                <i data-lucide="eye" class="w-3 h-3"></i> Lihat
                             </button>
                         </div>
                     </div>` : ''}
                 </div>
             `;
 
-            // HTML TAB PENILAIAN (Rubrik Dummy Sesuai Gambar)
+            // --- HTML TAB PENILAIAN ---
             const tabPenilaianHTML = `
                 <div class="space-y-4 animate-fade">
                     <div class="flex items-center justify-between mb-2">
@@ -1234,7 +1239,7 @@
                             <div class="flex-1"><p class="font-bold text-slate-800">Kedalaman Analisis</p><p class="text-slate-500 mt-1">Analisis data dan teori yang digunakan mendalam dan relevan.</p></div>
                             <div class="w-16 text-center font-bold text-slate-800 mt-1">30%</div>
                         </div>
-                        <div class="px-4 py-3 border-b border-slate-100 flex items-start gap-3">
+                        <div class="px-4 py-3 flex items-start gap-3">
                             <span class="font-bold text-blue-600">3</span>
                             <div class="flex-1"><p class="font-bold text-slate-800">Struktur dan Sistematika</p><p class="text-slate-500 mt-1">Kerapian struktur dan alur penulisan sistematis.</p></div>
                             <div class="w-16 text-center font-bold text-slate-800 mt-1">20%</div>
@@ -1247,54 +1252,29 @@
                 </div>
             `;
 
-            // HTML TAB PENGUMPULAN (Tampilan Mahasiswa)
-            let riwayatHTML = mySubmissions.map((sub, index) => {
+            // --- HTML TAB PENGUMPULAN (Tampilan Singkat) ---
+            let riwayatSingkatHTML = mySubmissions.slice(0, 2).map((sub, index) => {
                 const isLatest = index === 0;
                 return `
-                <div class="relative pl-6 pb-6 border-l-2 ${isLatest ? 'border-emerald-500' : 'border-slate-300'} last:border-transparent last:pb-0">
-                    <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full ${isLatest ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'} flex items-center justify-center text-[8px] font-bold">${mySubmissions.length - index}</div>
-                    <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2 text-[10px] text-slate-500"><i data-lucide="calendar" class="w-3 h-3"></i> ${formatDate(sub.timestamp)}</div>
-                            ${isLatest ? `<span class="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded font-bold border border-emerald-200">Versi Terakhir</span>` : ''}
+                <div class="relative pl-7 pb-4 group last:pb-0">
+                    ${index === 0 && mySubmissions.length > 1 ? '<div class="absolute left-[11px] top-6 bottom-0 w-[2px] bg-slate-200"></div>' : ''}
+                    <div class="absolute left-1 top-1 w-5 h-5 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-slate-400'} text-white flex items-center justify-center text-[9px] font-bold z-10 border-2 border-white">${mySubmissions.length - index}</div>
+                    
+                    <div class="bg-white border ${isLatest ? 'border-emerald-200 shadow-sm' : 'border-slate-200'} rounded-xl p-3">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="text-[9px] text-slate-500">${formatDate(sub.timestamp)}</div>
+                            ${isLatest ? `<span class="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-bold border border-emerald-200">Versi Terakhir</span>` : ''}
                         </div>
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-red-100 text-red-500 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-4 h-4"></i></div>
-                                <div class="min-w-0">
-                                    <p class="text-[11px] font-bold text-slate-800 truncate">${sub.fileName || 'Tugas.pdf'}</p>
-                                    <p class="text-[9px] text-slate-500">PDF • Diunggah</p>
-                                </div>
-                            </div>
-                            <a href="${sub.fileUrl}" target="_blank" class="text-[10px] font-bold text-blue-600 border border-blue-200 bg-white px-4 py-2 rounded-lg text-center hover:bg-blue-50 transition-colors">Lihat File</a>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-4 h-4 text-red-500 shrink-0"></i>
+                            <p class="text-[10px] font-bold text-slate-800 truncate">${sub.fileName || 'Tugas.pdf'}</p>
                         </div>
-                        ${isLatest ? `
-                        <div class="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 p-2 rounded-lg">
-                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Ini adalah versi terakhir yang akan dinilai.
-                        </div>` : ''}
                     </div>
                 </div>`;
             }).join('');
 
             const tabPengumpulanHTML = `
-                <div class="space-y-6 animate-fade pb-10">
-                    ${hasSubmitted ? `
-                    <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center gap-3 shadow-sm">
-                        <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0"><i data-lucide="check" class="w-4 h-4"></i></div>
-                        <p class="text-[11px] font-bold text-emerald-800">Tugas Anda telah berhasil dikumpulkan.</p>
-                    </div>
-                    
-                    <div class="border border-slate-200 rounded-xl p-4">
-                        <h4 class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-2">Dikumpulkan pada</h4>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-4 text-xs font-bold text-slate-800">
-                                <div class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i> ${formatDate(latestSubmission.timestamp).split('pukul')[0]}</div>
-                                <div class="flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> ${formatTime(latestSubmission.timestamp)}</div>
-                            </div>
-                            <span class="text-[9px] text-emerald-600 bg-emerald-100 px-2 py-1 rounded font-bold border border-emerald-200">Terkumpul</span>
-                        </div>
-                    </div>` : ''}
-
+                <div class="space-y-6 animate-fade pb-6">
                     <div class="space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm">${hasSubmitted ? 'Upload / Ganti File Baru' : 'Upload Tugas Anda'}</h3>
                         <div onclick="document.getElementById('mhs-file').click()" class="w-full border-2 border-dashed border-[#2563eb]/40 bg-blue-50/50 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50 transition-all">
@@ -1303,98 +1283,98 @@
                             </div>
                             <p class="text-[12px] font-bold text-slate-800 mb-1">Drag & drop file di sini</p>
                             <p class="text-[10px] text-blue-600 font-bold mb-3">atau klik untuk memilih file</p>
-                            <button class="px-5 py-2 bg-[#2563eb] text-white text-[11px] font-bold rounded-lg shadow-md hover:bg-blue-700">Pilih File</button>
+                            <button class="px-5 py-2.5 bg-[#2563eb] text-white text-[11px] font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors">Pilih File</button>
                         </div>
                         <input type="file" id="mhs-file" class="hidden" accept=".pdf,.doc,.docx,.zip,.jpg,.png" onchange="handleMhsUpload(event, '${courseId}', '${asgId}')">
                         <div id="mhs-upload-status" class="mt-2 text-center"></div>
                     </div>
 
                     ${hasSubmitted ? `
-                    <div class="space-y-4 pt-4 border-t border-slate-200">
-                        <div class="flex items-center justify-between">
+                    <div class="pt-4 border-t border-slate-200">
+                        <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-slate-800 text-sm">Riwayat Pengumpulan</h3>
-                            <span class="text-[10px] text-blue-600 font-bold">${mySubmissions.length} Kali</span>
+                            <button onclick="window.viewRiwayatPengumpulan()" class="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1">Lihat Semua <i data-lucide="arrow-right" class="w-3 h-3"></i></button>
                         </div>
-                        <div class="pl-2 pt-2">${riwayatHTML}</div>
+                        <div class="pl-1">${riwayatSingkatHTML}</div>
                     </div>` : ''}
                 </div>
             `;
 
-            // STRUKTUR MODAL UTAMA (Mirip Tampilan Aplikasi Mobile)
+            // --- STRUKTUR MODAL UTAMA ---
+            // Menggunakan fixed inset-0 untuk mobile agar menutupi layar penuh dan tidak gepeng
             showGlobalModal(`
-            <div class="bg-slate-50 w-full h-full sm:h-auto sm:max-h-[90vh] max-w-md mx-auto sm:rounded-3xl overflow-y-auto hide-scrollbar shadow-2xl relative flex flex-col z-[2000]">
+            <div class="fixed inset-0 md:relative md:inset-auto bg-slate-50 w-full h-full md:h-[90vh] md:max-w-2xl mx-auto md:rounded-[2rem] flex flex-col z-[2000] shadow-2xl overflow-hidden animate-slide">
                 
-                <header class="bg-white px-4 py-3 flex items-center justify-between border-b border-slate-200 sticky top-0 z-30">
+                <header class="bg-white px-4 py-3 flex items-center justify-between border-b border-slate-200 shrink-0">
                     <div class="flex items-center gap-3">
-                        <button onclick="closeGlobalModal()" class="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                        <button onclick="closeGlobalModal()" class="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors active:scale-95"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
                         <div class="flex items-center gap-2 text-slate-800 font-bold"><i data-lucide="graduation-cap" class="w-5 h-5 text-blue-600"></i> FunGrow</div>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="relative">
                             <i data-lucide="bell" class="w-5 h-5 text-slate-500"></i>
-                            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                            <span class="absolute -top-0.5 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
                         </div>
-                        <div class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">${STATE.currentUser?.displayName?.charAt(0) || 'U'}</div>
                     </div>
                 </header>
 
-                <div class="bg-white p-5 space-y-4 border-b border-slate-200">
-                    <div>
-                        <span class="text-[9px] font-black text-red-500 bg-red-50 border border-red-100 px-2.5 py-1 rounded-md uppercase tracking-wider mb-2 inline-block shadow-sm">DEADLINE</span>
-                        <h1 class="text-xl font-black text-slate-800 leading-tight uppercase">${asg.title}</h1>
-                        <h2 class="text-sm font-bold text-slate-600 mt-1">${asg.courseName}</h2>
-                        <p class="text-[11px] text-slate-500 mt-2 leading-relaxed line-clamp-2">${asg.description || 'Kerjakan tugas sesuai dengan instruksi yang diberikan.'}</p>
+                <div class="flex-1 overflow-y-auto hide-scrollbar flex flex-col bg-white">
+                    <div class="p-5 space-y-4 border-b border-slate-200 shrink-0">
+                        <div>
+                            <span class="text-[9px] font-black text-red-500 bg-red-50 border border-red-100 px-2.5 py-1 rounded-md uppercase tracking-wider mb-2 inline-block shadow-sm">DEADLINE</span>
+                            <h1 class="text-xl font-black text-slate-800 leading-tight uppercase">${asg.title}</h1>
+                            <h2 class="text-sm font-bold text-slate-600 mt-1">${asg.courseName}</h2>
+                        </div>
+
+                        <div class="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                            <div class="flex items-center gap-3 p-3 bg-white border-b border-slate-100">
+                                <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100"><i data-lucide="user" class="w-5 h-5"></i></div>
+                                <div class="min-w-0">
+                                    <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Dosen Pengampu</p>
+                                    <p class="text-[11px] sm:text-xs font-bold text-slate-800 mt-0.5 truncate">${asg.dosen || '-'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 bg-white border-b border-slate-100">
+                                <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100"><i data-lucide="calendar-clock" class="w-5 h-5"></i></div>
+                                <div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Deadline</p>
+                                    <p class="text-[11px] sm:text-xs font-bold text-slate-800 mt-0.5">${typeof formatDate === 'function' ? formatDate(asg.deadline) : '-'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 bg-slate-50">
+                                <div class="w-10 h-10 rounded-full bg-white text-slate-500 border border-slate-200 flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-5 h-5"></i></div>
+                                <div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Sisa Waktu</p>
+                                    <p class="text-[11px] sm:text-xs font-black ${sisaWaktuWarna} mt-0.5">${sisaWaktuTeks}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                        <div class="flex items-center gap-3 p-3 bg-white border-b border-slate-100">
-                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100"><i data-lucide="user" class="w-5 h-5"></i></div>
-                            <div>
-                                <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Dosen Pengampu</p>
-                                <p class="text-xs font-bold text-slate-800 mt-0.5">${asg.dosen || '-'}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3 p-3 bg-white border-b border-slate-100">
-                            <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100"><i data-lucide="calendar-clock" class="w-5 h-5"></i></div>
-                            <div>
-                                <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Deadline</p>
-                                <p class="text-xs font-bold text-slate-800 mt-0.5">${typeof formatDate === 'function' ? formatDate(asg.deadline) : '-'}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3 p-3 bg-slate-50">
-                            <div class="w-10 h-10 rounded-full bg-white text-slate-500 border border-slate-200 flex items-center justify-center shrink-0"><i data-lucide="clock" class="w-5 h-5"></i></div>
-                            <div>
-                                <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Sisa Waktu</p>
-                                <p class="text-xs font-black ${sisaWaktuWarna} mt-0.5">${sisaWaktuTeks}</p>
-                            </div>
-                        </div>
+                    <div class="bg-white sticky top-0 z-20 border-b border-slate-200 px-2 flex shrink-0">
+                        <button onclick="switchTabAsg('detail')" id="tab-btn-detail" class="flex-1 py-3.5 text-[11px] font-bold border-b-2 border-[#2563eb] text-[#2563eb] flex flex-col items-center gap-1 transition-colors">
+                            <i data-lucide="file-text" class="w-4 h-4"></i> Detail
+                        </button>
+                        <button onclick="switchTabAsg('penilaian')" id="tab-btn-penilaian" class="flex-1 py-3.5 text-[11px] font-bold border-b-2 border-transparent text-slate-400 flex flex-col items-center gap-1 transition-colors hover:text-slate-600">
+                            <i data-lucide="star" class="w-4 h-4"></i> Penilaian
+                        </button>
+                        <button onclick="switchTabAsg('pengumpulan')" id="tab-btn-pengumpulan" class="flex-1 py-3.5 text-[11px] font-bold border-b-2 border-transparent text-slate-400 flex flex-col items-center gap-1 transition-colors hover:text-slate-600">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Pengumpulan
+                        </button>
                     </div>
-                </div>
 
-                <div class="bg-white sticky top-[60px] z-20 border-b border-slate-200 px-2 flex">
-                    <button onclick="switchTabAsg('detail')" id="tab-btn-detail" class="flex-1 py-3.5 text-[11px] font-bold border-b-2 border-[#2563eb] text-[#2563eb] flex flex-col items-center gap-1 transition-colors">
-                        <i data-lucide="file-text" class="w-4 h-4"></i> Detail
-                    </button>
-                    <button onclick="switchTabAsg('penilaian')" id="tab-btn-penilaian" class="flex-1 py-3.5 text-[11px] font-bold border-b-2 border-transparent text-slate-400 flex flex-col items-center gap-1 transition-colors hover:text-slate-600">
-                        <i data-lucide="star" class="w-4 h-4"></i> Penilaian
-                    </button>
-                    <button onclick="switchTabAsg('pengumpulan')" id="tab-btn-pengumpulan" class="flex-1 py-3.5 text-[11px] font-bold border-b-2 border-transparent text-slate-400 flex flex-col items-center gap-1 transition-colors hover:text-slate-600">
-                        <i data-lucide="upload" class="w-4 h-4"></i> Pengumpulan
-                    </button>
-                </div>
-
-                <div class="p-5 flex-1 bg-white">
-                    <div id="tab-content-detail">${tabDetailHTML}</div>
-                    <div id="tab-content-penilaian" class="hidden">${tabPenilaianHTML}</div>
-                    <div id="tab-content-pengumpulan" class="hidden">${tabPengumpulanHTML}</div>
+                    <div class="p-5 flex-1 relative">
+                        <div id="tab-content-detail">${tabDetailHTML}</div>
+                        <div id="tab-content-penilaian" class="hidden">${tabPenilaianHTML}</div>
+                        <div id="tab-content-pengumpulan" class="hidden">${tabPengumpulanHTML}</div>
+                    </div>
                 </div>
                 
-                <div class="bg-white p-4 border-t border-slate-200 shrink-0 sticky bottom-0 z-30">
+                <div class="bg-white p-4 border-t border-slate-200 shrink-0 z-30">
                      <button onclick="switchTabAsg('pengumpulan')" class="w-full py-3.5 bg-[#2563eb] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all">
-                        Selamat Mengerjakan 😊
+                        SELAMAT MENGERJAKAN 😊
                      </button>
                 </div>
-
             </div>
             `, true);
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1404,23 +1384,142 @@
         }
     };
 
-    // FUNGSI UNTUK MENGUPLOAD TUGAS MAHASISWA
+
+    // =================================================================
+    // MODAL HALAMAN PENUH: RIWAYAT PENGUMPULAN (GAMBAR 3)
+    // =================================================================
+    window.viewRiwayatPengumpulan = function() {
+        const mySubmissions = window.currentMySubmissions || [];
+        const asg = window.currentAssignmentInfo || {};
+        
+        let timelineHTML = mySubmissions.map((sub, index) => {
+            const isLatest = index === 0;
+            const num = mySubmissions.length - index;
+            return `
+            <div class="relative pl-12 pb-6 group last:pb-0 animate-fade" style="animation-delay: ${index * 0.1}s">
+                ${index !== mySubmissions.length - 1 ? `<div class="absolute left-[23px] top-8 bottom-[-8px] w-[2px] bg-slate-200"></div>` : ''}
+                <div class="absolute left-2 top-0 w-8 h-8 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-slate-400'} text-white flex items-center justify-center text-[12px] font-bold z-10 border-4 border-white shadow-sm">${num}</div>
+                
+                <div class="bg-white border ${isLatest ? 'border-emerald-200 shadow-md' : 'border-slate-200 shadow-sm'} rounded-xl p-4 transition-all">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold text-slate-600"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i> ${formatDate(sub.timestamp)}</div>
+                        ${isLatest ? `<span class="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded font-bold border border-emerald-200">Versi Terakhir (Dinilai)</span>` : ''}
+                    </div>
+                    
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-red-100 text-red-500 rounded-lg flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[11px] sm:text-xs font-bold text-slate-800 truncate">${sub.fileName || 'Tugas.pdf'}</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">File • Diunggah</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 justify-end mb-3 pb-3 border-b border-slate-100">
+                        <a href="${sub.fileUrl}" target="_blank" class="px-4 py-2 bg-white border border-blue-200 text-blue-600 text-[10px] font-bold rounded-lg flex items-center gap-1.5 hover:bg-blue-50 transition-colors">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Lihat
+                        </a>
+                        <a href="${sub.fileUrl}" target="_blank" download class="px-3 py-2 bg-white border border-blue-200 text-blue-600 text-[10px] font-bold rounded-lg hover:bg-blue-50 transition-colors">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 text-[10px] font-bold ${isLatest ? 'text-emerald-600' : 'text-emerald-600 opacity-70'} mb-2">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Terkumpul tepat waktu
+                    </div>
+                    
+                    ${isLatest ? `
+                    <div class="bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100 text-[10px] text-emerald-800 leading-relaxed">
+                        Ini adalah versi terakhir yang akan dinilai dosen.
+                    </div>` : `
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Catatan Anda:</p>
+                        <p class="text-[10px] text-slate-700">Revisi sesuai masukan sebelumnya.</p>
+                    </div>
+                    `}
+                </div>
+            </div>`;
+        }).join('');
+
+        showGlobalModal(`
+        <div class="fixed inset-0 md:relative md:inset-auto bg-slate-50 w-full h-full md:h-[90vh] md:max-w-xl mx-auto md:rounded-[2rem] flex flex-col z-[2000] shadow-2xl overflow-hidden animate-slide">
+            <header class="bg-white px-4 py-3 flex items-center justify-between border-b border-slate-200 shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="viewAssignmentDetail('${window.currentCourseId}', '${asg.id}'); setTimeout(()=>switchTabAsg('pengumpulan'), 50);" class="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <h2 class="font-bold text-slate-800 text-sm">Riwayat Pengumpulan</h2>
+                </div>
+                <button class="p-2 text-blue-500 hover:bg-blue-50 rounded-full"><i data-lucide="info" class="w-5 h-5"></i></button>
+            </header>
+            
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-6">
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3 shadow-sm">
+                    <i data-lucide="info" class="w-5 h-5 text-blue-600 shrink-0"></i>
+                    <p class="text-[11px] text-blue-800 leading-relaxed">Riwayat menampilkan semua versi file yang pernah Anda kumpulkan. Versi terakhir adalah yang akan dinilai oleh dosen.</p>
+                </div>
+                
+                <div class="pt-2">${timelineHTML}</div>
+                
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
+                    <div class="flex items-center gap-2 text-amber-600 font-bold text-xs mb-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i> Perhatian
+                    </div>
+                    <ul class="list-disc list-inside text-[11px] text-amber-800 space-y-1 ml-1">
+                        <li>Anda masih bisa mengganti file sebelum deadline.</li>
+                        <li>Setelah deadline, file tidak dapat diubah.</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <h3 class="font-bold text-slate-800 text-xs mb-3">Ringkasan Pengumpulan</h3>
+                    <div class="space-y-2.5 text-[11px]">
+                        <div class="flex justify-between"><span class="text-slate-500">Jumlah Pengumpulan</span><span class="font-bold text-slate-800">${mySubmissions.length} Kali</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Pengumpulan Terakhir</span><span class="font-bold text-slate-800">${mySubmissions.length > 0 ? formatDate(mySubmissions[0].timestamp) : '-'}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Status</span><span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Terkumpul Tepat Waktu</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Deadline</span><span class="font-bold text-slate-800">${typeof formatDate === 'function' ? formatDate(asg.deadline) : '-'}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `, true);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+
+    // =================================================================
+    // FUNGSI UPLOAD FILE MAHASISWA DENGAN PENANGANAN ERROR
+    // =================================================================
     window.handleMhsUpload = async function(e, courseId, asgId) { 
         const file = e.target.files[0]; 
         if(!file) return;
         
-        // Batas 5MB sesuai UI baru
-        if(file.size > 5242880) return alert("Peringatan: Ukuran file maksimal 5 MB!"); 
-        
         const statusBox = document.getElementById('mhs-upload-status');
-        statusBox.innerHTML = '<div class="text-[11px] font-bold text-blue-600 flex items-center justify-center gap-2 mt-3"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Mengunggah file ke server...</div>'; 
+        
+        // Validasi Ukuran (Maks 5MB)
+        if(file.size > 5242880) {
+            statusBox.innerHTML = '<div class="text-[11px] font-bold text-red-500 mt-3 p-2 bg-red-50 rounded-lg border border-red-100">Gagal: Ukuran file melebihi batas 5 MB!</div>';
+            return;
+        }
+
+        statusBox.innerHTML = '<div class="text-[11px] font-bold text-blue-600 flex items-center justify-center gap-2 mt-3 p-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Sedang mengunggah tugas...</div>'; 
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
         try { 
-            // Upload file fisik ke Cloudinary
-            const url = await fetchCloudinaryUpload(file, false);
+            let url = "";
+            try {
+                // Mencoba upload standard (auto detection)
+                url = await fetchCloudinaryUpload(file, false);
+            } catch (cloudErr) {
+                console.warn("Upload standar gagal, mencoba metode raw/dokumen...", cloudErr);
+                // Fallback khusus dokumen jika server menolak mode 'auto'
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('upload_preset', 'fungrow_preset'); // Pastikan preset ini aktif di Cloudinary-mu
+                const res = await fetch('https://api.cloudinary.com/v1_1/dt51ndddv/raw/upload', { method: 'POST', body: fd });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error.message);
+                url = data.secure_url;
+            }
             
-            // Simpan data pengumpulan ke Firebase
+            // Simpan ke Firestore
             await db.collection('courses').doc(courseId).collection('assignments').doc(asgId).collection('submissions').add({ 
                 userId: STATE.currentUser.uid, 
                 userName: STATE.currentUser.displayName, 
@@ -1430,17 +1529,18 @@
                 nilai: null 
             });
             
-            statusBox.innerHTML = '<div class="text-[11px] font-bold text-emerald-600 mt-3 flex items-center justify-center gap-1"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Berhasil diunggah! Memuat ulang...</div>'; 
+            statusBox.innerHTML = '<div class="text-[11px] font-bold text-emerald-600 mt-3 p-2 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-center gap-1"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Berhasil! Memuat ulang...</div>'; 
             if (typeof lucide !== 'undefined') lucide.createIcons();
             
-            // Refresh tampilan modal setelah 1.5 detik
+            // Refresh halaman modal (kembali ke tab pengumpulan)
             setTimeout(() => {
                 viewAssignmentDetail(courseId, asgId);
-                setTimeout(() => switchTabAsg('pengumpulan'), 100); // Otomatis buka tab pengumpulan setelah refresh
-            }, 1500); 
+                setTimeout(() => switchTabAsg('pengumpulan'), 100); 
+            }, 1200); 
 
-        } catch(err){
-            statusBox.innerHTML = '<div class="text-[11px] font-bold text-red-500 mt-3">Gagal mengunggah file. Silakan coba lagi.</div>';
+        } catch(err) {
+            console.error("Upload Error:", err);
+            statusBox.innerHTML = `<div class="text-[10px] font-bold text-red-500 mt-3 p-2 bg-red-50 rounded-lg border border-red-100">Gagal mengunggah file. Silakan coba lagi. <br><span class="opacity-70 font-normal">(${err.message})</span></div>`;
         } 
     };
     
