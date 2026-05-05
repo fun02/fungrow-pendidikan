@@ -1032,12 +1032,13 @@
 
         return `
         <div class="p-4 sm:p-5 animate-fade max-w-4xl mx-auto pb-24">
-            
-            <div class="flex items-center justify-between mb-6 bg-[color:var(--surface)] p-5 rounded-3xl border border-[color:var(--border)] shadow-sm">
-                <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-[color:var(--text)]">Tugas Kuliah</h2>
-                    <p class="text-[11px] font-medium text-[color:var(--text2)] mt-1">Kelola semua tugas mata kuliah Anda</p>
-                </div>
+            <div class="p-3 bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl cursor-pointer hover:bg-[color:var(--card)]" onclick="window.openAssignForm()">
+    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+    </div>
+    <p class="font-bold text-[color:var(--text)] text-sm">Buat Tugas</p>
+    <p class="text-[10px] text-[color:var(--text2)] mt-1">Mahasiswa/Dosen</p>
+</div>
                 <div class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-inner">
                     <i data-lucide="clipboard-list" class="w-7 h-7 sm:w-8 sm:h-8 text-[#2563eb]"></i>
                 </div>
@@ -1674,23 +1675,43 @@
         }
     };
 
-    // ==========================================
-    // 12. DESAIN FORM TUGAS NEGARA
-    // ==========================================
+
+    // =====================================================================
+    // 1. DESAIN POP-UP FORM TUGAS (DENGAN DROPDOWN MATA KULIAH)
+    // =====================================================================
     window.openAssignForm = function() {
-        const dosenName = STATE.currentCourse?.dosen || STATE.currentUser?.displayName || 'Dosen Pengampu';
-        const courseName = STATE.currentCourse?.name?.toUpperCase() || 'MATA KULIAH';
+        // Ambil data semua mata kuliah untuk dibuat jadi pilihan Dropdown
+        let courseOptionsHTML = '<option value="" disabled selected hidden>Pilih mata kuliah...</option>';
+        if (window.allCourses && window.allCourses.length > 0) {
+            window.allCourses.forEach(course => {
+                // Auto-select jika tombol diklik dari dalam kelas
+                const isSelected = (STATE.currentCourse && STATE.currentCourse.id === course.id) ? 'selected' : '';
+                courseOptionsHTML += `<option value="${course.id}" data-name="${course.name}" data-dosen="${course.dosen}" ${isSelected}>${course.name}</option>`;
+            });
+        } else {
+            courseOptionsHTML = `<option value="" disabled>Belum ada data mata kuliah</option>`;
+        }
 
         showGlobalModal(`
         <div class="bg-white w-full max-w-md mx-auto rounded-none sm:rounded-xl overflow-hidden shadow-2xl relative flex flex-col h-max max-h-[90vh]">
             
             <div class="bg-[#0B1D3A] px-6 py-5 text-center shrink-0">
-                <h2 class="text-white text-lg font-black tracking-wide">${courseName}</h2>
-                <p class="text-slate-300 text-[11px] mt-1 tracking-wider">${dosenName}</p>
+                <h2 class="text-white text-lg font-black tracking-wide">BUAT TUGAS BARU</h2>
+                <p class="text-slate-300 text-[11px] mt-1 tracking-wider">Silakan isi detail tugas di bawah ini</p>
             </div>
 
             <div class="p-5 md:p-6 overflow-y-auto hide-scrollbar space-y-6 bg-slate-50 flex-1">
                 
+                <div>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="book-open" class="w-3 h-3"></i></div> MATA KULIAH TARGET</label>
+                    <div class="relative">
+                        <select id="asg-course-id" class="w-full bg-white border border-slate-300 text-black font-bold rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] appearance-none shadow-sm cursor-pointer">
+                            ${courseOptionsHTML}
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                    </div>
+                </div>
+
                 <div>
                     <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="file-text" class="w-3 h-3"></i></div> JENIS TUGAS</label>
                     <div class="relative">
@@ -1732,7 +1753,7 @@
                 </div>
 
                 <div>
-                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="clipboard-list" class="w-3 h-3"></i></div> KETERANGAN & LAMPIRAN</label>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="clipboard-list" class="w-3 h-3"></i></div> KETERANGAN & INSTRUKSI</label>
                     <textarea id="asg-desc" class="w-full bg-white border border-slate-300 text-black font-medium rounded-lg p-3 text-sm outline-none focus:border-[#0B1D3A] focus:ring-1 focus:ring-[#0B1D3A] h-24 resize-none shadow-sm" placeholder="Tuliskan ketentuan tugas, referensi, dan informasi lainnya"></textarea>
                 </div>
 
@@ -1742,23 +1763,13 @@
                 </div>
 
                 <div>
-                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="image" class="w-3 h-3"></i></div> UPLOAD FOTO (OPSIONAL)</label>
+                    <label class="flex items-center gap-2 text-[11px] font-black text-[#0B1D3A] uppercase tracking-wider mb-2"><div class="w-5 h-5 rounded-full bg-[#0B1D3A] text-white flex items-center justify-center shrink-0"><i data-lucide="image" class="w-3 h-3"></i></div> UPLOAD FILE DOSEN (OPSIONAL)</label>
                     <div onclick="document.getElementById('asg-file').click()" id="asg-upload-box" class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-100 transition-colors bg-white">
                         <i data-lucide="upload" id="asg-upload-icon" class="w-5 h-5 text-[#0B1D3A] mx-auto mb-2 transition-colors"></i>
                         <p id="asg-upload-text" class="text-[10px] font-bold text-slate-700 truncate px-2">Klik untuk upload atau drag & drop file di sini</p>
-                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 5 MB)</p>
+                        <p class="text-[9px] text-slate-400 mt-1">Format: JPG, PNG, PDF (Maks. 20 MB)</p>
                     </div>
                     <input type="file" id="asg-file" class="hidden" accept="image/jpeg, image/png, application/pdf" onchange="window.handleAsgFileUpload(event)">
-                </div>
-
-                <div class="bg-[#F0F4F8] border border-[#D0E1F0] p-4 rounded-lg flex items-start gap-3">
-                    <div class="w-5 h-5 rounded-full bg-[#7DA0C4] text-white flex items-center justify-center shrink-0 mt-0.5">
-                        <i data-lucide="info" class="w-3 h-3"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-[11px] font-bold text-[#0B1D3A]">Periksa kembali sebelum mengirim</h4>
-                        <p class="text-[10px] text-slate-500 mt-0.5">Pastikan semua informasi sudah benar dan lengkap.</p>
-                    </div>
                 </div>
 
             </div>
@@ -1778,16 +1789,23 @@
     };
 
     // =====================================================================
-    // FITUR TUGAS 3: VALIDASI & PENGIRIMAN KE DATABASE
+    // 2. FUNGSI KIRIM KE DATABASE (MEMBACA MATA KULIAH YANG DIPILIH)
     // =====================================================================
     window.submitNewAssignment = async function() {
-        // --- 1. AMBIL DATA DARI FORM ---
+        // Ambil Data Mata Kuliah dari Dropdown
+        const courseSelect = document.getElementById('asg-course-id');
+        const selectedCourseId = courseSelect?.value;
+        if (!selectedCourseId) return alert('Peringatan: Harap pilih Mata Kuliah target terlebih dahulu!');
+        
+        const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+        const courseName = selectedOption.getAttribute('data-name');
+        const dosenName = selectedOption.getAttribute('data-dosen') || STATE.currentUser.displayName;
+
         let jenis = document.getElementById('asg-jenis').value;
         const desc = document.getElementById('asg-desc').value.trim();
         const type = document.getElementById('asg-type').value;
         const deadlineRaw = document.getElementById('asg-deadline').value;
         
-        // --- 2. VALIDASI JENIS TUGAS ---
         if (jenis === 'Lainnya') {
             jenis = document.getElementById('asg-jenis-lainnya').value.trim();
             if (!jenis) return alert('Peringatan: Harap ketikkan jenis tugas manual Anda!');
@@ -1795,69 +1813,57 @@
             return alert('Peringatan: Harap pilih Jenis Tugas!');
         }
 
-        if (!type || !deadlineRaw) {
-            return alert('Peringatan: Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
-        }
+        if(!type || !deadlineRaw) return alert('Harap lengkapi Target Tugas dan Waktu Pengumpulan!');
 
-        // --- 3. VALIDASI KHUSUS KELOMPOK ---
         let kelompokData = null;
         if (type === 'kelompok') {
             const gName = document.getElementById('asg-group-name').value.trim();
             const gMembers = document.getElementById('asg-group-members').value.trim();
-            
             if (!gName || !gMembers) return alert("Peringatan: Data kelompok belum lengkap!");
-            
-            kelompokData = { 
-                nama: gName, 
-                judul: jenis.toUpperCase(), 
-                anggota: gMembers 
-            };
+            kelompokData = { nama: gName, judul: jenis.toUpperCase(), anggota: gMembers };
         }
         
-        // --- 4. PERSIAPAN LOADING ---
         const btn = document.getElementById('btn-submit-asg');
         btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MEMPROSES...';
         btn.disabled = true;
 
-        // --- 5. EKSEKUSI PENYIMPANAN ---
         try {
             let fileUrl = null;
-            
-            // A. Upload File Jika Ada
             if (STATE.asgPendingFile) {
                 btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> MENGUPLOAD FILE...';
                 fileUrl = await fetchCloudinaryUpload(STATE.asgPendingFile, false);
             }
 
-            // B. Siapkan Data untuk Firebase
             const deadlineDate = new Date(deadlineRaw);
-            const dosenName = STATE.currentCourse?.dosen || STATE.currentUser.displayName;
             
-            // C. Tembak ke Database Firebase
-            await db.collection('courses').doc(STATE.currentCourse.id).collection('assignments').add({
+            // Simpan ke Firestore berdasarkan Course ID yang dipilih di Dropdown!
+            await db.collection('courses').doc(selectedCourseId).collection('assignments').add({
                 title: jenis.toUpperCase(),
                 description: desc,
                 type: type,
                 kelompok: kelompokData, 
                 deadline: firebase.firestore.Timestamp.fromDate(deadlineDate),
-                courseId: STATE.currentCourse.id,
-                courseName: STATE.currentCourse.name,
-                dosen: dosenName,
+                courseId: selectedCourseId, // ID Baru
+                courseName: courseName,     // Nama Kelas Baru
+                dosen: dosenName,           // Nama Dosen Baru
                 fileUrl: fileUrl, 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // D. Sukses & Bersihkan Form
             alert('Tugas berhasil dipublikasikan ke kelas!');
             STATE.asgPendingFile = null; 
             closeGlobalModal();
+            
+            // Jika ada fungsi refresh halaman, bisa ditaruh di sini
+            if(typeof loadDashboardData === 'function') loadDashboardData();
 
-        } catch (error) {
-            alert('Terjadi kesalahan jaringan: ' + error.message);
+        } catch (e) {
+            alert('Terjadi kesalahan jaringan: ' + e.message);
             btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> KIRIM TUGAS UNTUK DITAMPILKAN';
             btn.disabled = false;
         }
     };
+
 
     // ==========================================
     // 14. UPDATE NEW PASWORD
