@@ -1031,49 +1031,65 @@
         ` : '';
 
         return `
-        <div class="p-4 sm:p-5 animate-fade max-w-4xl mx-auto pb-24">
-            <div class="p-3 bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl cursor-pointer hover:bg-[color:var(--card)]" onclick="window.openAssignForm()">
-    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3">
-        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        <div class="relative w-full rounded-2xl overflow-hidden mb-6 shadow-sm border border-slate-200/60" style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);">
+    <div class="absolute inset-0 opacity-[0.15] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>
+    
+    <div class="relative p-6 sm:p-8 flex items-center justify-between">
+        <div class="z-10">
+            <h1 class="text-2xl sm:text-3xl font-black text-[#0B1D3A] mb-1.5 drop-shadow-sm tracking-tight">Selamat mengerjakan 😊</h1>
+            <p class="text-xs sm:text-sm font-bold text-[#0B1D3A]/70 tracking-wide">Semoga harimu menyenangkan dan tetap semangat belajar!</p>
+        </div>
+        
+        <div class="hidden sm:flex w-24 h-24 bg-white/30 backdrop-blur-md rounded-2xl items-center justify-center border-2 border-white/60 shadow-xl rotate-[10deg] hover:rotate-0 transition-all duration-300">
+            <span class="text-5xl drop-shadow-md">🚀</span>
+        </div>
     </div>
-    <p class="font-bold text-[color:var(--text)] text-sm">Buat Tugas</p>
-    <p class="text-[10px] text-[color:var(--text2)] mt-1">Mahasiswa/Dosen</p>
 </div>
-                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-inner">
-                    <i data-lucide="clipboard-list" class="w-7 h-7 sm:w-8 sm:h-8 text-[#2563eb]"></i>
-                </div>
-            </div>
 
-            <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
-                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-[color:var(--border)] shadow-sm hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-1 sm:gap-2 text-[#2563eb] mb-1 sm:mb-2">
-                        <i data-lucide="file-text" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-                        <span class="text-lg sm:text-2xl font-black">${totalTugas}</span>
-                    </div>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-[color:var(--text2)] text-center leading-tight">Total<br class="sm:hidden"> Tugas</span>
-                </div>
-                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-amber-500/30 bg-amber-500/5 shadow-sm hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-1 sm:gap-2 text-amber-500 mb-1 sm:mb-2">
-                        <i data-lucide="clock" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-                        <span class="text-lg sm:text-2xl font-black">${mendesakCount}</span>
-                    </div>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-amber-600 text-center leading-tight">Mendesak</span>
-                </div>
-                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-[color:var(--border)] shadow-sm hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-1 sm:gap-2 text-emerald-500 mb-1 sm:mb-2">
-                        <i data-lucide="check-circle-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-                        <span class="text-lg sm:text-2xl font-black">${selesaiCount}</span>
-                    </div>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-[color:var(--text2)] text-center leading-tight">Selesai</span>
-                </div>
-                <div class="glass p-2 sm:p-4 rounded-2xl flex flex-col items-center justify-center border border-[color:var(--border)] shadow-sm hover:scale-105 transition-transform">
-                    <div class="flex items-center gap-1 sm:gap-2 text-purple-500 mb-1 sm:mb-2">
-                        <i data-lucide="hourglass" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-                        <span class="text-lg sm:text-2xl font-black">${belumCount}</span>
-                    </div>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-[color:var(--text2)] text-center leading-tight">Belum<br class="sm:hidden"> Dikerjakan</span>
-                </div>
-            </div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-shadow">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <i data-lucide="clipboard-list" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+        </div>
+        <div class="min-w-0">
+            <p class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Total Tugas</p>
+            <p class="text-lg sm:text-xl font-black text-[#0B1D3A] leading-tight mt-0.5" id="stat-total-tugas">0</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-shadow">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <i data-lucide="check-circle-2" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+        </div>
+        <div class="min-w-0">
+            <p class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Selesai</p>
+            <p class="text-lg sm:text-xl font-black text-[#0B1D3A] leading-tight mt-0.5" id="stat-tugas-selesai">0</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-shadow">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <i data-lucide="clock" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+        </div>
+        <div class="min-w-0">
+            <p class="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">Mendesak</p>
+            <p class="text-lg sm:text-xl font-black text-[#0B1D3A] leading-tight mt-0.5" id="stat-tugas-mendesak">0</p>
+        </div>
+    </div>
+
+    <div onclick="window.openAssignForm()" class="bg-[#0B1D3A] p-4 sm:p-5 rounded-2xl border border-[#0B1D3A] shadow-[0_8px_20px_-6px_rgba(11,29,58,0.4)] flex items-center gap-3 sm:gap-4 cursor-pointer hover:bg-black transition-all group">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform">
+            <i data-lucide="plus-circle" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+        </div>
+        <div class="min-w-0">
+            <p class="text-[9px] sm:text-[10px] font-black text-blue-200 uppercase tracking-wider truncate">Aksi Dosen</p>
+            <p class="text-sm sm:text-base font-black text-white leading-tight mt-0.5 truncate">Buat Tugas</p>
+        </div>
+    </div>
+
+</div>
 
             ${mendesakSectionHTML}
 
@@ -1676,30 +1692,56 @@
     };
 
     // =====================================================================
-    // 1. DESAIN POP-UP FORM TUGAS (PREMIUM NAVY & AUTO-FETCH COURSE)
+    // 1. DESAIN POP-UP FORM TUGAS (DENGAN SUPER FETCHER MATA KULIAH)
     // =====================================================================
     window.openAssignForm = async function() {
-        // Tampilkan Loading sebentar di modal sambil ambil data kelas
         showGlobalModal(`
-            <div class="bg-white w-full max-w-md mx-auto rounded-xl overflow-hidden shadow-2xl p-10 text-center">
-                <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-[#0B1D3A] mx-auto mb-4"></i>
-                <p class="text-sm font-bold text-slate-600">Menyiapkan Daftar Mata Kuliah...</p>
+            <div class="bg-white w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-[0_20px_50px_-12px_rgba(11,29,58,0.3)] relative p-8 text-center border-t-4 border-[#0B1D3A]">
+                <div class="relative w-16 h-16 mx-auto mb-6">
+                    <div class="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-[#0B1D3A] rounded-full border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-[#0B1D3A]">
+                        <i data-lucide="book-open" class="w-6 h-6 animate-pulse"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-black text-[#0B1D3A] tracking-widest uppercase mb-2">MEMUAT DATA</h3>
+                <p class="text-xs font-bold text-slate-500 tracking-wider animate-pulse">Menarik Data Mata Kuliah...</p>
             </div>
         `, true);
         lucide.createIcons();
 
         try {
-            // AMBIL DATA KELAS LANGSUNG DARI FIREBASE (Agar tidak kosong)
-            const snapshot = await db.collection('courses').get();
-            const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+            // PAKSA AMBIL DATA DARI SERVER (Abaikan Cache)
+            const snapshot = await db.collection('courses').get({ source: 'server' });
+            
             let courseOptionsHTML = '<option value="" disabled selected hidden>Klik untuk memilih kelas...</option>';
-            courses.forEach(c => {
-                const isSelected = (STATE.currentCourse && STATE.currentCourse.id === c.id) ? 'selected' : '';
-                courseOptionsHTML += `<option value="${c.id}" data-name="${c.name}" data-dosen="${c.dosen}" ${isSelected}>${c.name}</option>`;
-            });
+            let countCourses = 0;
 
-            // TAMPILKAN DESAIN FORM YANG SUDAH DIPERBAIKI
+            if (!snapshot.empty) {
+                snapshot.forEach(doc => {
+                    const c = doc.data();
+                    countCourses++;
+                    
+                    // SENSOR PINTAR: Cari nama kelas di variabel mana saja
+                    const namaKelas = c.name || c.title || c.courseName || `Kelas ${doc.id.substring(0,5)}`;
+                    const namaDosen = c.dosen || c.dosenName || 'Dosen';
+                    
+                    const isSelected = (STATE.currentCourse && STATE.currentCourse.id === doc.id) ? 'selected' : '';
+                    courseOptionsHTML += `<option value="${doc.id}" data-name="${namaKelas}" data-dosen="${namaDosen}" ${isSelected}>${namaKelas}</option>`;
+                });
+            }
+
+            // JARING PENGAMAN: Jika database kosong tapi user sedang di dalam kelas
+            if (countCourses === 0) {
+                if (STATE.currentCourse) {
+                    const currName = STATE.currentCourse.name || STATE.currentCourse.title || 'Mata Kuliah Ini';
+                    courseOptionsHTML = `<option value="${STATE.currentCourse.id}" data-name="${currName}" selected>${currName}</option>`;
+                } else {
+                    courseOptionsHTML = '<option value="" disabled>Belum ada mata kuliah di sistem</option>';
+                }
+            }
+
+            // TAMPILAN FORM UTAMA
             showGlobalModal(`
             <div class="bg-white w-full max-w-md mx-auto rounded-none sm:rounded-2xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(11,29,58,0.25)] relative flex flex-col h-max max-h-[90vh]">
                 
@@ -1795,11 +1837,6 @@
                         </div>
                     </div>
 
-                    <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
-                        <i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
-                        <p class="text-[10px] font-bold text-blue-800 leading-relaxed">Pastikan seluruh data sudah valid. Tugas akan langsung muncul di beranda mahasiswa setelah dipublikasikan.</p>
-                    </div>
-
                 </div>
 
                 <div class="p-6 md:p-8 bg-white border-t border-slate-200 shrink-0 flex flex-col gap-3">
@@ -1816,7 +1853,7 @@
             lucide.createIcons();
         } catch (err) {
             console.error(err);
-            alert("Gagal mengambil data kelas. Pastikan koneksi stabil.");
+            alert("Kesalahan jaringan: Gagal mengambil data kelas dari server.");
             closeGlobalModal();
         }
     };
