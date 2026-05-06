@@ -1699,12 +1699,14 @@
         let courseOptionsHTML = '';
         let countCourses = 0;
 
-        if (window.allCourses && window.allCourses.length > 0) {
-            window.allCourses.forEach(c => {
+        // PERBAIKAN: Menggunakan konstanta COURSES yang sudah dideklarasikan
+        if (typeof COURSES !== 'undefined' && COURSES.length > 0) {
+            COURSES.forEach(c => {
                 countCourses++;
                 
-                const namaKelas = c.name || c.title || c.courseName || `Kelas ${c.id.substring(0,5)}`;
-                const namaDosen = c.dosen || c.dosenName || 'Dosen';
+                const namaKelas = c.name || `Kelas ${c.id.substring(0,5)}`;
+                // Karena di COURSES tidak ada data dosen, kita fallback ke nama user yang sedang login (sebagai dosen pembuat tugas)
+                const namaDosen = c.dosen || STATE.currentUser?.displayName || 'Dosen';
                 
                 // Auto-pilih kelas saat ini, atau pilih yang pertama jika di beranda
                 let isSelected = '';
@@ -1714,8 +1716,8 @@
                     isSelected = 'selected';
                 }
 
-                // Tampilan dropdown jadi: "Nama Kelas - Nama Dosen"
-                courseOptionsHTML += `<option value="${c.id}" data-name="${namaKelas}" data-dosen="${namaDosen}" ${isSelected}>${namaKelas} (Dosen: ${namaDosen})</option>`;
+                // Tampilan dropdown jadi: "Nama Kelas"
+                courseOptionsHTML += `<option value="${c.id}" data-name="${namaKelas}" data-dosen="${namaDosen}" ${isSelected}>${namaKelas}</option>`;
             });
         }
 
